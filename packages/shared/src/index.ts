@@ -1,3 +1,25 @@
-// Shared package barrel export
-// Types, schemas, and utils will be added as features are built
-export {};
+export type {
+  VideoFormat,
+  PipelineStatus,
+  PipelineStage,
+  PipelineErrorCode,
+  WordTimestamp,
+  SceneBoundary,
+  SceneBeat,
+  SceneDirection,
+  AnimationTheme,
+  ScenePlan,
+  PipelineJobDto,
+} from "./types/pipeline.types";
+
+export { FORMAT_WORD_RANGES, FORMAT_RESOLUTIONS } from "./types/format-config";
+
+export {
+  createPipelineJobSchema,
+  approveScriptSchema,
+  wordTimestampSchema,
+  sceneBoundarySchema,
+  sceneBoundariesResponseSchema,
+} from "./schemas/pipeline.schema";
+
+export { ANIMATION_THEMES, DEFAULT_THEME_ID } from "./themes/animation-themes";

@@ -8,12 +8,15 @@ import {
 } from "react";
 import type { HttpClient } from "../interfaces/http-client";
 import type { ConfigClient } from "../interfaces/config-client";
+import type { PipelineRepository } from "@/features/pipeline/interfaces/pipeline-repository";
 import { AppConfigServiceAdapter } from "../services/app-config-service.adapter";
 import { FetchHttpServiceAdapter } from "../services/fetch-http-service.adapter";
+import { HttpPipelineRepository } from "@/features/pipeline/repositories/http-pipeline.repository";
 
 export interface AppDependenciesContextValue {
   httpClient: HttpClient;
   configService: ConfigClient;
+  pipelineRepository: PipelineRepository;
 }
 
 const AppDependenciesContext =
@@ -27,7 +30,8 @@ export const AppDependenciesProvider = ({
   const dependencies = useMemo(() => {
     const configService = new AppConfigServiceAdapter();
     const httpClient = new FetchHttpServiceAdapter(configService);
-    return { httpClient, configService };
+    const pipelineRepository = new HttpPipelineRepository(httpClient);
+    return { httpClient, configService, pipelineRepository };
   }, []);
 
   return (

@@ -1,0 +1,73 @@
+import type { PipelineJobDto } from "@video-ai/shared";
+import type { HttpClient } from "@/shared/interfaces/http-client";
+import type {
+  PipelineRepository,
+  CreateJobParams,
+  ApproveScriptParams,
+} from "../interfaces/pipeline-repository";
+import type {
+  CreateJobResponse,
+  ListJobsResponse,
+  ListThemesResponse,
+  ActionResponse,
+} from "../types/pipeline.types";
+
+const BASE = "/api/pipeline";
+
+export class HttpPipelineRepository implements PipelineRepository {
+  constructor(private readonly http: HttpClient) {}
+
+  createJob(params: CreateJobParams): Promise<CreateJobResponse> {
+    return this.http.post<CreateJobResponse>({
+      path: `${BASE}/jobs`,
+      body: params,
+    });
+  }
+
+  getJobStatus(jobId: string): Promise<PipelineJobDto> {
+    return this.http.get<PipelineJobDto>({
+      path: `${BASE}/jobs/${jobId}`,
+    });
+  }
+
+  approveScript(params: ApproveScriptParams): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${params.jobId}/approve-script`,
+      body: { action: "approve" as const, script: params.script },
+    });
+  }
+
+  approveScenePlan(jobId: string): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${jobId}/approve-scene-plan`,
+      body: {},
+    });
+  }
+
+  regenerateScript(jobId: string): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${jobId}/regenerate-script`,
+      body: {},
+    });
+  }
+
+  regenerateScenePlan(jobId: string): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${jobId}/regenerate-scene-plan`,
+      body: {},
+    });
+  }
+
+  listJobs(page: number, limit: number): Promise<ListJobsResponse> {
+    return this.http.get<ListJobsResponse>({
+      path: `${BASE}/jobs`,
+      queryParams: { page: String(page), limit: String(limit) },
+    });
+  }
+
+  getThemes(): Promise<ListThemesResponse> {
+    return this.http.get<ListThemesResponse>({
+      path: `${BASE}/themes`,
+    });
+  }
+}

@@ -12,13 +12,24 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "test": "jest --passWithNoTests",
-    "test:coverage": "jest --coverage --passWithNoTests"
+    "db:seed": "tsx src/pipeline/infrastructure/seed/seed-themes.ts",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --passWithNoTests",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.53",
+    "@aws-sdk/client-s3": "^3.1031.0",
+    "@aws-sdk/s3-request-presigner": "^3.1031.0",
     "@prisma/client": "^6.9.0",
+    "@remotion/bundler": "^4.0.448",
+    "@remotion/renderer": "^4.0.448",
     "@video-ai/shared": "*",
+    "ai": "^6.0.168",
+    "bullmq": "^5.74.1",
+    "dotenv": "^17.4.2",
     "express": "^5.1.0",
+    "remotion": "^4.0.448",
     "zod": "^3.23.0"
   },
   "devDependencies": {

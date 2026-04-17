@@ -7,4 +7,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Models will be added as features are built through TDD
+// Pipeline job status enum
+enum PipelineStatus {
+  pending
+  processing
+  awaiting_script_review
+  awaiting_scene_plan_review
+  completed
+  failed
+}
+
+// Pipeline stage enum — tracks which stage is current
+enum PipelineStage {
+  script_generation
+  script_review
+  tts_generation
+  transcription
+  scene_planning
+  scene_plan_review
+  direction_generation
+  code_generation
+  rendering
+  done
+}
+
+// Video format enum
+enum VideoFormat {
+  reel
+  short
+  longform
+}
+
+model PipelineJob {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User inputs
+  topic   String      @db.VarChar(500)
+  format  VideoFormat
+  themeId String      // References AnimationTheme.id
+
+  // Pipeline state
+  status PipelineStatus @default(pending)
+  stage  PipelineStage  @default(script_generation)
+
+  // Error tracking
+  errorCode    String?
+  errorMessage String?
+
+  // Intermediate artifacts
+  generatedScript String? @db.Text
+  approvedScript  String? @db.Text
+  audioPath       String?
+  transcript      Json?
+  scenePlan       Json?
+  sceneDirections Json?
+  generatedCode   String? @db.Text
+  codePath        String?
+  videoPath       String?
+
+  // Progress tracking
+  progressPercent Int @default(0)
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model AnimationTheme {
+  id          String  @id
+  name        String
+  description String
+  palette     Json
+  isDefault   Boolean @default(false)
+  sortOrder   Int     @default(0)
+
+  @@index([sortOrder])
+}
