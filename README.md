@@ -4,12 +4,12 @@ AI-powered video editing platform.
 
 ## Architecture Decisions
 
-- **Monorepo**: Turborepo with npm workspaces
-- **Frontend**: Next.js + TypeScript + Tailwind CSS → deployed to Vercel
-- **Backend**: Express + TypeScript → deployed via Docker (Railway / Fly.io / VPS)
-- **Video Processing**: FFmpeg (via fluent-ffmpeg) with BullMQ job queue
-- **Database**: PostgreSQL with Prisma ORM
-- **Cache / Queue**: Redis (BullMQ for async video processing jobs)
+- **Monorepo**: Turborepo 2.9 with npm workspaces
+- **Frontend**: Next.js 16 + TypeScript + Tailwind CSS 4 → deployed to Vercel
+- **Backend**: Express 5 + TypeScript → deployed via Docker (Railway / Fly.io / VPS)
+- **Video Processing**: FFmpeg (direct via child_process — fluent-ffmpeg is deprecated) with BullMQ job queue
+- **Database**: PostgreSQL 16 with Prisma 7
+- **Cache / Queue**: Redis 7 (BullMQ 5.x for async video processing jobs)
 - **Object Storage**: MinIO (S3-compatible) for development, swap to AWS S3 for production
 - **Shared Code**: Shared TypeScript package for types, utils, and validation schemas
 
@@ -18,8 +18,8 @@ AI-powered video editing platform.
 ```
 video-ai/
 ├── apps/
-│   ├── web/                  # Next.js frontend (Vercel)
-│   └── api/                  # Express backend (Docker)
+│   ├── web/                  # Next.js 16 frontend (Vercel)
+│   └── api/                  # Express 5 backend (Docker)
 ├── packages/
 │   └── shared/               # Shared types, utils, constants
 ├── docker-compose.yml        # Local dev: Postgres, Redis, MinIO
@@ -30,16 +30,18 @@ video-ai/
 
 ## Tech Stack
 
-| Layer              | Technology                  | Purpose                          |
-| ------------------ | --------------------------- | -------------------------------- |
-| Frontend           | Next.js + Tailwind          | SSR, routing, UI                 |
-| Backend API        | Express + TypeScript        | REST API, video processing       |
-| Video Processing   | FFmpeg + fluent-ffmpeg      | Transcoding, trimming, merging   |
-| Job Queue          | BullMQ + Redis              | Async video processing tasks     |
-| Database           | PostgreSQL + Prisma         | Data persistence                 |
-| Object Storage     | MinIO (dev) / S3 (prod)     | Video file storage               |
-| Monorepo           | Turborepo                   | Build orchestration              |
-| Containerization   | Docker + Docker Compose     | Local dev & backend deployment   |
+| Layer              | Technology                  | Version | Purpose                          |
+| ------------------ | --------------------------- | ------- | -------------------------------- |
+| Frontend           | Next.js + Tailwind CSS      | 16 / 4  | SSR, routing, UI                 |
+| Backend API        | Express + TypeScript        | 5.2     | REST API, video processing       |
+| Video Processing   | FFmpeg (child_process)      | latest  | Transcoding, trimming, merging   |
+| Job Queue          | BullMQ + Redis              | 5.x / 7 | Async video processing tasks    |
+| Database           | PostgreSQL + Prisma         | 16 / 7  | Data persistence                 |
+| Object Storage     | MinIO (dev) / S3 (prod)     | latest  | Video file storage               |
+| Monorepo           | Turborepo                   | 2.9     | Build orchestration              |
+| Containerization   | Docker + Docker Compose     | latest  | Local dev & backend deployment   |
+
+> **Note:** `fluent-ffmpeg` was deprecated in May 2025. We use FFmpeg directly via `child_process` with a thin wrapper.
 
 ## Deployment Strategy
 
