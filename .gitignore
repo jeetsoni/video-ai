@@ -33,3 +33,10 @@ npm-debug.log*
 
 # Coverage
 coverage/
+
+# Prevention workflow state (local only)
+.avesta/workflow-state.json
+.avesta/hook-policy.json
+
+# Kiro settings (MCP config has local paths)
+.kiro/settings/
