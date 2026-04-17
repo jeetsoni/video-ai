@@ -1,0 +1,10 @@
+{
+  "name": "@video-ai/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Next.js app - run setup first'",
+    "build": "echo 'Next.js app - run setup first'",
+    "lint": "echo 'Next.js app - run setup first'"
+  }
+}

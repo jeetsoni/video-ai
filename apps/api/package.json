@@ -1,0 +1,10 @@
+{
+  "name": "@video-ai/api",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Express API - run setup first'",
+    "build": "echo 'Express API - run setup first'",
+    "lint": "echo 'Express API - run setup first'"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@video-ai/shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Shared package - run setup first'",
+    "lint": "echo 'Shared package - run setup first'"
+  }
+}
