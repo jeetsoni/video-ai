@@ -206,7 +206,7 @@ function EditableSceneBlock({
       </h3>
       <textarea
         ref={ref}
-        value={scene.body.trim()}
+        value={scene.body}
         onChange={(e) => {
           onChange(e.target.value);
           resize();
@@ -391,19 +391,25 @@ export function ScriptReviewEditor({
     setEditedSceneBodies(new Map());
   }, [script]);
 
-  const wordCount = useMemo(() => countWords(editedScript), [editedScript]);
   const scenes = useMemo(() => {
     if (apiScenes && apiScenes.length > 0) {
-      return apiScenes.map((s) => ({
+      return apiScenes.map((s, i) => ({
         heading: s.name,
-        body: s.text,
+        body: editedSceneBodies.has(i) ? editedSceneBodies.get(i)! : s.text,
         tags: [s.type],
         bodyStart: 0,
         bodyEnd: 0,
       }));
     }
     return parseScenes(editedScript);
-  }, [apiScenes, editedScript]);
+  }, [apiScenes, editedSceneBodies, editedScript]);
+  const wordCount = useMemo(() => {
+    if (apiScenes && apiScenes.length > 0) {
+      // Derive word count from the actual displayed scene bodies
+      return scenes.reduce((sum, s) => sum + countWords(s.body), 0);
+    }
+    return countWords(editedScript);
+  }, [apiScenes, scenes, editedScript]);
   const range = FORMAT_WORD_RANGES[format];
   const isUnderMinimum = wordCount < 10;
   const isEdited = editedScript !== script;
@@ -415,18 +421,12 @@ export function ScriptReviewEditor({
         setEditedSceneBodies((prev) => {
           const next = new Map(prev);
           next.set(sceneIndex, newBody);
-          return next;
-        });
-        // Reconstruct the full script from all scene bodies
-        setEditedScript(() => {
+          // Also reconstruct the full script from the updated map
           const parts = apiScenes.map((s, i) =>
-            editedSceneBodies.has(i) && i !== sceneIndex
-              ? editedSceneBodies.get(i)!
-              : i === sceneIndex
-                ? newBody
-                : s.text,
+            i === sceneIndex ? newBody : next.has(i) ? next.get(i)! : s.text,
           );
-          return parts.join("\n\n");
+          setEditedScript(parts.join("\n\n"));
+          return next;
         });
       } else {
         setEditedScript((prev) => {
@@ -441,16 +441,26 @@ export function ScriptReviewEditor({
         });
       }
     },
-    [apiScenes, editedSceneBodies],
+    [apiScenes],
   );
 
   const handleApprove = useCallback(() => {
-    const scriptToSend = isEdited ? editedScript : undefined;
+    const scriptToSend = isEdited && editedScript.trim() ? editedScript : undefined;
     if (apiScenes && apiScenes.length > 0) {
-      const reconstructedScenes = apiScenes.map((s, i) => ({
-        ...s,
-        text: editedSceneBodies.has(i) ? editedSceneBodies.get(i)! : s.text,
-      }));
+      // Only send scenes if the user actually edited any scene body
+      const hasEditedScenes = editedSceneBodies.size > 0;
+      const reconstructedScenes = hasEditedScenes
+        ? apiScenes
+            .map((s, i) => ({
+              id: s.id,
+              name: s.name,
+              type: s.type,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              text: editedSceneBodies.has(i) ? editedSceneBodies.get(i)! : s.text,
+            }))
+            .filter((s) => s.text.trim().length > 0)
+        : undefined;
       onApprove(scriptToSend, reconstructedScenes);
     } else {
       onApprove(scriptToSend);
