@@ -1,4 +1,4 @@
-import type { AnimationTheme } from "../types/pipeline.types";
+import type { AnimationTheme } from "../types/pipeline.types.js";
 
 export const ANIMATION_THEMES: AnimationTheme[] = [
   {

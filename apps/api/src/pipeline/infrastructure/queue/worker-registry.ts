@@ -1,4 +1,5 @@
 import { Worker, type ConnectionOptions, type Job } from "bullmq";
+import { Redis } from "ioredis";
 import type { PrismaClient } from "@prisma/client";
 import type { Queue } from "bullmq";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
@@ -7,7 +8,8 @@ import { BullMQQueueService } from "@/pipeline/infrastructure/queue/queue-servic
 import { PIPELINE_QUEUE_NAME } from "@/pipeline/infrastructure/queue/pipeline-queue.js";
 
 // Service adapters
-import { AIScriptGenerator } from "@/pipeline/infrastructure/services/ai-script-generator.js";
+import { AIStreamingScriptGenerator } from "@/pipeline/infrastructure/services/ai-streaming-script-generator.js";
+import { RedisStreamEventPublisher } from "@/shared/infrastructure/streaming/stream-event-publisher.js";
 import { ElevenLabsTTSService } from "@/pipeline/infrastructure/services/elevenlabs-tts-service.js";
 import { AITranscriptionService } from "@/pipeline/infrastructure/services/ai-transcription-service.js";
 import { TextTimestampMapper } from "@/pipeline/infrastructure/services/text-timestamp-mapper.js";
@@ -46,7 +48,9 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const queueService = new BullMQQueueService(queue);
 
   // Service adapters
-  const scriptGenerator = new AIScriptGenerator();
+  const streamingScriptGenerator = new AIStreamingScriptGenerator();
+  const redisClient = new Redis({ host: (connection as { host?: string }).host ?? "localhost", port: (connection as { port?: number }).port ?? 6379 });
+  const eventPublisher = new RedisStreamEventPublisher(redisClient);
   const ttsService = new ElevenLabsTTSService({ apiKey: elevenLabsApiKey }, objectStore);
   const transcriptionService = new AITranscriptionService(objectStore);
   const timestampMapper = new TextTimestampMapper();
@@ -55,7 +59,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const videoRenderer = new RemotionVideoRenderer(objectStore);
 
   // Pipeline workers (application-level handlers)
-  const scriptGenerationWorker = new ScriptGenerationWorker(scriptGenerator, jobRepository);
+  const scriptGenerationWorker = new ScriptGenerationWorker(streamingScriptGenerator, eventPublisher, jobRepository);
   const ttsGenerationWorker = new TTSGenerationWorker(ttsService, jobRepository, queueService, elevenLabsVoiceId);
   const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService);
   const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService);
@@ -101,6 +105,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   return {
     async close(): Promise<void> {
       await bullWorker.close();
+      await redisClient.quit();
     },
   };
 }

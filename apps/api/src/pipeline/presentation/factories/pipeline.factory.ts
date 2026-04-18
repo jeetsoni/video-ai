@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { Queue } from "bullmq";
+import { Redis } from "ioredis";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import { PrismaPipelineJobRepository } from "@/pipeline/infrastructure/repositories/prisma-pipeline-job.repository.js";
 import { BullMQQueueService } from "@/pipeline/infrastructure/queue/queue-service.js";
@@ -10,12 +11,17 @@ import { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-p
 import { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
+import { StreamController } from "@/pipeline/presentation/controllers/stream.controller.js";
+import { RedisStreamEventBuffer } from "@/shared/infrastructure/streaming/stream-event-buffer.js";
+import { RedisStreamEventSubscriber } from "@/shared/infrastructure/streaming/stream-event-subscriber.js";
+import { ExpressSSEResponseHelper } from "@/shared/infrastructure/streaming/sse-response-helper.js";
 import { createPipelineRouter } from "@/pipeline/presentation/routes/pipeline.routes.js";
 
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
   queue: Queue;
   objectStore: ObjectStore;
+  redisConnection: { host: string; port: number };
 }): Router {
   // 1. Infrastructure
   const repository = new PrismaPipelineJobRepository(deps.prisma);
@@ -35,7 +41,7 @@ export function createPipelineModule(deps: {
   const getThemesFn = () =>
     deps.prisma.animationTheme.findMany({ orderBy: { sortOrder: "asc" } });
 
-  // 5. Controller
+  // 5. Pipeline controller
   const controller = new PipelineController(
     createPipelineJobUseCase,
     getJobStatusUseCase,
@@ -45,6 +51,23 @@ export function createPipelineModule(deps: {
     getThemesFn,
   );
 
-  // 6. Router
-  return createPipelineRouter(controller);
+  // 6. Streaming SSE infrastructure
+  const redisClient = new Redis({
+    host: deps.redisConnection.host,
+    port: deps.redisConnection.port,
+  });
+  const streamEventBuffer = new RedisStreamEventBuffer(redisClient);
+  const streamEventSubscriber = new RedisStreamEventSubscriber(redisClient);
+  const sseResponseHelper = new ExpressSSEResponseHelper();
+
+  // 7. Stream controller
+  const streamController = new StreamController(
+    streamEventBuffer,
+    streamEventSubscriber,
+    sseResponseHelper,
+    repository,
+  );
+
+  // 8. Router
+  return createPipelineRouter(controller, streamController);
 }

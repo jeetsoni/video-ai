@@ -44,7 +44,7 @@ async function main() {
   const queue = createPipelineQueue(redisConnection);
 
   // --- Express app ---
-  const app = createApp({ prisma, queue, objectStore });
+  const app = createApp({ prisma, queue, objectStore, redisConnection });
 
   // --- BullMQ workers ---
   const workerRegistry = createWorkerRegistry({

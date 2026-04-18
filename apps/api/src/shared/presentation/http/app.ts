@@ -9,6 +9,7 @@ export function createApp(deps?: {
   prisma: PrismaClient;
   queue: Queue;
   objectStore: ObjectStore;
+  redisConnection: { host: string; port: number };
 }): express.Express {
   const app = express();
 

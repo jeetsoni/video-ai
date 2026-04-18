@@ -152,6 +152,50 @@ describe("ScriptReviewEditor", () => {
     expect(screen.queryByText("Suggestion")).not.toBeInTheDocument();
   });
 
+  describe("real-time prop sync during streaming", () => {
+    it("updates word count when script prop changes", () => {
+      const shortScript =
+        "This is a short script with just enough words to display a word count in the sidebar.";
+      const longerScript =
+        shortScript +
+        " Now we add more words to simulate streaming chunks arriving and the script growing over time with additional content.";
+
+      const { rerender } = render(
+        <ScriptReviewEditor {...defaultProps} script={shortScript} isLoading />,
+      );
+
+      const initialWordCount = screen.getByText(/^\d+ words$/);
+      const initialCount = parseInt(initialWordCount.textContent!, 10);
+
+      rerender(
+        <ScriptReviewEditor {...defaultProps} script={longerScript} isLoading />,
+      );
+
+      const updatedWordCount = screen.getByText(/^\d+ words$/);
+      const updatedCount = parseInt(updatedWordCount.textContent!, 10);
+
+      expect(updatedCount).toBeGreaterThan(initialCount);
+    });
+
+    it("updates editor content when script prop changes", () => {
+      const initialScript =
+        "Initial script content with enough words to pass the minimum word count validation for testing.";
+      const updatedScript =
+        initialScript + " Additional streamed content arrives here.";
+
+      const { rerender } = render(
+        <ScriptReviewEditor {...defaultProps} script={initialScript} isLoading />,
+      );
+
+      rerender(
+        <ScriptReviewEditor {...defaultProps} script={updatedScript} isLoading />,
+      );
+
+      const textarea = screen.getByLabelText(/Edit Scene/);
+      expect(textarea).toHaveValue(updatedScript.trim());
+    });
+  });
+
   describe("with API scenes prop", () => {
     it("renders scene blocks from API scenes instead of parsing", () => {
       render(<ScriptReviewEditor {...defaultProps} scenes={API_SCENES} />);

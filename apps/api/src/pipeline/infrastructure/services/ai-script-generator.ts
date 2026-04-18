@@ -119,20 +119,6 @@ export class AIScriptGenerator implements ScriptGenerator {
         }
       }
 
-      // Validate text coverage: concatenated scene texts ≈ script text
-      const concatenatedSceneText = normalizeWhitespace(
-        sceneBlocks.map((s) => s.text).join(" ")
-      );
-      const normalizedScript = normalizeWhitespace(script);
-
-      if (concatenatedSceneText !== normalizedScript) {
-        return Result.fail(
-          PipelineError.scriptGenerationFailed(
-            "Scene text concatenation does not match the full script text"
-          )
-        );
-      }
-
       // Map scene blocks to SceneBoundary with placeholder timestamps
       const scenes: SceneBoundary[] = sceneBlocks.map((block) => ({
         id: block.id,
@@ -143,7 +129,14 @@ export class AIScriptGenerator implements ScriptGenerator {
         text: block.text,
       }));
 
-      return Result.ok({ script: script.trim(), scenes });
+      // Use concatenated scene text as the canonical script to guarantee
+      // consistency. LLMs frequently produce slight mismatches between the
+      // top-level script field and the joined scene texts.
+      const canonicalScript = normalizeWhitespace(
+        sceneBlocks.map((s) => s.text).join(" "),
+      );
+
+      return Result.ok({ script: canonicalScript, scenes });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown script generation error";

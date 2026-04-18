@@ -153,6 +153,24 @@ function getComplexityLabel(wordCount: number): string {
   return "High";
 }
 
+/* ─── Typing Indicator ─── */
+function TypingIndicator() {
+  return (
+    <div
+      role="status"
+      aria-label="Generating script content"
+      className="flex items-center gap-1.5 py-2"
+    >
+      <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:0ms]" />
+      <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:150ms]" />
+      <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:300ms]" />
+      <span className="ml-2 text-xs font-medium text-primary/60 animate-pulse">
+        Generating…
+      </span>
+    </div>
+  );
+}
+
 /* ─── Inline-editable Scene Block ─── */
 function EditableSceneBlock({
   scene,
@@ -362,6 +380,16 @@ export function ScriptReviewEditor({
   scenes: apiScenes,
 }: ScriptReviewEditorProps) {
   const [editedScript, setEditedScript] = useState(script);
+  /** Track edited scene bodies when using API scenes */
+  const [editedSceneBodies, setEditedSceneBodies] = useState<Map<number, string>>(new Map());
+
+  // Sync editedScript with the script prop when it changes (e.g. during streaming).
+  // useState only captures the initial value, so without this effect the editor
+  // and InsightsSidebar would not reflect new chunks arriving via props.
+  useEffect(() => {
+    setEditedScript(script);
+    setEditedSceneBodies(new Map());
+  }, [script]);
 
   const wordCount = useMemo(() => countWords(editedScript), [editedScript]);
   const scenes = useMemo(() => {
@@ -379,9 +407,6 @@ export function ScriptReviewEditor({
   const range = FORMAT_WORD_RANGES[format];
   const isUnderMinimum = wordCount < 10;
   const isEdited = editedScript !== script;
-
-  /** Track edited scene bodies when using API scenes */
-  const [editedSceneBodies, setEditedSceneBodies] = useState<Map<number, string>>(new Map());
 
   /** Replace a single scene's body text within the full script string */
   const handleSceneChange = useCallback(
@@ -490,29 +515,30 @@ export function ScriptReviewEditor({
                   onChange={(newBody) => handleSceneChange(i, newBody)}
                 />
               ))}
+              {isLoading && <TypingIndicator />}
             </div>
+          </div>
 
-            {/* Word count status bar */}
-            <div className="border-t border-outline-variant bg-surface-container-high/30 px-8 py-3">
-              <div className="flex items-center justify-between text-xs">
-                <span
-                  className={cn(
-                    "text-on-surface-variant",
-                    isUnderMinimum && "text-destructive",
-                  )}
-                >
-                  {wordCount} words
-                </span>
-                <span className="text-on-surface-variant">
-                  {range.min}–{range.max} recommended for {format}
-                </span>
-              </div>
-              {isUnderMinimum && (
-                <p role="alert" className="mt-1 text-sm text-destructive">
-                  Script must contain at least 10 words
-                </p>
-              )}
+          {/* Word count status bar — pinned below the scroll area */}
+          <div className="border-t border-outline-variant bg-surface-container-high/30 px-8 py-3">
+            <div className="flex items-center justify-between text-xs">
+              <span
+                className={cn(
+                  "text-on-surface-variant",
+                  !isLoading && isUnderMinimum && "text-destructive",
+                )}
+              >
+                {wordCount} words
+              </span>
+              <span className="text-on-surface-variant">
+                {range.min}–{range.max} recommended for {format}
+              </span>
             </div>
+            {!isLoading && isUnderMinimum && (
+              <p role="alert" className="mt-1 text-sm text-destructive">
+                Script must contain at least 10 words
+              </p>
+            )}
           </div>
 
           {/* Footer Actions */}

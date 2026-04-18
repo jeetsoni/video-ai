@@ -1,4 +1,4 @@
-import type { VideoFormat } from "./pipeline.types";
+import type { VideoFormat } from "./pipeline.types.js";
 
 export const FORMAT_WORD_RANGES: Record<VideoFormat, { min: number; max: number }> = {
   reel: { min: 50, max: 150 },

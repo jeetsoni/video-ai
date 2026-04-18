@@ -1,21 +1,35 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type { SceneBoundary } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { usePipelineJob } from "@/features/pipeline/hooks/use-pipeline-job";
+import { useStreamingScript } from "@/features/pipeline/hooks/use-streaming-script";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 import { JobStatusTracker } from "@/features/pipeline/components/job-status-tracker";
 import { ScriptReviewEditor } from "@/features/pipeline/components/script-review-editor";
-import { Button } from "@/shared/components/ui/button";
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { pipelineRepository } = useAppDependencies();
+  const { pipelineRepository, configService } = useAppDependencies();
 
   const { job, isLoading, error, refetch } = usePipelineJob({
     repository: pipelineRepository,
     jobId: id,
+  });
+
+  // Always call the streaming hook (React rules of hooks — no conditional calls).
+  // The hook internally checks job stage and skips SSE when the job is already complete.
+  const {
+    script: streamedScript,
+    scenes: streamedScenes,
+    status: streamingStatus,
+    error: streamingError,
+  } = useStreamingScript({
+    jobId: id,
+    apiBaseUrl: configService.getApiBaseUrl(),
   });
 
   const handleApproveScript = useCallback(
@@ -25,6 +39,14 @@ export default function JobDetailPage() {
     },
     [pipelineRepository, id, refetch],
   );
+
+  // Refetch job data when streaming completes so the backend status
+  // is up-to-date (script_review) before the user can approve.
+  useEffect(() => {
+    if (streamingStatus === "complete") {
+      refetch();
+    }
+  }, [streamingStatus, refetch]);
 
   const handleRegenerateScript = useCallback(async () => {
     await pipelineRepository.regenerateScript(id);
@@ -49,20 +71,66 @@ export default function JobDetailPage() {
     );
   }
 
-  const isScriptReview =
+  // Streaming error: show error message with retry button
+  if (streamingStatus === "error") {
+    return (
+      <main className="flex h-[calc(100vh-4rem)] items-center justify-center p-10">
+        <div className="w-full max-w-md rounded-xl bg-destructive/10 p-8 text-center">
+          <h2 className="text-lg font-semibold text-destructive">
+            Script generation failed
+          </h2>
+          {streamingError && (
+            <p className="mt-2 text-sm text-destructive/80">{streamingError}</p>
+          )}
+          <Button
+            className="mt-6 gap-2"
+            onClick={handleRegenerateScript}
+          >
+            <RefreshCw className="size-4" />
+            Retry
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  // Streaming view: job is in script_generation stage and the hook is
+  // loading (initializing SSE), actively streaming, or has just completed.
+  // Include "loading" so the script review editor shows immediately with a
+  // loading state instead of flashing the status tracker screen.
+  const isStreamingActive =
+    job.stage === "script_generation" &&
+    (streamingStatus === "loading" || streamingStatus === "streaming" || streamingStatus === "complete");
+
+  // Also show the streaming-sourced editor when the hook completed and the
+  // job is at script_review (just transitioned after streaming finished).
+  const isStreamingComplete =
+    streamingStatus === "complete" &&
+    streamedScript.length > 0 &&
+    (job.stage === "script_generation" || job.stage === "script_review");
+
+  // Existing DB-loaded script review path (job already at script_review with data from polling)
+  const isDbScriptReview =
     job.status === "awaiting_script_review" && !!job.generatedScript;
 
-  // Script review gets a full-width cinematic layout
-  if (isScriptReview) {
+  // Render the ScriptReviewEditor when streaming is active/complete OR when
+  // the hook resolved from DB for a completed job.
+  if (isStreamingActive || isStreamingComplete || isDbScriptReview) {
+    // Prefer streaming data when available; fall back to DB-loaded data from usePipelineJob
+    const script = streamedScript.length > 0 ? streamedScript : (job.generatedScript ?? "");
+    const scenes = streamedScenes.length > 0 ? streamedScenes : (job.generatedScenes ?? []);
+    const isStreaming = streamingStatus === "streaming" || streamingStatus === "loading";
+
     return (
       <main className="flex h-[calc(100vh-4rem)] flex-col p-10">
         <ScriptReviewEditor
-          script={job.generatedScript!}
+          script={script}
           format={job.format}
           topic={job.topic}
-          scenes={job.generatedScenes}
+          scenes={scenes}
           onApprove={handleApproveScript}
           onRegenerate={handleRegenerateScript}
+          isLoading={isStreaming}
         />
       </main>
     );

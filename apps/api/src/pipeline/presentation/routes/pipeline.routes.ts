@@ -3,8 +3,9 @@ import type { Request, Response } from "express";
 import { HttpRequest } from "@/shared/presentation/http/http-request.js";
 import { HttpResponse } from "@/shared/presentation/http/http-response.js";
 import type { PipelineController } from "../controllers/pipeline.controller.js";
+import type { StreamController } from "../controllers/stream.controller.js";
 
-export function createPipelineRouter(controller: PipelineController): Router {
+export function createPipelineRouter(controller: PipelineController, streamController: StreamController): Router {
   const router = Router();
 
   router.post("/jobs", async (req: Request, res: Response) => {
@@ -35,6 +36,10 @@ export function createPipelineRouter(controller: PipelineController): Router {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.regenerateScript(httpReq, httpRes);
+  });
+
+  router.get("/jobs/:id/stream", async (req: Request, res: Response) => {
+    await streamController.streamScriptGeneration(req, res);
   });
 
   router.get("/themes", async (req: Request, res: Response) => {
