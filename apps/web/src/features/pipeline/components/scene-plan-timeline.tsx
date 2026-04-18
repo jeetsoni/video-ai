@@ -4,14 +4,14 @@ import type { SceneBoundary } from "@video-ai/shared";
 import { cn } from "@/shared/lib/utils";
 
 const TYPE_COLORS: Record<SceneBoundary["type"], string> = {
-  Hook: "bg-cyan-500",
-  Analogy: "bg-amber-500",
-  Bridge: "bg-emerald-500",
-  Architecture: "bg-violet-500",
-  Spotlight: "bg-rose-500",
-  Comparison: "bg-blue-500",
-  Power: "bg-orange-500",
-  CTA: "bg-pink-500",
+  Hook: "bg-primary",
+  Analogy: "bg-secondary",
+  Bridge: "bg-[#5fffb0]",
+  Architecture: "bg-primary-dim",
+  Spotlight: "bg-destructive",
+  Comparison: "bg-[#7c6aff]",
+  Power: "bg-secondary",
+  CTA: "bg-primary",
 };
 
 interface ScenePlanTimelineProps {
@@ -28,7 +28,7 @@ export function ScenePlanTimeline({
   return (
     <div className="space-y-2">
       <div
-        className="flex h-10 w-full overflow-hidden rounded-lg"
+        className="flex h-10 w-full gap-2 overflow-hidden rounded-xl"
         role="img"
         aria-label="Scene plan timeline"
       >
@@ -40,7 +40,7 @@ export function ScenePlanTimeline({
             <div
               key={scene.id}
               className={cn(
-                "flex items-center justify-center overflow-hidden border-r border-background/30 last:border-r-0",
+                "flex items-center justify-center overflow-hidden rounded-md",
                 TYPE_COLORS[scene.type],
               )}
               style={{ width: `${widthPercent}%` }}
@@ -53,7 +53,7 @@ export function ScenePlanTimeline({
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-3 text-xs text-on-surface-variant">
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
           <div key={type} className="flex items-center gap-1">
             <span

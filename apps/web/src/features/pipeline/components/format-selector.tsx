@@ -53,10 +53,10 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
               }
             }}
             className={cn(
-              "cursor-pointer transition-colors",
+              "cursor-pointer transition-all",
               isSelected
-                ? "border-primary ring-1 ring-primary"
-                : "hover:border-muted-foreground/50"
+                ? "bg-surface-container-highest shadow-[0_0_0_2px_rgba(167,165,255,0.4)]"
+                : "hover:bg-surface-container-high"
             )}
           >
             <CardHeader>
@@ -64,7 +64,7 @@ export function FormatSelector({ value, onChange }: FormatSelectorProps) {
               <CardDescription>{option.aspectRatio}</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 {option.durationRange}
               </p>
             </CardContent>

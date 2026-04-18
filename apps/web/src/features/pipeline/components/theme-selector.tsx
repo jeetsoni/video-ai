@@ -32,7 +32,7 @@ function AccentSwatches({ theme }: { theme: AnimationTheme }) {
       {colors.map((color, i) => (
         <span
           key={i}
-          className="h-4 w-4 rounded-full border border-border"
+          className="h-4 w-4 rounded-full"
           style={{ backgroundColor: color }}
         />
       ))}
@@ -61,10 +61,10 @@ export function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
               }
             }}
             className={cn(
-              "cursor-pointer transition-colors",
+              "cursor-pointer transition-all",
               isSelected
-                ? "border-primary ring-1 ring-primary"
-                : "hover:border-muted-foreground/50"
+                ? "bg-surface-container-highest shadow-[0_0_0_2px_rgba(167,165,255,0.4)]"
+                : "hover:bg-surface-container-high"
             )}
           >
             <CardHeader>

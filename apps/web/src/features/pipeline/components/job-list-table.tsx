@@ -18,10 +18,10 @@ const STATUS_BADGE: Record<
   { label: string; variant: "secondary" | "default" | "outline" | "destructive"; className?: string }
 > = {
   pending: { label: "Pending", variant: "secondary" },
-  processing: { label: "Processing", variant: "default", className: "bg-cyan-600 text-white" },
-  awaiting_script_review: { label: "Script Review", variant: "outline", className: "border-amber-500 text-amber-500" },
-  awaiting_scene_plan_review: { label: "Scene Review", variant: "outline", className: "border-amber-500 text-amber-500" },
-  completed: { label: "Completed", variant: "default", className: "bg-emerald-600 text-white" },
+  processing: { label: "Processing", variant: "default", className: "bg-primary/20 text-primary" },
+  awaiting_script_review: { label: "Script Review", variant: "secondary", className: "bg-secondary/20 text-secondary" },
+  awaiting_scene_plan_review: { label: "Scene Review", variant: "secondary", className: "bg-secondary/20 text-secondary" },
+  completed: { label: "Completed", variant: "default", className: "bg-stage-complete/20 text-stage-complete" },
   failed: { label: "Failed", variant: "destructive" },
 };
 
@@ -79,7 +79,7 @@ export function JobListTable({
         <TableBody>
           {jobs.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
+              <TableCell colSpan={6} className="text-center text-on-surface-variant">
                 No jobs found.
               </TableCell>
             </TableRow>
@@ -120,7 +120,7 @@ export function JobListTable({
         >
           Previous
         </Button>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm text-on-surface-variant">
           Page {page} of {totalPages}
         </span>
         <Button

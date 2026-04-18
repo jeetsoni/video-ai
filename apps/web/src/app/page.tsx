@@ -38,14 +38,14 @@ export default function Home() {
   }, [fetchJobs, page]);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Video AI</h1>
+    <main className="mx-auto max-w-4xl px-6 py-16">
+      <div className="mb-10 flex items-center justify-between">
+        <h1 className="text-4xl font-bold tracking-tight text-on-surface">Video AI</h1>
         <Button onClick={() => router.push("/create")}>Create New Video</Button>
       </div>
 
       {isLoading ? (
-        <p className="text-muted-foreground">Loading jobs…</p>
+        <p className="text-on-surface-variant">Loading jobs…</p>
       ) : (
         <JobListTable
           jobs={jobs}

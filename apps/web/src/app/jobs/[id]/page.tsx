@@ -44,15 +44,15 @@ export default function JobDetailPage() {
 
   if (isLoading) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-12">
-        <p className="text-muted-foreground">Loading job…</p>
+      <main className="mx-auto max-w-3xl px-6 py-16">
+        <p className="text-on-surface-variant">Loading job…</p>
       </main>
     );
   }
 
   if (error || !job) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-12">
+      <main className="mx-auto max-w-3xl px-6 py-16">
         <p className="text-destructive">
           {error?.message ?? "Job not found"}
         </p>
@@ -66,10 +66,10 @@ export default function JobDetailPage() {
       : 0;
 
   return (
-    <main className="mx-auto max-w-3xl space-y-8 px-4 py-12">
+    <main className="mx-auto max-w-3xl space-y-10 px-6 py-16">
       <div>
-        <h1 className="text-2xl font-bold">{job.topic}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-on-surface">{job.topic}</h1>
+        <p className="mt-1 text-sm text-on-surface-variant">
           {job.format} &middot; {job.themeId}
         </p>
       </div>
@@ -123,7 +123,7 @@ export default function JobDetailPage() {
       )}
 
       {job.status === "failed" && (
-        <section className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+        <section className="rounded-xl bg-destructive/10 p-5">
           <p className="font-medium text-destructive">Pipeline failed</p>
           {job.errorMessage && (
             <p className="mt-1 text-sm text-destructive/80">{job.errorMessage}</p>

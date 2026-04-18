@@ -31,12 +31,12 @@ export function ScenePlanCard({ scene }: ScenePlanCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        <div className="flex gap-4 text-muted-foreground">
+        <div className="flex gap-4 text-on-surface-variant">
           <span>Start: {formatTime(scene.startTime)}</span>
           <span>End: {formatTime(scene.endTime)}</span>
           <span>Duration: {duration.toFixed(1)}s</span>
         </div>
-        <p className="text-muted-foreground">{truncateText(scene.text)}</p>
+        <p className="text-on-surface-variant">{truncateText(scene.text)}</p>
       </CardContent>
     </Card>
   );

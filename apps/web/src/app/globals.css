@@ -3,29 +3,55 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── Surface hierarchy (tonal depth) ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
+  /* ── Brand accents ── */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-dim: var(--primary-dim);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+
+  /* ── Semantic surfaces ── */
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+
+  /* ── Surface containers (tonal layering) ── */
+  --color-surface: var(--surface);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  --color-surface-tint: var(--surface-tint);
+
+  /* ── On-surface text ── */
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+
+  /* ── Borders & rings ── */
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-outline-variant: var(--outline-variant);
+
+  /* ── Chart colors ── */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* ── Sidebar ── */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -34,120 +60,234 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── Pipeline stage semantic colors ── */
   --color-stage-pending: var(--stage-pending);
   --color-stage-active: var(--stage-active);
   --color-stage-review: var(--stage-review);
   --color-stage-complete: var(--stage-complete);
   --color-stage-failed: var(--stage-failed);
+
+  /* ── Radii ── */
   --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-md: 0.375rem;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: 0.75rem;
+
+  /* ── Spacing ── */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* ── Font family ── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Light mode — kept minimal; this app is dark-first
+   ═══════════════════════════════════════════════════════════ */
 :root {
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --stage-pending: #A1A1AA;
-  --stage-active: #06B6D4;
-  --stage-review: #F59E0B;
-  --stage-complete: #10B981;
-  --stage-failed: #EF4444;
-}
 
-.dark {
-  /* Background layers — zinc progression */
-  --background: #09090B;
-  --foreground: #FAFAFA;
-  --card: #18181B;
-  --card-foreground: #FAFAFA;
-  --popover: #18181B;
-  --popover-foreground: #FAFAFA;
+  --background: #060e20;
+  --foreground: #dee5ff;
+  --card: #091328;
+  --card-foreground: #dee5ff;
+  --popover: #192540;
+  --popover-foreground: #dee5ff;
 
-  /* Brand accent — cyan for primary actions */
-  --primary: #06B6D4;
-  --primary-foreground: #09090B;
+  --primary: #a7a5ff;
+  --primary-foreground: #060e20;
+  --primary-dim: #645efb;
+  --secondary: #ac8aff;
+  --secondary-foreground: #060e20;
 
-  /* Secondary — subtle zinc */
-  --secondary: #27272A;
-  --secondary-foreground: #FAFAFA;
+  --muted: #141f38;
+  --muted-foreground: #a3aac4;
+  --accent: #141f38;
+  --accent-foreground: #dee5ff;
+  --destructive: #ff5c5c;
 
-  /* Muted — zinc-800 backgrounds, zinc-400 text */
-  --muted: #27272A;
-  --muted-foreground: #A1A1AA;
+  /* Surface containers — tonal depth stack */
+  --surface: #060e20;
+  --surface-container-lowest: #000000;
+  --surface-container-low: #091328;
+  --surface-container-high: #141f38;
+  --surface-container-highest: #192540;
+  --surface-variant: #192540;
+  --surface-tint: #a7a5ff;
 
-  /* Accent — same as muted for consistency */
-  --accent: #27272A;
-  --accent-foreground: #FAFAFA;
+  /* On-surface text */
+  --on-surface: #dee5ff;
+  --on-surface-variant: #a3aac4;
 
-  /* Destructive — red-500 */
-  --destructive: #EF4444;
-
-  /* Borders & rings — zinc-800 borders, cyan ring */
-  --border: #27272A;
-  --input: #27272A;
-  --ring: #06B6D4;
+  /* Borders — ghost borders only */
+  --border: rgba(64, 72, 93, 0.15);
+  --input: #141f38;
+  --ring: #a7a5ff;
+  --outline-variant: rgba(64, 72, 93, 0.15);
 
   /* Chart colors */
-  --chart-1: #06B6D4;
-  --chart-2: #10B981;
-  --chart-3: #F59E0B;
-  --chart-4: #8B5CF6;
-  --chart-5: #EF4444;
+  --chart-1: #a7a5ff;
+  --chart-2: #ac8aff;
+  --chart-3: #645efb;
+  --chart-4: #7c6aff;
+  --chart-5: #ff5c5c;
 
   /* Sidebar */
-  --sidebar: #18181B;
-  --sidebar-foreground: #FAFAFA;
-  --sidebar-primary: #06B6D4;
-  --sidebar-primary-foreground: #09090B;
-  --sidebar-accent: #27272A;
-  --sidebar-accent-foreground: #FAFAFA;
-  --sidebar-border: #27272A;
-  --sidebar-ring: #06B6D4;
+  --sidebar: #091328;
+  --sidebar-foreground: #dee5ff;
+  --sidebar-primary: #a7a5ff;
+  --sidebar-primary-foreground: #060e20;
+  --sidebar-accent: #141f38;
+  --sidebar-accent-foreground: #dee5ff;
+  --sidebar-border: rgba(64, 72, 93, 0.15);
+  --sidebar-ring: #a7a5ff;
 
   /* Pipeline stage semantic colors */
-  --stage-pending: #A1A1AA;
-  --stage-active: #06B6D4;
-  --stage-review: #F59E0B;
-  --stage-complete: #10B981;
-  --stage-failed: #EF4444;
+  --stage-pending: #a3aac4;
+  --stage-active: #a7a5ff;
+  --stage-review: #ac8aff;
+  --stage-complete: #5fffb0;
+  --stage-failed: #ff5c5c;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Dark mode — the primary experience ("The Digital Auteur")
+   Deep indigos + electric violets, no-line rule
+   ═══════════════════════════════════════════════════════════ */
+.dark {
+  /* Background layers — deep indigo progression */
+  --background: #060e20;
+  --foreground: #dee5ff;
+  --card: #091328;
+  --card-foreground: #dee5ff;
+  --popover: #192540;
+  --popover-foreground: #dee5ff;
+
+  /* Brand accent — electric violet/indigo */
+  --primary: #a7a5ff;
+  --primary-foreground: #060e20;
+  --primary-dim: #645efb;
+
+  /* Secondary — soft violet */
+  --secondary: #ac8aff;
+  --secondary-foreground: #060e20;
+
+  /* Muted — deep indigo surfaces */
+  --muted: #141f38;
+  --muted-foreground: #a3aac4;
+
+  /* Accent */
+  --accent: #141f38;
+  --accent-foreground: #dee5ff;
+
+  /* Destructive */
+  --destructive: #ff5c5c;
+
+  /* Surface containers — tonal depth stack */
+  --surface: #060e20;
+  --surface-container-lowest: #000000;
+  --surface-container-low: #091328;
+  --surface-container-high: #141f38;
+  --surface-container-highest: #192540;
+  --surface-variant: #192540;
+  --surface-tint: #a7a5ff;
+
+  /* On-surface text */
+  --on-surface: #dee5ff;
+  --on-surface-variant: #a3aac4;
+
+  /* Borders — ghost borders only (no-line rule) */
+  --border: rgba(64, 72, 93, 0.15);
+  --input: #141f38;
+  --ring: #a7a5ff;
+  --outline-variant: rgba(64, 72, 93, 0.15);
+
+  /* Chart colors */
+  --chart-1: #a7a5ff;
+  --chart-2: #ac8aff;
+  --chart-3: #645efb;
+  --chart-4: #7c6aff;
+  --chart-5: #ff5c5c;
+
+  /* Sidebar */
+  --sidebar: #091328;
+  --sidebar-foreground: #dee5ff;
+  --sidebar-primary: #a7a5ff;
+  --sidebar-primary-foreground: #060e20;
+  --sidebar-accent: #141f38;
+  --sidebar-accent-foreground: #dee5ff;
+  --sidebar-border: rgba(64, 72, 93, 0.15);
+  --sidebar-ring: #a7a5ff;
+
+  /* Pipeline stage semantic colors */
+  --stage-pending: #a3aac4;
+  --stage-active: #a7a5ff;
+  --stage-review: #ac8aff;
+  --stage-complete: #5fffb0;
+  --stage-failed: #ff5c5c;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Base layer — cinematic defaults
+   ═══════════════════════════════════════════════════════════ */
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+
+  /* Editorial typography — tight headlines */
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    color: var(--on-surface);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Utility classes — Cinematic Workflow design tokens
+   ═══════════════════════════════════════════════════════════ */
+@layer utilities {
+  /* Glass & Gradient — glassmorphism for floating elements */
+  .glass {
+    background: rgba(25, 37, 64, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Signature CTA gradient — "lit from within" */
+  .gradient-primary {
+    background: linear-gradient(135deg, #a7a5ff 0%, #645efb 100%);
+  }
+
+  /* Ambient shadow — surface-tint glow instead of black */
+  .shadow-ambient {
+    box-shadow: 0 8px 40px rgba(167, 165, 255, 0.08);
+  }
+
+  .shadow-ambient-lg {
+    box-shadow: 0 12px 60px rgba(167, 165, 255, 0.08);
+  }
+
+  /* Focus glow — outer glow instead of thick border */
+  .focus-glow {
+    box-shadow: 0 0 0 4px rgba(167, 165, 255, 0.2);
+  }
+
+  /* Label style — uppercase tracking for technical specs */
+  .label-caps {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--on-surface-variant);
   }
 }

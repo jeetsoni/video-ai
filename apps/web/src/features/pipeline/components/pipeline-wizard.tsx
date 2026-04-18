@@ -55,7 +55,7 @@ export function PipelineWizard({ onSubmit, isSubmitting = false }: PipelineWizar
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-2">
-        <label htmlFor="topic" className="text-sm font-medium text-foreground">
+        <label htmlFor="topic" className="text-sm font-medium text-on-surface">
           Topic
         </label>
         <Textarea
@@ -73,14 +73,14 @@ export function PipelineWizard({ onSubmit, isSubmitting = false }: PipelineWizar
           ) : (
             <span />
           )}
-          <p className={`text-xs ${isTopicInvalid ? "text-destructive" : "text-muted-foreground"}`}>
+          <p className={`text-xs ${isTopicInvalid ? "text-destructive" : "text-on-surface-variant"}`}>
             {charCount}/{TOPIC_MAX}
           </p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Video Format</label>
+        <label className="text-sm font-medium text-on-surface">Video Format</label>
         <FormatSelector value={format} onChange={setFormat} />
         {errors.format && (
           <p className="text-sm text-destructive">{errors.format}</p>
@@ -88,7 +88,7 @@ export function PipelineWizard({ onSubmit, isSubmitting = false }: PipelineWizar
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Animation Theme</label>
+        <label className="text-sm font-medium text-on-surface">Animation Theme</label>
         <ThemeSelector value={themeId} onChange={setThemeId} />
       </div>
 

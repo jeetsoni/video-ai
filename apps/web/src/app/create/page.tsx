@@ -33,8 +33,8 @@ export default function CreatePage() {
   );
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="mb-8 text-3xl font-bold">Create New Video</h1>
+    <main className="mx-auto max-w-2xl px-6 py-16">
+      <h1 className="mb-10 text-4xl font-bold tracking-tight text-on-surface">Create New Video</h1>
       <PipelineWizard onSubmit={handleSubmit} isSubmitting={isSubmitting} />
     </main>
   );

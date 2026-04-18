@@ -51,10 +51,10 @@ export function ScriptReviewEditor({
         aria-describedby="word-count-info"
       />
       <div className="flex items-center justify-between text-sm" id="word-count-info">
-        <span className={cn("text-muted-foreground", hasWarning && "text-destructive")}>
+        <span className={cn("text-on-surface-variant", hasWarning && "text-destructive")}>
           {wordCount} words
         </span>
-        <span className="text-muted-foreground">
+        <span className="text-on-surface-variant">
           {range.min}–{range.max} words for {format}
         </span>
       </div>
