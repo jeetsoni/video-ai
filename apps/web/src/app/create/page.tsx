@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import type { VideoFormat } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
@@ -9,6 +9,8 @@ import { PipelineWizard } from "@/features/pipeline/components/pipeline-wizard";
 
 export default function CreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTopic = searchParams.get("topic") ?? "";
   const { pipelineRepository } = useAppDependencies();
 
   const { isSubmitting, setTopic, setFormat, setThemeId } =
@@ -34,8 +36,14 @@ export default function CreatePage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-10 text-4xl font-bold tracking-tight text-on-surface">Create New Video</h1>
-      <PipelineWizard onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      <h1 className="mb-10 text-4xl font-bold tracking-tight text-on-surface">
+        Create New Video
+      </h1>
+      <PipelineWizard
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        initialTopic={initialTopic}
+      />
     </main>
   );
 }

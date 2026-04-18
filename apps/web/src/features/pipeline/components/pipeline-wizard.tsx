@@ -14,10 +14,11 @@ const TOPIC_MAX = 500;
 interface PipelineWizardProps {
   onSubmit: (data: { topic: string; format: VideoFormat; themeId: string }) => void;
   isSubmitting?: boolean;
+  initialTopic?: string;
 }
 
-export function PipelineWizard({ onSubmit, isSubmitting = false }: PipelineWizardProps) {
-  const [topic, setTopic] = useState("");
+export function PipelineWizard({ onSubmit, isSubmitting = false, initialTopic = "" }: PipelineWizardProps) {
+  const [topic, setTopic] = useState(initialTopic);
   const [format, setFormat] = useState<VideoFormat | null>(null);
   const [themeId, setThemeId] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ topic?: string; format?: string }>({});

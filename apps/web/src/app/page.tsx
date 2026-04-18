@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import type { PipelineJobDto } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
-import { JobListTable } from "@/features/pipeline/components/job-list-table";
-import { Button } from "@/shared/components/ui/button";
+import { DraftHero } from "@/features/pipeline/components/draft-hero";
+import { ProjectCard } from "@/features/pipeline/components/project-card";
+import { ProjectCardSkeleton } from "@/features/pipeline/components/project-card-skeleton";
 
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 8;
 
 export default function Home() {
   const router = useRouter();
@@ -15,47 +17,61 @@ export default function Home() {
 
   const [jobs, setJobs] = useState<PipelineJobDto[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchJobs = useCallback(
-    async (p: number) => {
-      setIsLoading(true);
-      try {
-        const res = await pipelineRepository.listJobs(p, PAGE_LIMIT);
-        setJobs(res.jobs);
-        setTotal(res.total);
-        setPage(res.page);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [pipelineRepository],
-  );
+  const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await pipelineRepository.listJobs(1, PAGE_LIMIT);
+      setJobs(res.jobs);
+      setTotal(res.total);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pipelineRepository]);
 
   useEffect(() => {
-    fetchJobs(page);
-  }, [fetchJobs, page]);
+    fetchJobs();
+  }, [fetchJobs]);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
-      <div className="mb-10 flex items-center justify-between">
-        <h1 className="text-4xl font-bold tracking-tight text-on-surface">Video AI</h1>
-        <Button onClick={() => router.push("/create")}>Create New Video</Button>
-      </div>
+    <main className="p-8 max-w-6xl mx-auto space-y-16">
+      <DraftHero />
 
-      {isLoading ? (
-        <p className="text-on-surface-variant">Loading jobs…</p>
-      ) : (
-        <JobListTable
-          jobs={jobs}
-          total={total}
-          page={page}
-          limit={PAGE_LIMIT}
-          onPageChange={setPage}
-          onJobClick={(jobId) => router.push(`/jobs/${jobId}`)}
-        />
-      )}
+      <section className="space-y-8">
+        <div className="flex items-center justify-between border-b border-outline-variant pb-4">
+          <h2 className="text-xl font-bold tracking-tight text-on-surface">
+            Recent Projects
+          </h2>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors"
+          >
+            All Projects
+            <ArrowRight className="size-3" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <ProjectCardSkeleton key={i} />
+              ))
+            : jobs.map((job) => (
+                <ProjectCard
+                  key={job.id}
+                  job={job}
+                  onClick={(id) => router.push(`/jobs/${id}`)}
+                />
+              ))}
+        </div>
+
+        {!isLoading && jobs.length === 0 && (
+          <p className="text-center text-on-surface-variant py-12">
+            No projects yet. Start by drafting your first video above.
+          </p>
+        )}
+      </section>
     </main>
   );
 }

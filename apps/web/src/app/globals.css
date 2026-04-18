@@ -291,3 +291,8 @@
     color: var(--on-surface-variant);
   }
 }
+
+/* Scrollbar — minimal, blends with surface */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--surface-container-highest); border-radius: 10px; }
