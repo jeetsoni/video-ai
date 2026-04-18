@@ -10,6 +10,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { JobStatusTracker } from "@/features/pipeline/components/job-status-tracker";
 import { ScriptReviewEditor } from "@/features/pipeline/components/script-review-editor";
+import { VideoPreviewPage } from "@/features/pipeline/components/video-preview-page";
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -136,6 +137,25 @@ export default function JobDetailPage() {
     );
   }
 
+  // Route to VideoPreviewPage when the job has moved past script_review
+  // (Requirement 1.1, 1.2, 1.3)
+  const isPastScriptReview =
+    job.stage !== "script_generation" && job.stage !== "script_review";
+
+  if (isPastScriptReview) {
+    return (
+      <main>
+        <VideoPreviewPage
+          job={job}
+          onRetry={handleRegenerateScript}
+          pollingError={error}
+          onRefresh={refetch}
+        />
+      </main>
+    );
+  }
+
+  // Generic fallback for early stages (e.g. script_generation before streaming kicks in)
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-6 py-16">
       <div>
