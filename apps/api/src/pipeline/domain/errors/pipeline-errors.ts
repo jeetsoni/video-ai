@@ -21,8 +21,8 @@ export class PipelineError extends Error {
     return new PipelineError(message, "transcription_failed");
   }
 
-  static scenePlanningFailed(message: string): PipelineError {
-    return new PipelineError(message, "scene_planning_failed");
+  static timestampMappingFailed(message: string): PipelineError {
+    return new PipelineError(message, "timestamp_mapping_failed");
   }
 
   static directionGenerationFailed(message: string): PipelineError {

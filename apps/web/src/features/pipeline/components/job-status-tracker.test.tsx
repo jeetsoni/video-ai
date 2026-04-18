@@ -9,20 +9,29 @@ jest.mock("@/shared/components/ui/progress", () => ({
 }));
 
 describe("JobStatusTracker", () => {
-  it("renders all 10 pipeline stage labels", () => {
+  it("renders all 9 pipeline stage labels", () => {
     render(
       <JobStatusTracker stage="script_generation" status="processing" progressPercent={0} />,
     );
 
     const expectedLabels = [
       "Script Gen", "Script Review", "TTS", "Transcription",
-      "Scene Plan", "Scene Review", "Direction", "Code Gen",
+      "Timestamp Map", "Direction", "Code Gen",
       "Rendering", "Done",
     ];
 
     for (const label of expectedLabels) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+  });
+
+  it("does not render removed scene planning stages", () => {
+    render(
+      <JobStatusTracker stage="script_generation" status="processing" progressPercent={0} />,
+    );
+
+    expect(screen.queryByText("Scene Plan")).not.toBeInTheDocument();
+    expect(screen.queryByText("Scene Review")).not.toBeInTheDocument();
   });
 
   it("shows progress bar with the given percentage", () => {
@@ -36,10 +45,10 @@ describe("JobStatusTracker", () => {
 
   it("marks stages before current as complete", () => {
     const { container } = render(
-      <JobStatusTracker stage="scene_planning" status="processing" progressPercent={50} />,
+      <JobStatusTracker stage="timestamp_mapping" status="processing" progressPercent={55} />,
     );
 
-    // Stages before scene_planning: script_generation, script_review, tts_generation, transcription
+    // Stages before timestamp_mapping: script_generation, script_review, tts_generation, transcription
     const indicators = container.querySelectorAll("[class*='text-stage-complete']");
     expect(indicators).toHaveLength(4);
   });
@@ -64,16 +73,6 @@ describe("JobStatusTracker", () => {
     expect(reviewIndicators[0]).toHaveTextContent("Script Review");
   });
 
-  it("marks current stage as review when awaiting scene plan review", () => {
-    const { container } = render(
-      <JobStatusTracker stage="scene_plan_review" status="awaiting_scene_plan_review" progressPercent={55} />,
-    );
-
-    const reviewIndicators = container.querySelectorAll("[class*='text-stage-review']");
-    expect(reviewIndicators).toHaveLength(1);
-    expect(reviewIndicators[0]).toHaveTextContent("Scene Review");
-  });
-
   it("marks current stage as failed when status is failed", () => {
     const { container } = render(
       <JobStatusTracker stage="rendering" status="failed" progressPercent={90} />,
@@ -89,9 +88,9 @@ describe("JobStatusTracker", () => {
       <JobStatusTracker stage="script_generation" status="processing" progressPercent={5} />,
     );
 
-    // 9 stages after script_generation should be pending
+    // 8 stages after script_generation should be pending
     const pendingIndicators = container.querySelectorAll("[class*='text-stage-pending']");
-    expect(pendingIndicators).toHaveLength(9);
+    expect(pendingIndicators).toHaveLength(8);
   });
 
   it("marks all stages as complete when status is completed and stage is done", () => {
@@ -100,6 +99,6 @@ describe("JobStatusTracker", () => {
     );
 
     const completeIndicators = container.querySelectorAll("[class*='text-stage-complete']");
-    expect(completeIndicators).toHaveLength(10);
+    expect(completeIndicators).toHaveLength(9);
   });
 });

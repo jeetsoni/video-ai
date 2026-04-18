@@ -10,7 +10,7 @@ import { PIPELINE_QUEUE_NAME } from "@/pipeline/infrastructure/queue/pipeline-qu
 import { AIScriptGenerator } from "@/pipeline/infrastructure/services/ai-script-generator.js";
 import { ElevenLabsTTSService } from "@/pipeline/infrastructure/services/elevenlabs-tts-service.js";
 import { AITranscriptionService } from "@/pipeline/infrastructure/services/ai-transcription-service.js";
-import { AIScenePlanner } from "@/pipeline/infrastructure/services/ai-scene-planner.js";
+import { TextTimestampMapper } from "@/pipeline/infrastructure/services/text-timestamp-mapper.js";
 import { AIDirectionGenerator } from "@/pipeline/infrastructure/services/ai-direction-generator.js";
 import { AICodeGenerator } from "@/pipeline/infrastructure/services/ai-code-generator.js";
 import { BoundingBoxValidator } from "@/pipeline/infrastructure/services/layout-validator.js";
@@ -20,7 +20,7 @@ import { RemotionVideoRenderer } from "@/pipeline/infrastructure/services/remoti
 import { ScriptGenerationWorker } from "@/pipeline/infrastructure/queue/workers/script-generation.worker.js";
 import { TTSGenerationWorker } from "@/pipeline/infrastructure/queue/workers/tts-generation.worker.js";
 import { TranscriptionWorker } from "@/pipeline/infrastructure/queue/workers/transcription.worker.js";
-import { ScenePlanningWorker } from "@/pipeline/infrastructure/queue/workers/scene-planning.worker.js";
+import { TimestampMappingWorker } from "@/pipeline/infrastructure/queue/workers/timestamp-mapping.worker.js";
 import { DirectionGenerationWorker } from "@/pipeline/infrastructure/queue/workers/direction-generation.worker.js";
 import { CodeGenerationWorker } from "@/pipeline/infrastructure/queue/workers/code-generation.worker.js";
 import { VideoRenderingWorker } from "@/pipeline/infrastructure/queue/workers/video-rendering.worker.js";
@@ -49,7 +49,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const scriptGenerator = new AIScriptGenerator();
   const ttsService = new ElevenLabsTTSService({ apiKey: elevenLabsApiKey }, objectStore);
   const transcriptionService = new AITranscriptionService(objectStore);
-  const scenePlanner = new AIScenePlanner();
+  const timestampMapper = new TextTimestampMapper();
   const directionGenerator = new AIDirectionGenerator();
   const codeGenerator = new AICodeGenerator();
   const videoRenderer = new RemotionVideoRenderer(objectStore);
@@ -58,7 +58,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const scriptGenerationWorker = new ScriptGenerationWorker(scriptGenerator, jobRepository);
   const ttsGenerationWorker = new TTSGenerationWorker(ttsService, jobRepository, queueService, elevenLabsVoiceId);
   const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService);
-  const scenePlanningWorker = new ScenePlanningWorker(scenePlanner, jobRepository);
+  const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService);
   const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService);
   const layoutValidator = new BoundingBoxValidator();
   const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, queueService, objectStore, layoutValidator);
@@ -69,7 +69,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
     script_generation: (job) => scriptGenerationWorker.process(job),
     tts_generation: (job) => ttsGenerationWorker.process(job),
     transcription: (job) => transcriptionWorker.process(job),
-    scene_planning: (job) => scenePlanningWorker.process(job),
+    timestamp_mapping: (job) => timestampMappingWorker.process(job),
     direction_generation: (job) => directionGenerationWorker.process(job),
     code_generation: (job) => codeGenerationWorker.process(job),
     rendering: (job) => videoRenderingWorker.process(job),

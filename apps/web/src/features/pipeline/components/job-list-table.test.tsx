@@ -127,7 +127,6 @@ describe("JobListTable", () => {
       { status: "failed" as const, label: "Failed" },
       { status: "processing" as const, label: "Processing" },
       { status: "awaiting_script_review" as const, label: "Script Review" },
-      { status: "awaiting_scene_plan_review" as const, label: "Scene Review" },
     ];
 
     for (const { status, label } of statuses) {

@@ -4,7 +4,6 @@ const VALID_STATUSES: readonly PipelineStatusType[] = [
   "pending",
   "processing",
   "awaiting_script_review",
-  "awaiting_scene_plan_review",
   "completed",
   "failed",
 ] as const;
@@ -35,10 +34,6 @@ export class PipelineStatus {
     return new PipelineStatus("awaiting_script_review");
   }
 
-  static awaitingScenePlanReview(): PipelineStatus {
-    return new PipelineStatus("awaiting_scene_plan_review");
-  }
-
   static completed(): PipelineStatus {
     return new PipelineStatus("completed");
   }
@@ -52,10 +47,7 @@ export class PipelineStatus {
   }
 
   isReview(): boolean {
-    return (
-      this._value === "awaiting_script_review" ||
-      this._value === "awaiting_scene_plan_review"
-    );
+    return this._value === "awaiting_script_review";
   }
 
   equals(other: PipelineStatus): boolean {

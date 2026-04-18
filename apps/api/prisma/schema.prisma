@@ -12,7 +12,6 @@ enum PipelineStatus {
   pending
   processing
   awaiting_script_review
-  awaiting_scene_plan_review
   completed
   failed
 }
@@ -23,8 +22,7 @@ enum PipelineStage {
   script_review
   tts_generation
   transcription
-  scene_planning
-  scene_plan_review
+  timestamp_mapping
   direction_generation
   code_generation
   rendering
@@ -59,6 +57,8 @@ model PipelineJob {
   // Intermediate artifacts
   generatedScript String? @db.Text
   approvedScript  String? @db.Text
+  generatedScenes Json?
+  approvedScenes  Json?
   audioPath       String?
   transcript      Json?
   scenePlan       Json?

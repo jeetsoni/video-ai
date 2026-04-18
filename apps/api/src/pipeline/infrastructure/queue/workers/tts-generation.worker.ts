@@ -60,17 +60,17 @@ export class TTSGenerationWorker {
       throw setTranscriptResult.getError();
     }
 
-    // Skip transcription worker — go straight to scene_planning
-    const toScenePlanning = pipelineJob.transitionTo("scene_planning");
-    if (toScenePlanning.isFailure) {
-      pipelineJob.markFailed("transcription_failed", toScenePlanning.getError().message);
+    // Skip transcription worker — go straight to timestamp_mapping
+    const toTimestampMapping = pipelineJob.transitionTo("timestamp_mapping");
+    if (toTimestampMapping.isFailure) {
+      pipelineJob.markFailed("transcription_failed", toTimestampMapping.getError().message);
       await this.jobRepository.save(pipelineJob);
-      throw toScenePlanning.getError();
+      throw toTimestampMapping.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
 
-    // Enqueue scene_planning directly (skipping transcription worker)
-    await this.queueService.enqueue({ stage: "scene_planning", jobId });
+    // Enqueue timestamp_mapping directly (skipping transcription worker)
+    await this.queueService.enqueue({ stage: "timestamp_mapping", jobId });
   }
 }

@@ -6,8 +6,17 @@ export const createPipelineJobSchema = z.object({
   themeId: z.string().min(1),
 });
 
+/** Schema for the scene block within a structured script (no timestamps yet) */
+export const sceneBlockSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  type: z.enum(["Hook", "Analogy", "Bridge", "Architecture", "Spotlight", "Comparison", "Power", "CTA"]),
+  text: z.string().min(1),
+});
+
 export const approveScriptSchema = z.object({
   script: z.string().optional(),
+  scenes: z.array(sceneBlockSchema).optional(),
   action: z.literal("approve"),
 });
 
@@ -31,4 +40,10 @@ export const sceneBoundariesResponseSchema = z.object({
   totalDuration: z.number().positive(),
   fps: z.literal(30),
   boundaries: z.array(sceneBoundarySchema).min(2).max(15),
+});
+
+/** Schema for the structured script generation output (script + scene blocks) */
+export const structuredScriptResponseSchema = z.object({
+  script: z.string().min(1),
+  scenes: z.array(sceneBlockSchema).min(2).max(15),
 });

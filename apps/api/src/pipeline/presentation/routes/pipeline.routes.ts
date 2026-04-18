@@ -37,18 +37,6 @@ export function createPipelineRouter(controller: PipelineController): Router {
     await controller.regenerateScript(httpReq, httpRes);
   });
 
-  router.post("/jobs/:id/approve-scene-plan", async (req: Request, res: Response) => {
-    const httpReq = HttpRequest.fromExpress(req);
-    const httpRes = HttpResponse.fromExpress(res);
-    await controller.approveScenePlan(httpReq, httpRes);
-  });
-
-  router.post("/jobs/:id/regenerate-scene-plan", async (req: Request, res: Response) => {
-    const httpReq = HttpRequest.fromExpress(req);
-    const httpRes = HttpResponse.fromExpress(res);
-    await controller.regenerateScenePlan(httpReq, httpRes);
-  });
-
   router.get("/themes", async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);

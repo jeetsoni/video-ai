@@ -23,10 +23,6 @@ const STATUS_CONFIG: Record<
     label: "Script Review",
     className: "bg-secondary/20 text-secondary",
   },
-  awaiting_scene_plan_review: {
-    label: "Scene Review",
-    className: "bg-secondary/20 text-secondary",
-  },
   completed: {
     label: "Completed",
     className: "bg-stage-complete/20 text-stage-complete",

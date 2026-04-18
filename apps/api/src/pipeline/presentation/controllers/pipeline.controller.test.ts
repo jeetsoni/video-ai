@@ -39,8 +39,6 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     listPipelineJobsUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     approveScriptUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     regenerateScriptUseCase: { execute: jest.fn<(...args: any[]) => any>() },
-    approveScenePlanUseCase: { execute: jest.fn<(...args: any[]) => any>() },
-    regenerateScenePlanUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     getThemesFn: jest.fn<(...args: any[]) => any>(),
   };
   const merged = { ...defaults, ...overrides };
@@ -50,8 +48,6 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     merged.listPipelineJobsUseCase as any,
     merged.approveScriptUseCase as any,
     merged.regenerateScriptUseCase as any,
-    merged.approveScenePlanUseCase as any,
-    merged.regenerateScenePlanUseCase as any,
     merged.getThemesFn as any,
   );
 }
@@ -178,7 +174,7 @@ describe("PipelineController", () => {
 
       await ctrl.approveScript(req, res);
 
-      expect(execute).toHaveBeenCalledWith({ jobId: "job-1", editedScript: "edited script text here" });
+      expect(execute).toHaveBeenCalledWith({ jobId: "job-1", editedScript: "edited script text here", scenes: undefined });
       expect(res.ok).toHaveBeenCalledWith({ status: "ok" });
     });
 
@@ -249,60 +245,6 @@ describe("PipelineController", () => {
       const res = mockRes();
 
       await ctrl.regenerateScript(req, res);
-
-      expect(res.conflict).toHaveBeenCalledWith({ error: "CONFLICT", message: "Wrong status" });
-    });
-  });
-
-  describe("approveScenePlan", () => {
-    it("returns 200 on success", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(Result.ok(undefined));
-      const ctrl = buildController({ approveScenePlanUseCase: { execute } });
-      const req = makeReq({ params: { id: "job-1" } });
-      const res = mockRes();
-
-      await ctrl.approveScenePlan(req, res);
-
-      expect(execute).toHaveBeenCalledWith({ jobId: "job-1" });
-      expect(res.ok).toHaveBeenCalledWith({ status: "ok" });
-    });
-
-    it("returns 404 on NOT_FOUND", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Not found", "NOT_FOUND")),
-      );
-      const ctrl = buildController({ approveScenePlanUseCase: { execute } });
-      const req = makeReq({ params: { id: "job-1" } });
-      const res = mockRes();
-
-      await ctrl.approveScenePlan(req, res);
-
-      expect(res.notFound).toHaveBeenCalledWith({ error: "NOT_FOUND", message: "Not found" });
-    });
-  });
-
-  describe("regenerateScenePlan", () => {
-    it("returns 200 on success", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(Result.ok(undefined));
-      const ctrl = buildController({ regenerateScenePlanUseCase: { execute } });
-      const req = makeReq({ params: { id: "job-1" } });
-      const res = mockRes();
-
-      await ctrl.regenerateScenePlan(req, res);
-
-      expect(execute).toHaveBeenCalledWith({ jobId: "job-1" });
-      expect(res.ok).toHaveBeenCalledWith({ status: "ok" });
-    });
-
-    it("returns 409 on CONFLICT", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Wrong status", "CONFLICT")),
-      );
-      const ctrl = buildController({ regenerateScenePlanUseCase: { execute } });
-      const req = makeReq({ params: { id: "job-1" } });
-      const res = mockRes();
-
-      await ctrl.regenerateScenePlan(req, res);
 
       expect(res.conflict).toHaveBeenCalledWith({ error: "CONFLICT", message: "Wrong status" });
     });

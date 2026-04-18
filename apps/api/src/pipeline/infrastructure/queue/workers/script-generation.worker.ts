@@ -25,7 +25,8 @@ export class ScriptGenerationWorker {
       throw result.getError();
     }
 
-    const setScriptResult = pipelineJob.setScript(result.getValue());
+    const { script, scenes } = result.getValue();
+    const setScriptResult = pipelineJob.setScript(script, scenes);
     if (setScriptResult.isFailure) {
       pipelineJob.markFailed("script_generation_failed", setScriptResult.getError().message);
       await this.jobRepository.save(pipelineJob);

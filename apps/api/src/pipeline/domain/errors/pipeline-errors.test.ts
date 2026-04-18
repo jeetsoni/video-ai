@@ -15,7 +15,7 @@ describe("PipelineError", () => {
       ["scriptGenerationFailed", "script_generation_failed"],
       ["ttsGenerationFailed", "tts_generation_failed"],
       ["transcriptionFailed", "transcription_failed"],
-      ["scenePlanningFailed", "scene_planning_failed"],
+      ["timestampMappingFailed", "timestamp_mapping_failed"],
       ["directionGenerationFailed", "direction_generation_failed"],
       ["codeGenerationFailed", "code_generation_failed"],
       ["renderingFailed", "rendering_failed"],
@@ -32,13 +32,13 @@ describe("PipelineError", () => {
   describe("fromCode", () => {
     it("creates error from any valid PipelineErrorCode", () => {
       const error = PipelineError.fromCode(
-        "scene_planning_failed",
-        "plan failed",
+        "timestamp_mapping_failed",
+        "mapping failed",
       );
 
       expect(error).toBeInstanceOf(PipelineError);
-      expect(error.code).toBe("scene_planning_failed");
-      expect(error.message).toBe("plan failed");
+      expect(error.code).toBe("timestamp_mapping_failed");
+      expect(error.message).toBe("mapping failed");
     });
   });
 });

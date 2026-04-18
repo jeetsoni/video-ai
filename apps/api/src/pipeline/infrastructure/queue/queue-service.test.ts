@@ -64,18 +64,6 @@ describe("BullMQQueueService", () => {
     expect(result.getError().message).toContain("not a processing stage");
   });
 
-  it("returns failure for non-processing stage scene_plan_review", async () => {
-    const queue = createMockQueue();
-    const service = new BullMQQueueService(queue);
-
-    const result = await service.enqueue({
-      stage: "scene_plan_review",
-      jobId: "job-abc",
-    });
-
-    expect(result.isFailure).toBe(true);
-  });
-
   it("returns failure for non-processing stage done", async () => {
     const queue = createMockQueue();
     const service = new BullMQQueueService(queue);

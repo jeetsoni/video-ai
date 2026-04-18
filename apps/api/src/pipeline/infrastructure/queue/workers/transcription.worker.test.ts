@@ -23,9 +23,9 @@ function createPipelineJobAtTranscriptionStage(id: string): PipelineJob {
   const themeId = AnimationThemeId.create("studio").getValue();
   const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
   // Advance to transcription stage: script_generation -> script_review -> tts_generation -> transcription
-  job.setScript("Generated script content");
+  job.setScript("Generated script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }]);
   job.transitionTo("script_review");
-  job.setApprovedScript("Approved script content");
+  job.setApprovedScript("Approved script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script content" }]);
   job.transitionTo("tts_generation");
   job.setAudioPath("audio/test-uuid.mp3");
   job.transitionTo("transcription");
@@ -63,7 +63,7 @@ describe("TranscriptionWorker", () => {
     );
   });
 
-  it("should transcribe audio, set transcript, transition to scene_planning, save, and enqueue next stage", async () => {
+  it("should transcribe audio, set transcript, transition to timestamp_mapping, save, and enqueue next stage", async () => {
     const pipelineJob = createPipelineJobAtTranscriptionStage("job-1");
     mockRepository.findById.mockResolvedValue(pipelineJob);
     mockTranscriptionService.transcribe.mockResolvedValue(
@@ -77,11 +77,11 @@ describe("TranscriptionWorker", () => {
       scriptText: "Approved script content",
     });
     expect(pipelineJob.transcript).toEqual(sampleTranscript);
-    expect(pipelineJob.stage.value).toBe("scene_planning");
+    expect(pipelineJob.stage.value).toBe("timestamp_mapping");
     expect(pipelineJob.status.value).toBe("processing");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
     expect(mockQueueService.enqueue).toHaveBeenCalledWith({
-      stage: "scene_planning",
+      stage: "timestamp_mapping",
       jobId: "job-1",
     });
   });
@@ -112,9 +112,9 @@ describe("TranscriptionWorker", () => {
     const themeId = AnimationThemeId.create("studio").getValue();
     const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
     // Advance to transcription but without setting audioPath
-    pipelineJob.setScript("Generated script");
+    pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");
-    pipelineJob.setApprovedScript("Approved script");
+    pipelineJob.setApprovedScript("Approved script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script" }]);
     pipelineJob.transitionTo("tts_generation");
     // Skip setAudioPath — transition directly
     pipelineJob.transitionTo("transcription");

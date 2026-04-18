@@ -33,27 +33,17 @@ export class HttpPipelineRepository implements PipelineRepository {
   approveScript(params: ApproveScriptParams): Promise<ActionResponse> {
     return this.http.post<ActionResponse>({
       path: `${BASE}/jobs/${params.jobId}/approve-script`,
-      body: { action: "approve" as const, script: params.script },
-    });
-  }
-
-  approveScenePlan(jobId: string): Promise<ActionResponse> {
-    return this.http.post<ActionResponse>({
-      path: `${BASE}/jobs/${jobId}/approve-scene-plan`,
-      body: {},
+      body: {
+        action: "approve" as const,
+        script: params.script,
+        ...(params.scenes && { scenes: params.scenes }),
+      },
     });
   }
 
   regenerateScript(jobId: string): Promise<ActionResponse> {
     return this.http.post<ActionResponse>({
       path: `${BASE}/jobs/${jobId}/regenerate-script`,
-      body: {},
-    });
-  }
-
-  regenerateScenePlan(jobId: string): Promise<ActionResponse> {
-    return this.http.post<ActionResponse>({
-      path: `${BASE}/jobs/${jobId}/regenerate-scene-plan`,
       body: {},
     });
   }

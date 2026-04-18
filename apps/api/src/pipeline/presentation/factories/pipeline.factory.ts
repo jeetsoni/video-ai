@@ -9,8 +9,6 @@ import { GetJobStatusUseCase } from "@/pipeline/application/use-cases/get-job-st
 import { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-pipeline-jobs.use-case.js";
 import { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
-import { ApproveScenePlanUseCase } from "@/pipeline/application/use-cases/approve-scene-plan.use-case.js";
-import { RegenerateScenePlanUseCase } from "@/pipeline/application/use-cases/regenerate-scene-plan.use-case.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
 import { createPipelineRouter } from "@/pipeline/presentation/routes/pipeline.routes.js";
 
@@ -32,8 +30,6 @@ export function createPipelineModule(deps: {
   const listPipelineJobsUseCase = new ListPipelineJobsUseCase(repository);
   const approveScriptUseCase = new ApproveScriptUseCase(repository, queueService);
   const regenerateScriptUseCase = new RegenerateScriptUseCase(repository, queueService);
-  const approveScenePlanUseCase = new ApproveScenePlanUseCase(repository, queueService);
-  const regenerateScenePlanUseCase = new RegenerateScenePlanUseCase(repository, queueService);
 
   // 4. Themes query
   const getThemesFn = () =>
@@ -46,8 +42,6 @@ export function createPipelineModule(deps: {
     listPipelineJobsUseCase,
     approveScriptUseCase,
     regenerateScriptUseCase,
-    approveScenePlanUseCase,
-    regenerateScenePlanUseCase,
     getThemesFn,
   );
 

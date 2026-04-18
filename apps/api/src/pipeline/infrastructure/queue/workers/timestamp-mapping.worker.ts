@@ -1,11 +1,13 @@
 import type { Job } from "bullmq";
-import type { ScenePlanner } from "@/pipeline/application/interfaces/scene-planner.js";
+import type { TimestampMapper } from "@/pipeline/application/interfaces/timestamp-mapper.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
+import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 
-export class ScenePlanningWorker {
+export class TimestampMappingWorker {
   constructor(
-    private readonly scenePlanner: ScenePlanner,
+    private readonly timestampMapper: TimestampMapper,
     private readonly jobRepository: PipelineJobRepository,
+    private readonly queueService: QueueService,
   ) {}
 
   async process(job: Job<{ jobId: string }>): Promise<void> {
@@ -16,42 +18,40 @@ export class ScenePlanningWorker {
       throw new Error(`Pipeline job not found: ${jobId}`);
     }
 
+    const approvedScenes = pipelineJob.approvedScenes;
+    if (!approvedScenes) {
+      throw new Error(`Pipeline job ${jobId} has no approved scenes`);
+    }
+
     const transcript = pipelineJob.transcript;
     if (!transcript) {
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
-    const fullText = transcript.map((w) => w.word).join(" ");
-    const lastWord = transcript[transcript.length - 1];
-    if (!lastWord) {
-      throw new Error(`Pipeline job ${jobId} has an empty transcript`);
-    }
-    const totalDuration = lastWord.end;
-
-    const result = await this.scenePlanner.planScenes({
-      transcript,
-      fullText,
-      totalDuration,
-    });
+    const result = this.timestampMapper.mapTimestamps({ scenes: approvedScenes, transcript });
 
     if (result.isFailure) {
+      pipelineJob.markFailed("timestamp_mapping_failed", result.getError().message);
+      await this.jobRepository.save(pipelineJob);
       throw result.getError();
     }
 
     const setScenePlanResult = pipelineJob.setScenePlan(result.getValue());
     if (setScenePlanResult.isFailure) {
-      pipelineJob.markFailed("scene_planning_failed", setScenePlanResult.getError().message);
+      pipelineJob.markFailed("timestamp_mapping_failed", setScenePlanResult.getError().message);
       await this.jobRepository.save(pipelineJob);
       throw setScenePlanResult.getError();
     }
 
-    const transitionResult = pipelineJob.transitionTo("scene_plan_review");
+    const transitionResult = pipelineJob.transitionTo("direction_generation");
     if (transitionResult.isFailure) {
-      pipelineJob.markFailed("scene_planning_failed", transitionResult.getError().message);
+      pipelineJob.markFailed("timestamp_mapping_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
       throw transitionResult.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
+
+    await this.queueService.enqueue({ stage: "direction_generation", jobId });
   }
 }

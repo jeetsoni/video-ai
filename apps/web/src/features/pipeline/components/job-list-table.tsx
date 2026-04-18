@@ -20,7 +20,6 @@ const STATUS_BADGE: Record<
   pending: { label: "Pending", variant: "secondary" },
   processing: { label: "Processing", variant: "default", className: "bg-primary/20 text-primary" },
   awaiting_script_review: { label: "Script Review", variant: "secondary", className: "bg-secondary/20 text-secondary" },
-  awaiting_scene_plan_review: { label: "Scene Review", variant: "secondary", className: "bg-secondary/20 text-secondary" },
   completed: { label: "Completed", variant: "default", className: "bg-stage-complete/20 text-stage-complete" },
   failed: { label: "Failed", variant: "destructive" },
 };

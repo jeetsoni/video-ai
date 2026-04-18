@@ -7,8 +7,6 @@ import type { GetJobStatusUseCase } from "@/pipeline/application/use-cases/get-j
 import type { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-pipeline-jobs.use-case.js";
 import type { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import type { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
-import type { ApproveScenePlanUseCase } from "@/pipeline/application/use-cases/approve-scene-plan.use-case.js";
-import type { RegenerateScenePlanUseCase } from "@/pipeline/application/use-cases/regenerate-scene-plan.use-case.js";
 
 type ThemeDto = {
   id: string;
@@ -26,8 +24,6 @@ export class PipelineController {
     private readonly listPipelineJobsUseCase: ListPipelineJobsUseCase,
     private readonly approveScriptUseCase: ApproveScriptUseCase,
     private readonly regenerateScriptUseCase: RegenerateScriptUseCase,
-    private readonly approveScenePlanUseCase: ApproveScenePlanUseCase,
-    private readonly regenerateScenePlanUseCase: RegenerateScenePlanUseCase,
     private readonly getThemesFn: () => Promise<ThemeDto[]>,
   ) {}
 
@@ -95,9 +91,16 @@ export class PipelineController {
         return;
       }
 
+      const scenes = parsed.data.scenes?.map((s) => ({
+        ...s,
+        startTime: 0,
+        endTime: 0,
+      }));
+
       const result = await this.approveScriptUseCase.execute({
         jobId: id,
         editedScript: parsed.data.script,
+        scenes,
       });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
@@ -114,36 +117,6 @@ export class PipelineController {
     try {
       const id = req.params.id as string;
       const result = await this.regenerateScriptUseCase.execute({ jobId: id });
-      if (result.isFailure) {
-        this.handleValidationError(res, result.getError());
-        return;
-      }
-
-      res.ok({ status: "ok" });
-    } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
-    }
-  }
-
-  async approveScenePlan(req: HttpRequest, res: HttpResponse): Promise<void> {
-    try {
-      const id = req.params.id as string;
-      const result = await this.approveScenePlanUseCase.execute({ jobId: id });
-      if (result.isFailure) {
-        this.handleValidationError(res, result.getError());
-        return;
-      }
-
-      res.ok({ status: "ok" });
-    } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
-    }
-  }
-
-  async regenerateScenePlan(req: HttpRequest, res: HttpResponse): Promise<void> {
-    try {
-      const id = req.params.id as string;
-      const result = await this.regenerateScenePlanUseCase.execute({ jobId: id });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;

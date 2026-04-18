@@ -18,8 +18,7 @@ const STAGE_TO_STATUS: Record<PipelineStageType, PipelineStatus> = {
   script_review: PipelineStatus.awaitingScriptReview(),
   tts_generation: PipelineStatus.processing(),
   transcription: PipelineStatus.processing(),
-  scene_planning: PipelineStatus.processing(),
-  scene_plan_review: PipelineStatus.awaitingScenePlanReview(),
+  timestamp_mapping: PipelineStatus.processing(),
   direction_generation: PipelineStatus.processing(),
   code_generation: PipelineStatus.processing(),
   rendering: PipelineStatus.processing(),
@@ -29,12 +28,11 @@ const STAGE_TO_STATUS: Record<PipelineStageType, PipelineStatus> = {
 const STAGE_TO_PROGRESS: Record<PipelineStageType, number> = {
   script_generation: 10,
   script_review: 15,
-  tts_generation: 25,
-  transcription: 35,
-  scene_planning: 45,
-  scene_plan_review: 50,
-  direction_generation: 60,
-  code_generation: 75,
+  tts_generation: 30,
+  transcription: 45,
+  timestamp_mapping: 55,
+  direction_generation: 65,
+  code_generation: 80,
   rendering: 90,
   done: 100,
 };
@@ -49,6 +47,8 @@ interface PipelineJobProps {
   error: JobError | null;
   generatedScript: string | null;
   approvedScript: string | null;
+  generatedScenes: SceneBoundary[] | null;
+  approvedScenes: SceneBoundary[] | null;
   audioPath: string | null;
   transcript: WordTimestamp[] | null;
   scenePlan: SceneBoundary[] | null;
@@ -90,6 +90,12 @@ export class PipelineJob {
   }
   get approvedScript(): string | null {
     return this.props.approvedScript;
+  }
+  get generatedScenes(): SceneBoundary[] | null {
+    return this.props.generatedScenes;
+  }
+  get approvedScenes(): SceneBoundary[] | null {
+    return this.props.approvedScenes;
   }
   get audioPath(): string | null {
     return this.props.audioPath;
@@ -139,6 +145,8 @@ export class PipelineJob {
       error: null,
       generatedScript: null,
       approvedScript: null,
+      generatedScenes: null,
+      approvedScenes: null,
       audioPath: null,
       transcript: null,
       scenePlan: null,
@@ -162,6 +170,8 @@ export class PipelineJob {
     error: JobError | null;
     generatedScript: string | null;
     approvedScript: string | null;
+    generatedScenes: SceneBoundary[] | null;
+    approvedScenes: SceneBoundary[] | null;
     audioPath: string | null;
     transcript: WordTimestamp[] | null;
     scenePlan: SceneBoundary[] | null;
@@ -229,7 +239,7 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  setScript(script: string): Result<void, ValidationError> {
+  setScript(script: string, scenes: SceneBoundary[]): Result<void, ValidationError> {
     if (this.props.stage.value !== "script_generation") {
       return Result.fail(
         new ValidationError(
@@ -239,11 +249,12 @@ export class PipelineJob {
       );
     }
     this.props.generatedScript = script;
+    this.props.generatedScenes = scenes;
     this.props.updatedAt = new Date();
     return Result.ok(undefined);
   }
 
-  setApprovedScript(script: string): Result<void, ValidationError> {
+  setApprovedScript(script: string, scenes: SceneBoundary[]): Result<void, ValidationError> {
     if (this.props.stage.value !== "script_review") {
       return Result.fail(
         new ValidationError(
@@ -253,6 +264,7 @@ export class PipelineJob {
       );
     }
     this.props.approvedScript = script;
+    this.props.approvedScenes = scenes;
     this.props.updatedAt = new Date();
     return Result.ok(undefined);
   }
@@ -286,10 +298,10 @@ export class PipelineJob {
   }
 
   setScenePlan(scenePlan: SceneBoundary[]): Result<void, ValidationError> {
-    if (this.props.stage.value !== "scene_planning") {
+    if (this.props.stage.value !== "timestamp_mapping") {
       return Result.fail(
         new ValidationError(
-          `Cannot set scene plan in stage "${this.props.stage.value}", expected "scene_planning"`,
+          `Cannot set scene plan in stage "${this.props.stage.value}", expected "timestamp_mapping"`,
           "INVALID_STAGE_FOR_ARTIFACT",
         ),
       );

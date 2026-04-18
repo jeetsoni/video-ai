@@ -41,7 +41,7 @@ export class TranscriptionWorker {
       throw setTranscriptResult.getError();
     }
 
-    const transitionResult = pipelineJob.transitionTo("scene_planning");
+    const transitionResult = pipelineJob.transitionTo("timestamp_mapping");
     if (transitionResult.isFailure) {
       pipelineJob.markFailed("transcription_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
@@ -50,6 +50,6 @@ export class TranscriptionWorker {
 
     await this.jobRepository.save(pipelineJob);
 
-    await this.queueService.enqueue({ stage: "scene_planning", jobId });
+    await this.queueService.enqueue({ stage: "timestamp_mapping", jobId });
   }
 }

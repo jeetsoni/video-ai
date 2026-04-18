@@ -9,8 +9,7 @@ const STAGES: { value: PipelineStage; label: string }[] = [
   { value: "script_review", label: "Script Review" },
   { value: "tts_generation", label: "TTS" },
   { value: "transcription", label: "Transcription" },
-  { value: "scene_planning", label: "Scene Plan" },
-  { value: "scene_plan_review", label: "Scene Review" },
+  { value: "timestamp_mapping", label: "Timestamp Map" },
   { value: "direction_generation", label: "Direction" },
   { value: "code_generation", label: "Code Gen" },
   { value: "rendering", label: "Rendering" },
@@ -32,8 +31,7 @@ function getStageState(
   if (stageIndex === currentIndex) {
     if (status === "failed") return "failed";
     if (
-      status === "awaiting_script_review" ||
-      status === "awaiting_scene_plan_review"
+      status === "awaiting_script_review"
     )
       return "review";
     if (status === "completed") return "complete";

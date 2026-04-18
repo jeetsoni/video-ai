@@ -1,4 +1,5 @@
 import { FORMAT_WORD_RANGES } from "@video-ai/shared";
+import type { SceneBoundary } from "@video-ai/shared";
 import type { UseCase } from "@/shared/domain/use-case.js";
 import { Result } from "@/shared/domain/result.js";
 import { ValidationError } from "@/shared/domain/errors/validation.error.js";
@@ -8,6 +9,7 @@ import type { QueueService } from "@/pipeline/application/interfaces/queue-servi
 interface ApproveScriptRequest {
   jobId: string;
   editedScript?: string;
+  scenes?: SceneBoundary[];
 }
 
 export class ApproveScriptUseCase
@@ -66,7 +68,9 @@ export class ApproveScriptUseCase
       }
     }
 
-    const setResult = job.setApprovedScript(scriptToApprove);
+    const scenesToApprove = request.scenes ?? job.generatedScenes ?? [];
+
+    const setResult = job.setApprovedScript(scriptToApprove, scenesToApprove);
     if (setResult.isFailure) {
       return Result.fail(setResult.getError());
     }

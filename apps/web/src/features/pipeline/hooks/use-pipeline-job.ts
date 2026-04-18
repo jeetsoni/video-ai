@@ -10,7 +10,6 @@ const TERMINAL_STATUSES: ReadonlySet<PipelineStatus> = new Set<PipelineStatus>([
   "completed",
   "failed",
   "awaiting_script_review",
-  "awaiting_scene_plan_review",
 ]);
 
 export interface UsePipelineJobOptions {

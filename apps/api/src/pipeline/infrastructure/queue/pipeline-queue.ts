@@ -5,7 +5,7 @@ export const PIPELINE_QUEUE_NAME = "pipeline";
 
 type ProcessingStage = Exclude<
   PipelineStage,
-  "script_review" | "scene_plan_review" | "done"
+  "script_review" | "done"
 >;
 
 export const STAGE_RETRY_CONFIG: Record<
@@ -15,7 +15,7 @@ export const STAGE_RETRY_CONFIG: Record<
   script_generation: { attempts: 3, backoff: { type: "exponential", delay: 2000 } },
   tts_generation: { attempts: 3, backoff: { type: "exponential", delay: 3000 } },
   transcription: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
-  scene_planning: { attempts: 2, backoff: { type: "exponential", delay: 2000 } },
+  timestamp_mapping: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
   direction_generation: { attempts: 2, backoff: { type: "exponential", delay: 2000 } },
   code_generation: { attempts: 2, backoff: { type: "exponential", delay: 2000 } },
   rendering: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
@@ -23,7 +23,6 @@ export const STAGE_RETRY_CONFIG: Record<
 
 const NON_PROCESSING_STAGES: ReadonlySet<string> = new Set([
   "script_review",
-  "scene_plan_review",
   "done",
 ]);
 

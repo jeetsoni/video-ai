@@ -21,10 +21,11 @@ function createPipelineJobAtTTSStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
   const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
+  const scenes = [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }];
   // Advance to tts_generation stage: script_generation -> script_review -> tts_generation
-  job.setScript("Generated script content");
+  job.setScript("Generated script content", scenes);
   job.transitionTo("script_review");
-  job.setApprovedScript("Approved script content");
+  job.setApprovedScript("Approved script content", scenes);
   job.transitionTo("tts_generation");
   return job;
 }
@@ -84,11 +85,11 @@ describe("TTSGenerationWorker", () => {
       { word: "script", start: 0.4, end: 0.8 },
       { word: "content", start: 0.8, end: 1.2 },
     ]);
-    expect(pipelineJob.stage.value).toBe("scene_planning");
+    expect(pipelineJob.stage.value).toBe("timestamp_mapping");
     expect(pipelineJob.status.value).toBe("processing");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
     expect(mockQueueService.enqueue).toHaveBeenCalledWith({
-      stage: "scene_planning",
+      stage: "timestamp_mapping",
       jobId: "job-1",
     });
   });

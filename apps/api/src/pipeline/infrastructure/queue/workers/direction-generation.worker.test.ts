@@ -86,17 +86,16 @@ function createPipelineJobAtDirectionGenerationStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
   const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
-  // Advance: script_generation -> script_review -> tts_generation -> transcription -> scene_planning -> scene_plan_review -> direction_generation
-  job.setScript("Generated script content");
+  // Advance: script_generation -> script_review -> tts_generation -> transcription -> timestamp_mapping -> direction_generation
+  job.setScript("Generated script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }]);
   job.transitionTo("script_review");
-  job.setApprovedScript("Approved script content");
+  job.setApprovedScript("Approved script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script content" }]);
   job.transitionTo("tts_generation");
   job.setAudioPath("audio/test-uuid.mp3");
   job.transitionTo("transcription");
   job.setTranscript(sampleTranscript);
-  job.transitionTo("scene_planning");
+  job.transitionTo("timestamp_mapping");
   job.setScenePlan(sampleScenePlan);
-  job.transitionTo("scene_plan_review");
   job.transitionTo("direction_generation");
   return job;
 }
@@ -201,16 +200,15 @@ describe("DirectionGenerationWorker", () => {
     const themeId = AnimationThemeId.create("studio").getValue();
     const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
     // Advance to direction_generation without setting scene plan
-    pipelineJob.setScript("Generated script");
+    pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");
-    pipelineJob.setApprovedScript("Approved script");
+    pipelineJob.setApprovedScript("Approved script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script" }]);
     pipelineJob.transitionTo("tts_generation");
     pipelineJob.setAudioPath("audio/test.mp3");
     pipelineJob.transitionTo("transcription");
     pipelineJob.setTranscript(sampleTranscript);
-    pipelineJob.transitionTo("scene_planning");
+    pipelineJob.transitionTo("timestamp_mapping");
     // Skip setScenePlan
-    pipelineJob.transitionTo("scene_plan_review");
     pipelineJob.transitionTo("direction_generation");
 
     mockRepository.findById.mockResolvedValue(pipelineJob);
@@ -226,16 +224,15 @@ describe("DirectionGenerationWorker", () => {
     const themeId = AnimationThemeId.create("studio").getValue();
     const pipelineJob = PipelineJob.create({ id: "job-4", topic: "Test topic", format, themeId });
     // Advance to direction_generation without setting transcript
-    pipelineJob.setScript("Generated script");
+    pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");
-    pipelineJob.setApprovedScript("Approved script");
+    pipelineJob.setApprovedScript("Approved script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script" }]);
     pipelineJob.transitionTo("tts_generation");
     pipelineJob.setAudioPath("audio/test.mp3");
     pipelineJob.transitionTo("transcription");
     // Skip setTranscript
-    pipelineJob.transitionTo("scene_planning");
+    pipelineJob.transitionTo("timestamp_mapping");
     pipelineJob.setScenePlan(sampleScenePlan);
-    pipelineJob.transitionTo("scene_plan_review");
     pipelineJob.transitionTo("direction_generation");
 
     mockRepository.findById.mockResolvedValue(pipelineJob);

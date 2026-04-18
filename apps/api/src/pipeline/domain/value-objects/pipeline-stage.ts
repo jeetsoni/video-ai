@@ -5,8 +5,7 @@ const STAGES_IN_ORDER: readonly PipelineStageType[] = [
   "script_review",
   "tts_generation",
   "transcription",
-  "scene_planning",
-  "scene_plan_review",
+  "timestamp_mapping",
   "direction_generation",
   "code_generation",
   "rendering",
@@ -18,9 +17,8 @@ const VALID_TRANSITIONS: ReadonlyMap<PipelineStageType, readonly PipelineStageTy
     ["script_generation", ["script_review"]],
     ["script_review", ["tts_generation", "script_generation"]],
     ["tts_generation", ["transcription"]],
-    ["transcription", ["scene_planning"]],
-    ["scene_planning", ["scene_plan_review"]],
-    ["scene_plan_review", ["direction_generation", "scene_planning"]],
+    ["transcription", ["timestamp_mapping"]],
+    ["timestamp_mapping", ["direction_generation"]],
     ["direction_generation", ["code_generation"]],
     ["code_generation", ["rendering"]],
     ["rendering", ["done"]],
@@ -51,7 +49,7 @@ export class PipelineStage {
   }
 
   isReviewStage(): boolean {
-    return this._value === "script_review" || this._value === "scene_plan_review";
+    return this._value === "script_review";
   }
 
   isTerminal(): boolean {

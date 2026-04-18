@@ -2,12 +2,11 @@
 
 import { useParams } from "next/navigation";
 import { useCallback } from "react";
+import type { SceneBoundary } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { usePipelineJob } from "@/features/pipeline/hooks/use-pipeline-job";
 import { JobStatusTracker } from "@/features/pipeline/components/job-status-tracker";
 import { ScriptReviewEditor } from "@/features/pipeline/components/script-review-editor";
-import { ScenePlanTimeline } from "@/features/pipeline/components/scene-plan-timeline";
-import { ScenePlanCard } from "@/features/pipeline/components/scene-plan-card";
 import { Button } from "@/shared/components/ui/button";
 
 export default function JobDetailPage() {
@@ -20,8 +19,8 @@ export default function JobDetailPage() {
   });
 
   const handleApproveScript = useCallback(
-    async (editedScript?: string) => {
-      await pipelineRepository.approveScript({ jobId: id, script: editedScript });
+    async (editedScript?: string, scenes?: SceneBoundary[]) => {
+      await pipelineRepository.approveScript({ jobId: id, script: editedScript, scenes });
       refetch();
     },
     [pipelineRepository, id, refetch],
@@ -29,16 +28,6 @@ export default function JobDetailPage() {
 
   const handleRegenerateScript = useCallback(async () => {
     await pipelineRepository.regenerateScript(id);
-    refetch();
-  }, [pipelineRepository, id, refetch]);
-
-  const handleApproveScenePlan = useCallback(async () => {
-    await pipelineRepository.approveScenePlan(id);
-    refetch();
-  }, [pipelineRepository, id, refetch]);
-
-  const handleRegenerateScenePlan = useCallback(async () => {
-    await pipelineRepository.regenerateScenePlan(id);
     refetch();
   }, [pipelineRepository, id, refetch]);
 
@@ -60,10 +49,24 @@ export default function JobDetailPage() {
     );
   }
 
-  const totalDuration =
-    job.scenePlan && job.scenePlan.length > 0
-      ? Math.max(...job.scenePlan.map((s) => s.endTime))
-      : 0;
+  const isScriptReview =
+    job.status === "awaiting_script_review" && !!job.generatedScript;
+
+  // Script review gets a full-width cinematic layout
+  if (isScriptReview) {
+    return (
+      <main className="flex h-[calc(100vh-4rem)] flex-col p-10">
+        <ScriptReviewEditor
+          script={job.generatedScript!}
+          format={job.format}
+          topic={job.topic}
+          scenes={job.generatedScenes}
+          onApprove={handleApproveScript}
+          onRegenerate={handleRegenerateScript}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-6 py-16">
@@ -79,36 +82,6 @@ export default function JobDetailPage() {
         status={job.status}
         progressPercent={job.progressPercent}
       />
-
-      {job.status === "awaiting_script_review" && job.generatedScript && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Review Script</h2>
-          <ScriptReviewEditor
-            script={job.generatedScript}
-            format={job.format}
-            onApprove={handleApproveScript}
-            onRegenerate={handleRegenerateScript}
-          />
-        </section>
-      )}
-
-      {job.status === "awaiting_scene_plan_review" && job.scenePlan && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Review Scene Plan</h2>
-          <ScenePlanTimeline scenes={job.scenePlan} totalDuration={totalDuration} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {job.scenePlan.map((scene) => (
-              <ScenePlanCard key={scene.id} scene={scene} />
-            ))}
-          </div>
-          <div className="flex gap-3">
-            <Button onClick={handleApproveScenePlan}>Approve</Button>
-            <Button variant="outline" onClick={handleRegenerateScenePlan}>
-              Regenerate
-            </Button>
-          </div>
-        </section>
-      )}
 
       {job.status === "completed" && job.videoUrl && (
         <section className="space-y-4">

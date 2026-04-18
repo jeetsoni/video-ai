@@ -34,15 +34,15 @@ describe("PipelineStage", () => {
       expect(from.canTransitionTo(to)).toBe(true);
     });
 
-    it("allows scene_plan_review → direction_generation (approve)", () => {
-      const from = PipelineStage.create("scene_plan_review")!;
-      const to = PipelineStage.create("direction_generation")!;
+    it("allows transcription → timestamp_mapping", () => {
+      const from = PipelineStage.create("transcription")!;
+      const to = PipelineStage.create("timestamp_mapping")!;
       expect(from.canTransitionTo(to)).toBe(true);
     });
 
-    it("allows scene_plan_review → scene_planning (regenerate)", () => {
-      const from = PipelineStage.create("scene_plan_review")!;
-      const to = PipelineStage.create("scene_planning")!;
+    it("allows timestamp_mapping → direction_generation", () => {
+      const from = PipelineStage.create("timestamp_mapping")!;
+      const to = PipelineStage.create("direction_generation")!;
       expect(from.canTransitionTo(to)).toBe(true);
     });
 
@@ -67,7 +67,6 @@ describe("PipelineStage", () => {
 
   it("isReviewStage identifies review stages", () => {
     expect(PipelineStage.create("script_review")!.isReviewStage()).toBe(true);
-    expect(PipelineStage.create("scene_plan_review")!.isReviewStage()).toBe(true);
     expect(PipelineStage.create("rendering")!.isReviewStage()).toBe(false);
   });
 
@@ -78,11 +77,11 @@ describe("PipelineStage", () => {
 
   it("indexOf returns correct position", () => {
     expect(PipelineStage.create("script_generation")!.indexOf()).toBe(0);
-    expect(PipelineStage.create("done")!.indexOf()).toBe(9);
+    expect(PipelineStage.create("done")!.indexOf()).toBe(8);
   });
 
-  it("allStages returns all 10 stages", () => {
-    expect(PipelineStage.allStages()).toHaveLength(10);
+  it("allStages returns all 9 stages", () => {
+    expect(PipelineStage.allStages()).toHaveLength(9);
   });
 
   it("validTransitionsFrom returns allowed targets", () => {

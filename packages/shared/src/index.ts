@@ -20,6 +20,8 @@ export {
   wordTimestampSchema,
   sceneBoundarySchema,
   sceneBoundariesResponseSchema,
+  sceneBlockSchema,
+  structuredScriptResponseSchema,
 } from "./schemas/pipeline.schema";
 
 export { ANIMATION_THEMES, DEFAULT_THEME_ID } from "./themes/animation-themes";

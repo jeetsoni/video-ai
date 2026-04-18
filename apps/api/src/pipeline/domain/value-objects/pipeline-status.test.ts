@@ -5,7 +5,6 @@ describe("PipelineStatus", () => {
     "pending",
     "processing",
     "awaiting_script_review",
-    "awaiting_scene_plan_review",
     "completed",
     "failed",
   ])("creates from valid status '%s'", (status) => {
@@ -22,7 +21,6 @@ describe("PipelineStatus", () => {
     expect(PipelineStatus.pending().value).toBe("pending");
     expect(PipelineStatus.processing().value).toBe("processing");
     expect(PipelineStatus.awaitingScriptReview().value).toBe("awaiting_script_review");
-    expect(PipelineStatus.awaitingScenePlanReview().value).toBe("awaiting_scene_plan_review");
     expect(PipelineStatus.completed().value).toBe("completed");
     expect(PipelineStatus.failed().value).toBe("failed");
   });
@@ -35,7 +33,6 @@ describe("PipelineStatus", () => {
 
   it("isReview identifies review statuses", () => {
     expect(PipelineStatus.awaitingScriptReview().isReview()).toBe(true);
-    expect(PipelineStatus.awaitingScenePlanReview().isReview()).toBe(true);
     expect(PipelineStatus.pending().isReview()).toBe(false);
   });
 
@@ -46,7 +43,7 @@ describe("PipelineStatus", () => {
     expect(a.equals(PipelineStatus.failed())).toBe(false);
   });
 
-  it("allStatuses returns all 6 statuses", () => {
-    expect(PipelineStatus.allStatuses()).toHaveLength(6);
+  it("allStatuses returns all 5 statuses", () => {
+    expect(PipelineStatus.allStatuses()).toHaveLength(5);
   });
 });

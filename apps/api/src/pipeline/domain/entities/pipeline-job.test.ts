@@ -62,6 +62,8 @@ describe("PipelineJob", () => {
       expect(job.error).toBeNull();
       expect(job.generatedScript).toBeNull();
       expect(job.approvedScript).toBeNull();
+      expect(job.generatedScenes).toBeNull();
+      expect(job.approvedScenes).toBeNull();
       expect(job.audioPath).toBeNull();
       expect(job.transcript).toBeNull();
       expect(job.scenePlan).toBeNull();
@@ -86,6 +88,8 @@ describe("PipelineJob", () => {
         error,
         generatedScript: null,
         approvedScript: null,
+        generatedScenes: null,
+        approvedScenes: null,
         audioPath: null,
         transcript: null,
         scenePlan: null,
@@ -101,6 +105,36 @@ describe("PipelineJob", () => {
       expect(job.status.value).toBe("failed");
       expect(job.error?.code).toBe("script_generation_failed");
     });
+
+    it("rebuilds a job with generatedScenes and approvedScenes", () => {
+      const now = new Date();
+      const scenes = [makeSceneBoundary()];
+      const job = PipelineJob.reconstitute({
+        id: "job-3",
+        topic: "Scene test",
+        format: VideoFormat.create("short").getValue(),
+        themeId: AnimationThemeId.create("studio").getValue(),
+        status: PipelineStatus.processing(),
+        stage: PipelineStage.create("tts_generation")!,
+        error: null,
+        generatedScript: "Hello world",
+        approvedScript: "Hello world",
+        generatedScenes: scenes,
+        approvedScenes: scenes,
+        audioPath: null,
+        transcript: null,
+        scenePlan: null,
+        sceneDirections: null,
+        generatedCode: null,
+        codePath: null,
+        videoPath: null,
+        progressPercent: 30,
+        createdAt: now,
+        updatedAt: now,
+      });
+      expect(job.generatedScenes).toEqual(scenes);
+      expect(job.approvedScenes).toEqual(scenes);
+    });
   });
 
   describe("transitionTo", () => {
@@ -108,17 +142,15 @@ describe("PipelineJob", () => {
       const job = makeJob();
       const stages: Array<{ stage: string; status: string; progress: number }> = [
         { stage: "script_review", status: "awaiting_script_review", progress: 15 },
-        { stage: "tts_generation", status: "processing", progress: 25 },
-        { stage: "transcription", status: "processing", progress: 35 },
-        { stage: "scene_planning", status: "processing", progress: 45 },
-        { stage: "scene_plan_review", status: "awaiting_scene_plan_review", progress: 50 },
-        { stage: "direction_generation", status: "processing", progress: 60 },
-        { stage: "code_generation", status: "processing", progress: 75 },
+        { stage: "tts_generation", status: "processing", progress: 30 },
+        { stage: "transcription", status: "processing", progress: 45 },
+        { stage: "timestamp_mapping", status: "processing", progress: 55 },
+        { stage: "direction_generation", status: "processing", progress: 65 },
+        { stage: "code_generation", status: "processing", progress: 80 },
         { stage: "rendering", status: "processing", progress: 90 },
         { stage: "done", status: "completed", progress: 100 },
       ];
 
-      // First transition from initial script_generation
       for (const expected of stages) {
         const result = job.transitionTo(expected.stage as any);
         expect(result.isSuccess).toBe(true);
@@ -159,23 +191,9 @@ describe("PipelineJob", () => {
       expect(job.status.value).toBe("processing");
     });
 
-    it("allows backward transition: scene_plan_review → scene_planning", () => {
-      const job = makeJob();
-      job.transitionTo("script_review");
-      job.transitionTo("tts_generation");
-      job.transitionTo("transcription");
-      job.transitionTo("scene_planning");
-      job.transitionTo("scene_plan_review");
-      const result = job.transitionTo("scene_planning");
-      expect(result.isSuccess).toBe(true);
-      expect(job.stage.value).toBe("scene_planning");
-      expect(job.status.value).toBe("processing");
-    });
-
     it("updates updatedAt on transition", () => {
       const job = makeJob();
       const before = job.updatedAt;
-      // Small delay to ensure timestamp difference
       job.transitionTo("script_review");
       expect(job.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
     });
@@ -206,32 +224,36 @@ describe("PipelineJob", () => {
   });
 
   describe("artifact setters", () => {
-    it("setScript succeeds in script_generation stage", () => {
+    it("setScript succeeds in script_generation stage with scenes", () => {
       const job = makeJob();
-      const result = job.setScript("Hello, this is a test script.");
+      const scenes = [makeSceneBoundary()];
+      const result = job.setScript("Hello, this is a test script.", scenes);
       expect(result.isSuccess).toBe(true);
       expect(job.generatedScript).toBe("Hello, this is a test script.");
+      expect(job.generatedScenes).toEqual(scenes);
     });
 
     it("setScript fails in wrong stage", () => {
       const job = makeJob();
       job.transitionTo("script_review");
-      const result = job.setScript("script");
+      const result = job.setScript("script", [makeSceneBoundary()]);
       expect(result.isFailure).toBe(true);
       expect(result.getError().code).toBe("INVALID_STAGE_FOR_ARTIFACT");
     });
 
-    it("setApprovedScript succeeds in script_review stage", () => {
+    it("setApprovedScript succeeds in script_review stage with scenes", () => {
       const job = makeJob();
       job.transitionTo("script_review");
-      const result = job.setApprovedScript("Approved script text");
+      const scenes = [makeSceneBoundary()];
+      const result = job.setApprovedScript("Approved script text", scenes);
       expect(result.isSuccess).toBe(true);
       expect(job.approvedScript).toBe("Approved script text");
+      expect(job.approvedScenes).toEqual(scenes);
     });
 
     it("setApprovedScript fails in wrong stage", () => {
       const job = makeJob();
-      const result = job.setApprovedScript("script");
+      const result = job.setApprovedScript("script", [makeSceneBoundary()]);
       expect(result.isFailure).toBe(true);
     });
 
@@ -267,12 +289,12 @@ describe("PipelineJob", () => {
       expect(result.isFailure).toBe(true);
     });
 
-    it("setScenePlan succeeds in scene_planning stage", () => {
+    it("setScenePlan succeeds in timestamp_mapping stage", () => {
       const job = makeJob();
       job.transitionTo("script_review");
       job.transitionTo("tts_generation");
       job.transitionTo("transcription");
-      job.transitionTo("scene_planning");
+      job.transitionTo("timestamp_mapping");
       const plan = [makeSceneBoundary()];
       const result = job.setScenePlan(plan);
       expect(result.isSuccess).toBe(true);
@@ -290,8 +312,7 @@ describe("PipelineJob", () => {
       job.transitionTo("script_review");
       job.transitionTo("tts_generation");
       job.transitionTo("transcription");
-      job.transitionTo("scene_planning");
-      job.transitionTo("scene_plan_review");
+      job.transitionTo("timestamp_mapping");
       job.transitionTo("direction_generation");
       const directions = [makeSceneDirection()];
       const result = job.setSceneDirections(directions);
@@ -310,8 +331,7 @@ describe("PipelineJob", () => {
       job.transitionTo("script_review");
       job.transitionTo("tts_generation");
       job.transitionTo("transcription");
-      job.transitionTo("scene_planning");
-      job.transitionTo("scene_plan_review");
+      job.transitionTo("timestamp_mapping");
       job.transitionTo("direction_generation");
       job.transitionTo("code_generation");
       const result = job.setGeneratedCode("export const Main = () => <div/>;", "code/job-1.tsx");
@@ -331,8 +351,7 @@ describe("PipelineJob", () => {
       job.transitionTo("script_review");
       job.transitionTo("tts_generation");
       job.transitionTo("transcription");
-      job.transitionTo("scene_planning");
-      job.transitionTo("scene_plan_review");
+      job.transitionTo("timestamp_mapping");
       job.transitionTo("direction_generation");
       job.transitionTo("code_generation");
       job.transitionTo("rendering");
@@ -345,6 +364,29 @@ describe("PipelineJob", () => {
       const job = makeJob();
       const result = job.setVideoPath("videos/job-1.mp4");
       expect(result.isFailure).toBe(true);
+    });
+  });
+
+  describe("generatedScenes and approvedScenes getters", () => {
+    it("returns null when no scenes have been set", () => {
+      const job = makeJob();
+      expect(job.generatedScenes).toBeNull();
+      expect(job.approvedScenes).toBeNull();
+    });
+
+    it("returns generatedScenes after setScript", () => {
+      const job = makeJob();
+      const scenes = [makeSceneBoundary()];
+      job.setScript("Hello world", scenes);
+      expect(job.generatedScenes).toEqual(scenes);
+    });
+
+    it("returns approvedScenes after setApprovedScript", () => {
+      const job = makeJob();
+      job.transitionTo("script_review");
+      const scenes = [makeSceneBoundary()];
+      job.setApprovedScript("Hello world", scenes);
+      expect(job.approvedScenes).toEqual(scenes);
     });
   });
 });

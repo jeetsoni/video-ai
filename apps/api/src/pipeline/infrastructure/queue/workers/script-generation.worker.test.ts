@@ -46,8 +46,11 @@ describe("ScriptGenerationWorker", () => {
   it("should generate script, set it on the job, transition to script_review, and save", async () => {
     const pipelineJob = createPipelineJob("job-1");
     mockRepository.findById.mockResolvedValue(pipelineJob);
+    const mockScenes = [
+      { id: 1, name: "Hook", type: "Hook" as const, text: "Generated script content", startTime: 0, endTime: 0 },
+    ];
     mockScriptGenerator.generate.mockResolvedValue(
-      Result.ok("Generated script content"),
+      Result.ok({ script: "Generated script content", scenes: mockScenes }),
     );
 
     await worker.process(createMockJob("job-1"));
@@ -57,6 +60,7 @@ describe("ScriptGenerationWorker", () => {
       format: "short",
     });
     expect(pipelineJob.generatedScript).toBe("Generated script content");
+    expect(pipelineJob.generatedScenes).toEqual(mockScenes);
     expect(pipelineJob.stage.value).toBe("script_review");
     expect(pipelineJob.status.value).toBe("awaiting_script_review");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
@@ -76,7 +80,7 @@ describe("ScriptGenerationWorker", () => {
     mockRepository.findById.mockResolvedValue(pipelineJob);
     const error = PipelineError.scriptGenerationFailed("LLM timeout");
     mockScriptGenerator.generate.mockResolvedValue(
-      Result.fail<string, PipelineError>(error),
+      Result.fail(error),
     );
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);

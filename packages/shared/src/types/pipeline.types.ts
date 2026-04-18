@@ -4,7 +4,6 @@ export type PipelineStatus =
   | "pending"
   | "processing"
   | "awaiting_script_review"
-  | "awaiting_scene_plan_review"
   | "completed"
   | "failed";
 
@@ -13,8 +12,7 @@ export type PipelineStage =
   | "script_review"
   | "tts_generation"
   | "transcription"
-  | "scene_planning"
-  | "scene_plan_review"
+  | "timestamp_mapping"
   | "direction_generation"
   | "code_generation"
   | "rendering"
@@ -24,7 +22,7 @@ export type PipelineErrorCode =
   | "script_generation_failed"
   | "tts_generation_failed"
   | "transcription_failed"
-  | "scene_planning_failed"
+  | "timestamp_mapping_failed"
   | "direction_generation_failed"
   | "code_generation_failed"
   | "rendering_failed";
@@ -131,6 +129,8 @@ export interface PipelineJobDto {
   errorMessage?: string;
   generatedScript?: string;
   approvedScript?: string;
+  generatedScenes?: SceneBoundary[];
+  approvedScenes?: SceneBoundary[];
   scenePlan?: SceneBoundary[];
   videoUrl?: string;
   createdAt: string;

@@ -6,7 +6,7 @@ const VALID_ERROR_CODES: readonly PipelineErrorCode[] = [
   "script_generation_failed",
   "tts_generation_failed",
   "transcription_failed",
-  "scene_planning_failed",
+  "timestamp_mapping_failed",
   "direction_generation_failed",
   "code_generation_failed",
   "rendering_failed",
