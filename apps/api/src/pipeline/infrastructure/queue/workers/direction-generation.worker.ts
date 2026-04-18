@@ -3,7 +3,7 @@ import type { DirectionGenerator } from "@/pipeline/application/interfaces/direc
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 import type { SceneDirection } from "@video-ai/shared";
-import { ANIMATION_THEMES } from "@video-ai/shared";
+import { ANIMATION_THEMES, getLayoutProfile } from "@video-ai/shared";
 
 export class DirectionGenerationWorker {
   constructor(
@@ -35,6 +35,8 @@ export class DirectionGenerationWorker {
       throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
     }
 
+    const layoutProfile = getLayoutProfile("faceless");
+
     const directions: SceneDirection[] = [];
     let previousDirection: SceneDirection | undefined;
 
@@ -47,6 +49,7 @@ export class DirectionGenerationWorker {
         scene,
         words,
         theme,
+        layoutProfile,
         previousDirection,
       });
 

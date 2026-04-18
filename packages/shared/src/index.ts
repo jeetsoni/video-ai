@@ -23,3 +23,27 @@ export {
 } from "./schemas/pipeline.schema";
 
 export { ANIMATION_THEMES, DEFAULT_THEME_ID } from "./themes/animation-themes";
+
+export type {
+  LayoutProfile,
+  ReservedRegion,
+  Slot,
+  SlotMap,
+  BoundingBox,
+  AnimationTransform,
+  OverlapViolation,
+  ValidationResult,
+} from "./types/layout.types";
+
+export {
+  FACELESS_PROFILE,
+  FACECAM_PROFILE,
+  getLayoutProfile,
+  listLayoutProfiles,
+} from "./layout/layout-profiles";
+
+export {
+  validateSafeZone,
+  validateSlotMap,
+  validateSlotNonOverlap,
+} from "./layout/layout-validation";

@@ -4,7 +4,10 @@ import type { CodeGenerator } from "@/pipeline/application/interfaces/code-gener
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
-import { ANIMATION_THEMES } from "@video-ai/shared";
+import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
+import { ANIMATION_THEMES, getLayoutProfile } from "@video-ai/shared";
+
+const MAX_VALIDATION_RETRIES = 2;
 
 export class CodeGenerationWorker {
   constructor(
@@ -12,6 +15,7 @@ export class CodeGenerationWorker {
     private readonly jobRepository: PipelineJobRepository,
     private readonly queueService: QueueService,
     private readonly objectStore: ObjectStore,
+    private readonly layoutValidator: LayoutValidator,
   ) {}
 
   async process(job: Job<{ jobId: string }>): Promise<void> {
@@ -42,6 +46,8 @@ export class CodeGenerationWorker {
       throw new Error(`Pipeline job ${jobId} has an empty transcript`);
     }
 
+    const layoutProfile = getLayoutProfile("faceless");
+
     const scenePlan: ScenePlan = {
       title: pipelineJob.topic,
       totalDuration: lastWord.end,
@@ -58,12 +64,52 @@ export class CodeGenerationWorker {
       scenes: sceneDirections,
     };
 
-    const result = await this.codeGenerator.generateCode({ scenePlan, theme });
-    if (result.isFailure) {
-      throw result.getError();
+    let code: string = "";
+    let overlapFeedback: string | undefined;
+
+    for (let attempt = 0; attempt <= MAX_VALIDATION_RETRIES; attempt++) {
+      const result = await this.codeGenerator.generateCode({
+        scenePlan,
+        theme,
+        layoutProfile,
+        overlapFeedback,
+      });
+      if (result.isFailure) {
+        throw result.getError();
+      }
+      code = result.getValue();
+
+      const validationResult = await this.layoutValidator.validate({
+        code,
+        layoutProfile,
+        scenePlan,
+      });
+
+      if (validationResult.isFailure) {
+        // Validator itself errored — proceed to rendering (non-blocking)
+        break;
+      }
+
+      const validation = validationResult.getValue();
+      if (validation.valid) {
+        // No errors (may have warnings) — proceed
+        break;
+      }
+
+      if (attempt < MAX_VALIDATION_RETRIES) {
+        overlapFeedback = validation.summary;
+        continue;
+      }
+
+      // All retries exhausted
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        `Layout validation failed after ${MAX_VALIDATION_RETRIES + 1} attempts: ${validation.summary}`,
+      );
+      await this.jobRepository.save(pipelineJob);
+      throw new Error(`Layout validation failed: ${validation.summary}`);
     }
 
-    const code = result.getValue();
     const uploadResult = await this.objectStore.upload({
       key: `code/${jobId}.tsx`,
       data: Buffer.from(code),

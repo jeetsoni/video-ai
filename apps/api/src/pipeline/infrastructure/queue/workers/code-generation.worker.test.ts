@@ -4,7 +4,8 @@ import type { CodeGenerator } from "@/pipeline/application/interfaces/code-gener
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
-import type { WordTimestamp, SceneBoundary, SceneDirection } from "@video-ai/shared";
+import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
+import type { WordTimestamp, SceneBoundary, SceneDirection, ValidationResult } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
@@ -122,6 +123,14 @@ describe("CodeGenerationWorker", () => {
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockQueueService: { enqueue: AnyMockFn };
   let mockObjectStore: { upload: AnyMockFn; getSignedUrl: AnyMockFn };
+  let mockLayoutValidator: { validate: AnyMockFn };
+
+  const validValidationResult: ValidationResult = {
+    valid: true,
+    violations: [],
+    boundingBoxes: [],
+    summary: "All elements are within bounds and no overlaps detected.",
+  };
 
   beforeEach(() => {
     mockCodeGenerator = {
@@ -140,11 +149,15 @@ describe("CodeGenerationWorker", () => {
       upload: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok("code/job-1.tsx")),
       getSignedUrl: jest.fn() as AnyMockFn,
     };
+    mockLayoutValidator = {
+      validate: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(validValidationResult)),
+    };
     worker = new CodeGenerationWorker(
       mockCodeGenerator as unknown as CodeGenerator,
       mockRepository as unknown as PipelineJobRepository,
       mockQueueService as unknown as QueueService,
       mockObjectStore as unknown as ObjectStore,
+      mockLayoutValidator as unknown as LayoutValidator,
     );
   });
 
@@ -167,6 +180,7 @@ describe("CodeGenerationWorker", () => {
           scenes: sampleDirections,
         }),
         theme: expect.objectContaining({ id: "studio" }),
+        layoutProfile: expect.objectContaining({ id: "faceless" }),
       }),
     );
 

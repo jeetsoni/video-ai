@@ -6,6 +6,7 @@ import type {
   SceneBeat,
   WordTimestamp,
   AnimationTheme,
+  LayoutProfile,
 } from "@video-ai/shared";
 import type { DirectionGenerator } from "@/pipeline/application/interfaces/direction-generator.js";
 import { Result } from "@/shared/domain/result.js";
@@ -94,13 +95,37 @@ Available: tech_blip.wav, notification_ping.wav, error_buzz.wav, success_chime.w
 - Micro-payoff every 3-5 seconds
 - Sound at every visual event`;
 
-function buildDirectionSystemPrompt(theme: AnimationTheme): string {
+function buildSlotVocabulary(layoutProfile: LayoutProfile): string {
+  const slotEntries = Object.values(layoutProfile.slots);
+  if (slotEntries.length === 0) return "";
+
+  const lines = ["## Available Spatial Slots", ""];
+  lines.push("Each beat MUST be assigned to one of these slots. Beats assigned to different slots MUST NOT produce overlapping visuals.");
+  lines.push("");
+  lines.push("| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |");
+  lines.push("|---------|-------|----------|-----------|------------|-------------|");
+  for (const slot of slotEntries) {
+    lines.push(
+      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`
+    );
+  }
+  lines.push("");
+  lines.push("Slot bounds are relative to the safe zone origin.");
+  return lines.join("\n");
+}
+
+function buildDirectionSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+  const { canvas, safeZone } = layoutProfile;
+  const safeZoneBottom = safeZone.top + safeZone.height;
+
   return `You are a world-class motion graphics director. You receive a single scene boundary and produce detailed animation directions that result in RICH, PROFESSIONAL animations.
 
 ## CRITICAL LAYOUT CONSTRAINTS
 
-Canvas: 1080x1920. Safe zone: top=80 to y=1150 (1080px tall, 992px wide after 44px padding each side).
-Content must spread across the FULL 1080px usable height — not clustered in the top 200px.
+Canvas: ${canvas.width}x${canvas.height}. Safe zone: top=${safeZone.top} to y=${safeZoneBottom} (${safeZone.height}px tall, ${safeZone.width}px wide after ${safeZone.left}px padding each side).
+Content must spread across the FULL ${safeZone.height}px usable height — not clustered in the top 200px.
+
+${buildSlotVocabulary(layoutProfile)}
 
 ${buildDesignSystem(theme)}
 
@@ -131,7 +156,8 @@ Respond with ONLY valid JSON for this single scene:
       "visual": "detailed description",
       "typography": "accent color assignments",
       "motion": "spring/interpolation specs",
-      "sfx": ["filename.wav at time (reason)"]
+      "sfx": ["filename.wav at time (reason)"],
+      "slot": "slot id from available slots"
     }]
   }
 }`;
@@ -180,6 +206,34 @@ function buildDirectionPrompt(
   return lines.join("\n");
 }
 
+function autoCorrectSlotAssignments(beats: SceneBeat[], layoutProfile: LayoutProfile): void {
+  const slotIds = Object.keys(layoutProfile.slots);
+  if (slotIds.length === 0) return;
+
+  const firstSlotId = slotIds[0]!;
+  const lastSlotId = slotIds[slotIds.length - 1]!;
+  const centerSlotId = layoutProfile.slots["center"]
+    ? "center"
+    : slotIds[Math.floor(slotIds.length / 2)]!;
+
+  for (let i = 0; i < beats.length; i++) {
+    const beat = beats[i]!;
+    if (!beat.slot || !slotIds.includes(beat.slot)) {
+      const originalSlot = beat.slot;
+      if (i === 0) {
+        beat.slot = firstSlotId;
+      } else if (i === beats.length - 1) {
+        beat.slot = lastSlotId;
+      } else {
+        beat.slot = centerSlotId;
+      }
+      console.warn(
+        `Auto-corrected invalid slot "${originalSlot ?? "(missing)"}" to "${beat.slot}" for beat "${beat.id}"`
+      );
+    }
+  }
+}
+
 export class AIDirectionGenerator implements DirectionGenerator {
   private readonly config: AIDirectionGeneratorConfig;
 
@@ -191,6 +245,7 @@ export class AIDirectionGenerator implements DirectionGenerator {
     scene: SceneBoundary;
     words: WordTimestamp[];
     theme: AnimationTheme;
+    layoutProfile: LayoutProfile;
     previousDirection?: SceneDirection;
   }): Promise<Result<SceneDirection, PipelineError>> {
     try {
@@ -200,7 +255,7 @@ export class AIDirectionGenerator implements DirectionGenerator {
 
       const { text } = await generateText({
         model: google(this.config.model),
-        system: buildDirectionSystemPrompt(params.theme),
+        system: buildDirectionSystemPrompt(params.theme, params.layoutProfile),
         prompt: buildDirectionPrompt(params.scene, params.words, params.previousDirection),
         temperature: this.config.temperature,
       });
@@ -237,6 +292,9 @@ export class AIDirectionGenerator implements DirectionGenerator {
           parsed.beats[i]!.frameRange[0] = Math.round(parsed.beats[i]!.timeRange[0] * FPS);
         }
       }
+
+      // Auto-correct invalid slot assignments
+      autoCorrectSlotAssignments(parsed.beats, params.layoutProfile);
 
       const direction: SceneDirection = {
         id: params.scene.id,

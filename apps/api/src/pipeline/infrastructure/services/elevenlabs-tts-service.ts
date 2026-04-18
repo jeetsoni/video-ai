@@ -1,3 +1,6 @@
+import { ElevenLabsClient, type ElevenLabs } from "@elevenlabs/elevenlabs-js";
+
+type Alignment = ElevenLabs.CharacterAlignmentResponseModel;
 import type { WordTimestamp } from "@video-ai/shared";
 import type { TTSService } from "@/pipeline/application/interfaces/tts-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
@@ -7,65 +10,76 @@ import { randomUUID } from "node:crypto";
 
 export interface ElevenLabsTTSConfig {
   apiKey: string;
-  baseUrl: string;
-  modelId: string;
-  defaultVoiceId: string;
-  maxRetries: number;
-  baseDelayMs: number;
+  modelId?: string;
+  defaultVoiceId?: string;
+  maxRetries?: number;
 }
 
-const DEFAULT_CONFIG: Omit<ElevenLabsTTSConfig, "apiKey"> = {
-  baseUrl: "https://api.elevenlabs.io/v1",
+const DEFAULTS = {
   modelId: "eleven_multilingual_v2",
   defaultVoiceId: "21m00Tcm4TlvDq8ikWAM",
   maxRetries: 3,
-  baseDelayMs: 1000,
-};
-
-interface ElevenLabsTimestampResponse {
-  audio_base64: string;
-  alignment: {
-    characters: string[];
-    character_start_times_seconds: number[];
-    character_end_times_seconds: number[];
-  };
-}
+} as const;
 
 export class ElevenLabsTTSService implements TTSService {
-  private readonly config: ElevenLabsTTSConfig;
+  private readonly client: ElevenLabsClient;
+  private readonly modelId: string;
+  private readonly defaultVoiceId: string;
 
   constructor(
-    config: Pick<ElevenLabsTTSConfig, "apiKey"> &
-      Partial<Omit<ElevenLabsTTSConfig, "apiKey">>,
+    config: ElevenLabsTTSConfig,
     private readonly objectStore: ObjectStore,
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.client = new ElevenLabsClient({
+      apiKey: config.apiKey,
+      maxRetries: config.maxRetries ?? DEFAULTS.maxRetries,
+    });
+    this.modelId = config.modelId ?? DEFAULTS.modelId;
+    this.defaultVoiceId = config.defaultVoiceId ?? DEFAULTS.defaultVoiceId;
   }
 
   async generateSpeech(params: {
     text: string;
     voiceId: string;
-  }): Promise<Result<{ audioPath: string; format: "mp3"; timestamps: WordTimestamp[] }, PipelineError>> {
-    const voiceId = params.voiceId || this.config.defaultVoiceId;
-    const url = `${this.config.baseUrl}/text-to-speech/${voiceId}/with-timestamps`;
+  }): Promise<
+    Result<
+      { audioPath: string; format: "mp3"; timestamps: WordTimestamp[] },
+      PipelineError
+    >
+  > {
+    const voiceId = params.voiceId || this.defaultVoiceId;
 
-    let response: ElevenLabsTimestampResponse;
+    let audioBase64: string;
+    let alignment: Alignment;
     try {
-      response = await this.callWithRetry(url, params.text);
+      const response = await this.client.textToSpeech.convertWithTimestamps(
+        voiceId,
+        {
+          text: params.text,
+          modelId: this.modelId,
+          voiceSettings: {
+            stability: 0.5,
+            similarityBoost: 0.75,
+          },
+        },
+      );
+      audioBase64 = response.audioBase64;
+      if (!response.alignment) {
+        return Result.fail(
+          PipelineError.ttsGenerationFailed("ElevenLabs returned no alignment data"),
+        );
+      }
+      alignment = response.alignment;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown TTS error";
       return Result.fail(
-        PipelineError.ttsGenerationFailed(
-          `ElevenLabs TTS failed after ${this.config.maxRetries} attempts: ${message}`,
-        ),
+        PipelineError.ttsGenerationFailed(`ElevenLabs TTS failed: ${message}`),
       );
     }
 
-    // Decode audio from base64
-    const audioBuffer = Buffer.from(response.audio_base64, "base64");
+    const audioBuffer = Buffer.from(audioBase64, "base64");
 
-    // Upload audio to object store
     const audioKey = `audio/${randomUUID()}.mp3`;
     const uploadResult = await this.objectStore.upload({
       key: audioKey,
@@ -81,11 +95,7 @@ export class ElevenLabsTTSService implements TTSService {
       );
     }
 
-    // Convert character-level alignment to word-level timestamps
-    const timestamps = this.alignmentToWordTimestamps(
-      response.alignment,
-      params.text,
-    );
+    const timestamps = this.alignmentToWordTimestamps(alignment);
 
     return Result.ok({
       audioPath: uploadResult.getValue(),
@@ -95,10 +105,13 @@ export class ElevenLabsTTSService implements TTSService {
   }
 
   private alignmentToWordTimestamps(
-    alignment: ElevenLabsTimestampResponse["alignment"],
-    originalText: string,
+    alignment: Alignment,
   ): WordTimestamp[] {
-    const { characters, character_start_times_seconds, character_end_times_seconds } = alignment;
+    const {
+      characters,
+      characterStartTimesSeconds,
+      characterEndTimesSeconds,
+    } = alignment;
     const words: WordTimestamp[] = [];
 
     let wordStart = -1;
@@ -113,77 +126,27 @@ export class ElevenLabsTTSService implements TTSService {
           words.push({
             word: wordChars.join(""),
             start: wordStart,
-            end: character_end_times_seconds[i - 1]!,
+            end: characterEndTimesSeconds[i - 1]!,
           });
           wordChars = [];
           wordStart = -1;
         }
       } else {
         if (wordStart < 0) {
-          wordStart = character_start_times_seconds[i]!;
+          wordStart = characterStartTimesSeconds[i]!;
         }
         wordChars.push(char);
       }
     }
 
-    // Flush last word
     if (wordChars.length > 0 && wordStart >= 0) {
       words.push({
         word: wordChars.join(""),
         start: wordStart,
-        end: character_end_times_seconds[characters.length - 1]!,
+        end: characterEndTimesSeconds[characters.length - 1]!,
       });
     }
 
     return words;
-  }
-
-  private async callWithRetry(url: string, text: string): Promise<ElevenLabsTimestampResponse> {
-    let lastError: Error | undefined;
-
-    for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
-      try {
-        return await this.callElevenLabsAPI(url, text);
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        if (attempt < this.config.maxRetries) {
-          const delay = this.config.baseDelayMs * Math.pow(2, attempt - 1);
-          await this.sleep(delay);
-        }
-      }
-    }
-
-    throw lastError;
-  }
-
-  private async callElevenLabsAPI(url: string, text: string): Promise<ElevenLabsTimestampResponse> {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "xi-api-key": this.config.apiKey,
-      },
-      body: JSON.stringify({
-        text,
-        model_id: this.config.modelId,
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(
-        `ElevenLabs API error ${response.status}: ${body || response.statusText}`,
-      );
-    }
-
-    return response.json() as Promise<ElevenLabsTimestampResponse>;
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { ScenePlan, AnimationTheme } from "@video-ai/shared";
+import type { ScenePlan, AnimationTheme, LayoutProfile } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -17,7 +17,29 @@ const DEFAULT_CONFIG: AICodeGeneratorConfig = {
   maxRetries: 2,
 };
 
-function buildCodeSystemPrompt(theme: AnimationTheme): string {
+function buildSlotPixelTable(layoutProfile: LayoutProfile): string {
+  const slotEntries = Object.values(layoutProfile.slots);
+  if (slotEntries.length === 0) return "";
+
+  const lines = ["## Slot-to-Pixel Coordinate Mapping", ""];
+  lines.push("Each beat has a `slot` field. Use this table to position content within the correct pixel region.");
+  lines.push("");
+  lines.push("| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |");
+  lines.push("|---------|-------|----------|-----------|------------|-------------|");
+  for (const slot of slotEntries) {
+    lines.push(
+      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`
+    );
+  }
+  lines.push("");
+  lines.push("Slot bounds are relative to the safe zone origin.");
+  return lines.join("\n");
+}
+
+function buildCodeSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+  const { canvas, safeZone } = layoutProfile;
+  const safeZoneBottom = safeZone.top + safeZone.height;
+
   return `You are a world-class Remotion motion graphics engineer. You receive a ScenePlan JSON and produce a React component that renders RICH, PROFESSIONAL animated motion graphics.
 
 ## Available Globals (do NOT import)
@@ -26,10 +48,17 @@ function buildCodeSystemPrompt(theme: AnimationTheme): string {
 
 ## Layout — FILL THE SAFE ZONE (critical)
 
-Canvas: 1080x1920. Safe zone: CANVAS_TOP=80, CANVAS_H=1080 (y=80 to y=1160).
-- Wrap all content: position:"absolute", top:CANVAS_TOP, left:44, right:44, height:CANVAS_H
-- Content MUST spread across the full 1080px height — not clustered at the top
-- Width: elements should span 70-100% of the 992px usable width
+Canvas: ${canvas.width}x${canvas.height}. Safe zone: CANVAS_TOP=${safeZone.top}, CANVAS_H=${safeZone.height} (y=${safeZone.top} to y=${safeZoneBottom}).
+- Wrap all content: position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H
+- Content MUST spread across the full ${safeZone.height}px height — not clustered at the top
+- Width: elements should span 70-100% of the ${safeZone.width}px usable width
+
+${buildSlotPixelTable(layoutProfile)}
+
+## Layout Rules
+- Each beat's content MUST be positioned within its assigned slot bounds
+- Animated transforms (translateY, translateX, scale) MUST NOT push content outside slot bounds
+- Use the slot-to-pixel mapping table above to determine exact positioning for each beat
 
 ## Typography (mobile-first — always large, ADAPTIVE to content density)
 - 1-2 blocks: hero titles 96-120, headlines 68-80
@@ -73,14 +102,14 @@ Canvas: 1080x1920. Safe zone: CANVAS_TOP=80, CANVAS_H=1080 (y=80 to y=1160).
 function Main({ scenePlan }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const CANVAS_TOP = 80;
-  const CANVAS_H = 1080;
+  const CANVAS_TOP = ${safeZone.top};
+  const CANVAS_H = ${safeZone.height};
 
   return (
     <AbsoluteFill style={{ backgroundColor: "${theme.background}" }}>
       {scenePlan.scenes.map((scene) => (
         <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-          <div style={{ position:"absolute", top:CANVAS_TOP, left:44, right:44, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box" }}>
+          <div style={{ position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box" }}>
             {/* Scene content — interpret animationDirection.beats */}
           </div>
         </Sequence>
@@ -95,6 +124,7 @@ For each beat in a scene:
 - Read the motion field to decide HOW to animate
 - Read the typography field to decide text styling and accent colors
 - Use the beat's frameRange for timing within the scene
+- Use the beat's slot field to look up pixel coordinates from the slot mapping table above
 
 ## Output Format
 Return ONLY the component code. No markdown fences, no explanation, no imports.
@@ -136,12 +166,13 @@ export class AICodeGenerator implements CodeGenerator {
   async generateCode(params: {
     scenePlan: ScenePlan;
     theme: AnimationTheme;
+    layoutProfile: LayoutProfile;
   }): Promise<Result<string, PipelineError>> {
     const google = createGoogleGenerativeAI({
       apiKey: process.env["GEMINI_API_KEY"] ?? "",
     });
 
-    const systemPrompt = buildCodeSystemPrompt(params.theme);
+    const systemPrompt = buildCodeSystemPrompt(params.theme, params.layoutProfile);
     const prompt = buildCodePrompt(params.scenePlan);
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {

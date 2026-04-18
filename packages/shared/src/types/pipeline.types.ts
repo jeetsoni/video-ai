@@ -61,6 +61,7 @@ export interface SceneBeat {
   typography: string;
   motion: string;
   sfx: string[];
+  slot?: string;
 }
 
 export interface SceneDirection {
