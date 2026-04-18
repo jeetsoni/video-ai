@@ -7,6 +7,8 @@ import type { GetJobStatusUseCase } from "@/pipeline/application/use-cases/get-j
 import type { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-pipeline-jobs.use-case.js";
 import type { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import type { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
+import type { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
+import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 
 type ThemeDto = {
   id: string;
@@ -25,6 +27,8 @@ export class PipelineController {
     private readonly approveScriptUseCase: ApproveScriptUseCase,
     private readonly regenerateScriptUseCase: RegenerateScriptUseCase,
     private readonly getThemesFn: () => Promise<ThemeDto[]>,
+    private readonly getPreviewDataUseCase: GetPreviewDataUseCase,
+    private readonly exportVideoUseCase: ExportVideoUseCase,
   ) {}
 
   async createJob(req: HttpRequest, res: HttpResponse): Promise<void> {
@@ -132,6 +136,36 @@ export class PipelineController {
     try {
       const themes = await this.getThemesFn();
       res.ok({ themes });
+    } catch {
+      res.serverError({ error: "internal_error", message: "Internal server error" });
+    }
+  }
+
+  async getPreviewData(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.getPreviewDataUseCase.execute({ jobId: id });
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      res.ok(result.getValue());
+    } catch {
+      res.serverError({ error: "internal_error", message: "Internal server error" });
+    }
+  }
+
+  async exportVideo(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.exportVideoUseCase.execute({ jobId: id });
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      res.ok({ status: "ok" });
     } catch {
       res.serverError({ error: "internal_error", message: "Internal server error" });
     }

@@ -8,6 +8,7 @@ const STAGES_IN_ORDER: readonly PipelineStageType[] = [
   "timestamp_mapping",
   "direction_generation",
   "code_generation",
+  "preview",
   "rendering",
   "done",
 ] as const;
@@ -20,7 +21,8 @@ const VALID_TRANSITIONS: ReadonlyMap<PipelineStageType, readonly PipelineStageTy
     ["transcription", ["timestamp_mapping"]],
     ["timestamp_mapping", ["direction_generation"]],
     ["direction_generation", ["code_generation"]],
-    ["code_generation", ["rendering"]],
+    ["code_generation", ["preview"]],
+    ["preview", ["rendering", "done"]],
     ["rendering", ["done"]],
     ["done", []],
   ]);

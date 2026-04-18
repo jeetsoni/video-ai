@@ -54,6 +54,11 @@ export default function JobDetailPage() {
     refetch();
   }, [pipelineRepository, id, refetch]);
 
+  const handleExport = useCallback(async () => {
+    await pipelineRepository.exportVideo(id);
+    refetch();
+  }, [pipelineRepository, id, refetch]);
+
   if (isLoading) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
@@ -150,6 +155,8 @@ export default function JobDetailPage() {
           onRetry={handleRegenerateScript}
           pollingError={error}
           onRefresh={refetch}
+          onExport={handleExport}
+          repository={pipelineRepository}
         />
       </main>
     );

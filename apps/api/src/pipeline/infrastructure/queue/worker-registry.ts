@@ -65,7 +65,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService);
   const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService);
   const layoutValidator = new BoundingBoxValidator();
-  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, queueService, objectStore, layoutValidator);
+  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, layoutValidator);
   const videoRenderingWorker = new VideoRenderingWorker(videoRenderer, jobRepository);
 
   // Stage name → worker process handler mapping

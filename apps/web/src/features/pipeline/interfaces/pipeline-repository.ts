@@ -8,6 +8,7 @@ import type {
   ListJobsResponse,
   ListThemesResponse,
   ActionResponse,
+  PreviewDataResponse,
 } from "../types/pipeline.types";
 
 export interface CreateJobParams {
@@ -29,4 +30,6 @@ export interface PipelineRepository {
   regenerateScript(jobId: string): Promise<ActionResponse>;
   listJobs(page: number, limit: number): Promise<ListJobsResponse>;
   getThemes(): Promise<ListThemesResponse>;
+  getPreviewData(jobId: string): Promise<PreviewDataResponse>;
+  exportVideo(jobId: string): Promise<ActionResponse>;
 }

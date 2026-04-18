@@ -10,6 +10,8 @@ import { GetJobStatusUseCase } from "@/pipeline/application/use-cases/get-job-st
 import { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-pipeline-jobs.use-case.js";
 import { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
+import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
+import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
 import { StreamController } from "@/pipeline/presentation/controllers/stream.controller.js";
 import { RedisStreamEventBuffer } from "@/shared/infrastructure/streaming/stream-event-buffer.js";
@@ -36,6 +38,8 @@ export function createPipelineModule(deps: {
   const listPipelineJobsUseCase = new ListPipelineJobsUseCase(repository);
   const approveScriptUseCase = new ApproveScriptUseCase(repository, queueService);
   const regenerateScriptUseCase = new RegenerateScriptUseCase(repository, queueService);
+  const getPreviewDataUseCase = new GetPreviewDataUseCase(repository, deps.objectStore);
+  const exportVideoUseCase = new ExportVideoUseCase(repository, queueService);
 
   // 4. Themes query
   const getThemesFn = () =>
@@ -49,6 +53,8 @@ export function createPipelineModule(deps: {
     approveScriptUseCase,
     regenerateScriptUseCase,
     getThemesFn,
+    getPreviewDataUseCase,
+    exportVideoUseCase,
   );
 
   // 6. Streaming SSE infrastructure

@@ -15,6 +15,7 @@ const TIMELINE_STAGES: PipelineStage[] = [
   "timestamp_mapping",
   "direction_generation",
   "code_generation",
+  "preview",
   "rendering",
   "done",
 ];

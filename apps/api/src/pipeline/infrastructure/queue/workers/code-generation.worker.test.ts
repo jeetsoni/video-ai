@@ -2,7 +2,6 @@ import { jest } from "@jest/globals";
 import type { Job } from "bullmq";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
-import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
 import type { WordTimestamp, SceneBoundary, SceneDirection, ValidationResult } from "@video-ai/shared";
@@ -120,7 +119,6 @@ describe("CodeGenerationWorker", () => {
   let worker: CodeGenerationWorker;
   let mockCodeGenerator: { generateCode: AnyMockFn };
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
-  let mockQueueService: { enqueue: AnyMockFn };
   let mockObjectStore: { upload: AnyMockFn; getSignedUrl: AnyMockFn };
   let mockLayoutValidator: { validate: AnyMockFn };
 
@@ -141,9 +139,6 @@ describe("CodeGenerationWorker", () => {
       findAll: jest.fn() as AnyMockFn,
       count: jest.fn() as AnyMockFn,
     };
-    mockQueueService = {
-      enqueue: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(undefined)),
-    };
     mockObjectStore = {
       upload: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok("code/job-1.tsx")),
       getSignedUrl: jest.fn() as AnyMockFn,
@@ -154,13 +149,12 @@ describe("CodeGenerationWorker", () => {
     worker = new CodeGenerationWorker(
       mockCodeGenerator as unknown as CodeGenerator,
       mockRepository as unknown as PipelineJobRepository,
-      mockQueueService as unknown as QueueService,
       mockObjectStore as unknown as ObjectStore,
       mockLayoutValidator as unknown as LayoutValidator,
     );
   });
 
-  it("should generate code, store in object store, set generated code + code path, transition to rendering, save, and enqueue next stage", async () => {
+  it("should generate code, store in object store, set generated code + code path, transition to preview, and save", async () => {
     const pipelineJob = createPipelineJobAtCodeGenerationStage("job-1");
     mockRepository.findById.mockResolvedValue(pipelineJob);
 
@@ -191,13 +185,9 @@ describe("CodeGenerationWorker", () => {
 
     expect(pipelineJob.generatedCode).toBe(generatedCode);
     expect(pipelineJob.codePath).toBe("code/job-1.tsx");
-    expect(pipelineJob.stage.value).toBe("rendering");
-    expect(pipelineJob.status.value).toBe("processing");
+    expect(pipelineJob.stage.value).toBe("preview");
+    expect(pipelineJob.status.value).toBe("completed");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
-    expect(mockQueueService.enqueue).toHaveBeenCalledWith({
-      stage: "rendering",
-      jobId: "job-1",
-    });
   });
 
   it("should throw when pipeline job is not found", async () => {
@@ -260,6 +250,5 @@ describe("CodeGenerationWorker", () => {
     await expect(worker.process(createMockJob("job-4"))).rejects.toThrow(uploadError);
     expect(pipelineJob.status.value).toBe("failed");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
-    expect(mockQueueService.enqueue).not.toHaveBeenCalled();
   });
 });

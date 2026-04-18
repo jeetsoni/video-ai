@@ -40,6 +40,8 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     approveScriptUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     regenerateScriptUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     getThemesFn: jest.fn<(...args: any[]) => any>(),
+    getPreviewDataUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    exportVideoUseCase: { execute: jest.fn<(...args: any[]) => any>() },
   };
   const merged = { ...defaults, ...overrides };
   return new PipelineController(
@@ -49,6 +51,8 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     merged.approveScriptUseCase as any,
     merged.regenerateScriptUseCase as any,
     merged.getThemesFn as any,
+    merged.getPreviewDataUseCase as any,
+    merged.exportVideoUseCase as any,
   );
 }
 

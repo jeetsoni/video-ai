@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@remotion/player": "^4.0.448",
     "@video-ai/shared": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
@@ -20,6 +21,8 @@
     "radix-ui": "^1.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "remotion": "^4.0.448",
+    "sucrase": "^3.35.1",
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {

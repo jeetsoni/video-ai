@@ -21,6 +21,7 @@ const STAGE_TO_STATUS: Record<PipelineStageType, PipelineStatus> = {
   timestamp_mapping: PipelineStatus.processing(),
   direction_generation: PipelineStatus.processing(),
   code_generation: PipelineStatus.processing(),
+  preview: PipelineStatus.completed(),
   rendering: PipelineStatus.processing(),
   done: PipelineStatus.completed(),
 };
@@ -33,6 +34,7 @@ const STAGE_TO_PROGRESS: Record<PipelineStageType, number> = {
   timestamp_mapping: 55,
   direction_generation: 65,
   code_generation: 80,
+  preview: 95,
   rendering: 90,
   done: 100,
 };
@@ -187,7 +189,8 @@ export class PipelineJob {
   }
 
   transitionTo(targetStageValue: PipelineStageType): Result<void, ValidationError> {
-    if (this.props.status.isTerminal()) {
+    const isPreviewStage = this.props.stage.value === "preview";
+    if (this.props.status.isTerminal() && !isPreviewStage) {
       return Result.fail(
         new ValidationError(
           `Cannot transition from terminal status "${this.props.status.value}"`,

@@ -77,11 +77,11 @@ describe("PipelineStage", () => {
 
   it("indexOf returns correct position", () => {
     expect(PipelineStage.create("script_generation")!.indexOf()).toBe(0);
-    expect(PipelineStage.create("done")!.indexOf()).toBe(8);
+    expect(PipelineStage.create("done")!.indexOf()).toBe(9);
   });
 
   it("allStages returns all 9 stages", () => {
-    expect(PipelineStage.allStages()).toHaveLength(9);
+    expect(PipelineStage.allStages()).toHaveLength(10);
   });
 
   it("validTransitionsFrom returns allowed targets", () => {

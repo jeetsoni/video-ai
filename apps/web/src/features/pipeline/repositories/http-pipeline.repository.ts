@@ -10,6 +10,7 @@ import type {
   ListJobsResponse,
   ListThemesResponse,
   ActionResponse,
+  PreviewDataResponse,
 } from "../types/pipeline.types";
 
 const BASE = "/api/pipeline";
@@ -58,6 +59,19 @@ export class HttpPipelineRepository implements PipelineRepository {
   getThemes(): Promise<ListThemesResponse> {
     return this.http.get<ListThemesResponse>({
       path: `${BASE}/themes`,
+    });
+  }
+
+  getPreviewData(jobId: string): Promise<PreviewDataResponse> {
+    return this.http.get<PreviewDataResponse>({
+      path: `${BASE}/jobs/${jobId}/preview`,
+    });
+  }
+
+  exportVideo(jobId: string): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${jobId}/export`,
+      body: {},
     });
   }
 }

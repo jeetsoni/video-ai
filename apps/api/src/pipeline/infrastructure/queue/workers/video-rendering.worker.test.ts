@@ -111,6 +111,7 @@ function createPipelineJobAtRenderingStage(id: string): PipelineJob {
   job.setSceneDirections(sampleDirections);
   job.transitionTo("code_generation");
   job.setGeneratedCode('export default function Main() { return <div>Hello</div>; }');
+  job.transitionTo("preview");
   job.transitionTo("rendering");
   return job;
 }
@@ -205,6 +206,7 @@ describe("VideoRenderingWorker", () => {
     pipelineJob.setSceneDirections(sampleDirections);
     pipelineJob.transitionTo("code_generation");
     // Skip setGeneratedCode
+    pipelineJob.transitionTo("preview");
     pipelineJob.transitionTo("rendering");
 
     mockRepository.findById.mockResolvedValue(pipelineJob);
@@ -233,6 +235,7 @@ describe("VideoRenderingWorker", () => {
     pipelineJob.setSceneDirections(sampleDirections);
     pipelineJob.transitionTo("code_generation");
     pipelineJob.setGeneratedCode('export default function Main() { return <div>Hello</div>; }');
+    pipelineJob.transitionTo("preview");
     pipelineJob.transitionTo("rendering");
 
     mockRepository.findById.mockResolvedValue(pipelineJob);

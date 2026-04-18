@@ -48,5 +48,17 @@ export function createPipelineRouter(controller: PipelineController, streamContr
     await controller.getThemes(httpReq, httpRes);
   });
 
+  router.get("/jobs/:id/preview", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.getPreviewData(httpReq, httpRes);
+  });
+
+  router.post("/jobs/:id/export", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.exportVideo(httpReq, httpRes);
+  });
+
   return router;
 }

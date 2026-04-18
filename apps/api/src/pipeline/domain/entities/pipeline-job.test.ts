@@ -147,6 +147,7 @@ describe("PipelineJob", () => {
         { stage: "timestamp_mapping", status: "processing", progress: 55 },
         { stage: "direction_generation", status: "processing", progress: 65 },
         { stage: "code_generation", status: "processing", progress: 80 },
+        { stage: "preview", status: "completed", progress: 95 },
         { stage: "rendering", status: "processing", progress: 90 },
         { stage: "done", status: "completed", progress: 100 },
       ];
@@ -354,6 +355,7 @@ describe("PipelineJob", () => {
       job.transitionTo("timestamp_mapping");
       job.transitionTo("direction_generation");
       job.transitionTo("code_generation");
+      job.transitionTo("preview");
       job.transitionTo("rendering");
       const result = job.setVideoPath("videos/job-1.mp4");
       expect(result.isSuccess).toBe(true);

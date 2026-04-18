@@ -2,7 +2,6 @@ import type { Job } from "bullmq";
 import type { ScenePlan } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
-import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
 import { ANIMATION_THEMES, getLayoutProfile } from "@video-ai/shared";
@@ -13,7 +12,6 @@ export class CodeGenerationWorker {
   constructor(
     private readonly codeGenerator: CodeGenerator,
     private readonly jobRepository: PipelineJobRepository,
-    private readonly queueService: QueueService,
     private readonly objectStore: ObjectStore,
     private readonly layoutValidator: LayoutValidator,
   ) {}
@@ -131,7 +129,7 @@ export class CodeGenerationWorker {
       throw setCodeResult.getError();
     }
 
-    const transitionResult = pipelineJob.transitionTo("rendering");
+    const transitionResult = pipelineJob.transitionTo("preview");
     if (transitionResult.isFailure) {
       pipelineJob.markFailed("code_generation_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
@@ -139,7 +137,5 @@ export class CodeGenerationWorker {
     }
 
     await this.jobRepository.save(pipelineJob);
-
-    await this.queueService.enqueue({ stage: "rendering", jobId });
   }
 }

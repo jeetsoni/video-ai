@@ -8,6 +8,7 @@ import {
   Clock,
   Clapperboard,
   Code,
+  Play,
   Film,
   CheckCircle,
 } from "lucide-react";
@@ -61,6 +62,12 @@ export const STAGE_DISPLAY_MAP: Record<PipelineStage, StageDisplayInfo> = {
     label: "Code",
     description: "Generating animation code…",
     icon: Code,
+  },
+  preview: {
+    stage: "preview",
+    label: "Preview",
+    description: "Animation ready for preview",
+    icon: Play,
   },
   rendering: {
     stage: "rendering",

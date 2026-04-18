@@ -46,3 +46,16 @@ export interface ListThemesResponse {
 export interface ActionResponse {
   status: "ok";
 }
+
+/** Response shape from GET /api/pipeline/jobs/:id/preview */
+export interface PreviewDataResponse {
+  code: string;
+  scenePlan: ScenePlan;
+  audioUrl: string | null;
+  audioError: boolean;
+  format: VideoFormat;
+  fps: number;
+  totalFrames: number;
+  compositionWidth: number;
+  compositionHeight: number;
+}

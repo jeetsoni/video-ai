@@ -18,6 +18,7 @@ export const STAGE_RETRY_CONFIG: Record<
   timestamp_mapping: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
   direction_generation: { attempts: 2, backoff: { type: "exponential", delay: 2000 } },
   code_generation: { attempts: 2, backoff: { type: "exponential", delay: 2000 } },
+  preview: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
   rendering: { attempts: 1, backoff: { type: "exponential", delay: 1000 } },
 };
 
