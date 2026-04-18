@@ -16,7 +16,6 @@ export default function Home() {
   const { pipelineRepository } = useAppDependencies();
 
   const [jobs, setJobs] = useState<PipelineJobDto[]>([]);
-  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchJobs = useCallback(async () => {
@@ -24,7 +23,6 @@ export default function Home() {
     try {
       const res = await pipelineRepository.listJobs(1, PAGE_LIMIT);
       setJobs(res.jobs);
-      setTotal(res.total);
     } finally {
       setIsLoading(false);
     }
