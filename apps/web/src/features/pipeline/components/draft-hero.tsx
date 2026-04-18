@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Smartphone, Monitor, ChevronDown, Check, Palette } from "lucide-react";
 import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
@@ -36,6 +36,25 @@ export function DraftHero() {
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const maxHeight = 8 * 28;
+    const next = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setTopic(e.target.value);
+      autoResize();
+    },
+    [autoResize],
+  );
 
   const selectedTheme = ANIMATION_THEMES.find((t) => t.id === themeId) ?? ANIMATION_THEMES[0]!;
 
@@ -54,7 +73,10 @@ export function DraftHero() {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) handleDraft();
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleDraft();
+      }
     },
     [handleDraft],
   );
@@ -70,13 +92,15 @@ export function DraftHero() {
 
       <div className="mt-8 space-y-3">
         {/* Topic input bar */}
-        <div className="flex items-center rounded-2xl border border-outline-variant bg-surface-variant/40 p-2 shadow-ambient-lg backdrop-blur-xl transition-all focus-within:border-primary/40">
+        <div className="flex items-end rounded-2xl border border-outline-variant bg-surface-variant/40 p-2 shadow-ambient-lg backdrop-blur-xl transition-all focus-within:border-primary/40">
           <div className="flex-1 px-4">
-            <input
+            <textarea
+              ref={textareaRef}
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
-              className="w-full border-none bg-transparent p-2 text-lg text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0"
+              rows={1}
+              className="w-full resize-none overflow-hidden border-none bg-transparent p-2 text-lg text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0"
               placeholder="e.g. The Quantum Physics of Black Holes"
               disabled={isSubmitting}
             />
