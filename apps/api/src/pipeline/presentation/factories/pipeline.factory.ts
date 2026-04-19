@@ -110,7 +110,9 @@ export function createPipelineModule(deps: {
     host: deps.redisConnection.host,
     port: deps.redisConnection.port,
   });
-  const progressEventSubscriber = new RedisStreamEventSubscriber(progressRedisClient);
+  const progressEventSubscriber = new RedisStreamEventSubscriber(
+    progressRedisClient,
+  );
 
   // 9. Progress controller
   const progressController = new ProgressController(
@@ -120,5 +122,39 @@ export function createPipelineModule(deps: {
   );
 
   // 10. Router
-  return createPipelineRouter(controller, streamController, progressController);
+  const pipelineRouter = createPipelineRouter(
+    controller,
+    streamController,
+    progressController,
+  );
+
+  // 11. Audio proxy route (serves audio through API to avoid browser/MinIO compatibility issues)
+  pipelineRouter.get("/jobs/:id/audio", async (req, res) => {
+    try {
+      const job = await deps.prisma.pipelineJob.findUnique({
+        where: { id: req.params.id },
+      });
+      if (!job || !job.audioPath) {
+        res.status(404).json({ error: "Audio not found" });
+        return;
+      }
+
+      const result = await deps.objectStore.getObject(job.audioPath);
+      if (result.isFailure) {
+        res.status(500).json({ error: "Failed to retrieve audio" });
+        return;
+      }
+
+      const { data, contentType, contentLength } = result.getValue();
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", contentLength);
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(data);
+    } catch {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  return pipelineRouter;
 }

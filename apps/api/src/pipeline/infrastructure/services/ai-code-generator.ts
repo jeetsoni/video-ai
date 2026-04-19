@@ -1,6 +1,10 @@
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { ScenePlan, AnimationTheme, LayoutProfile } from "@video-ai/shared";
+import type {
+  ScenePlan,
+  AnimationTheme,
+  LayoutProfile,
+} from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -13,7 +17,7 @@ export interface AICodeGeneratorConfig {
 }
 
 const DEFAULT_CONFIG: AICodeGeneratorConfig = {
-  model: "gemini-3.1-pro-preview",
+  model: "gemini-3-flash-preview",
   temperature: 0.4,
   maxRetries: 2,
 };
@@ -23,13 +27,19 @@ function buildSlotPixelTable(layoutProfile: LayoutProfile): string {
   if (slotEntries.length === 0) return "";
 
   const lines = ["## Slot-to-Pixel Coordinate Mapping", ""];
-  lines.push("Each beat has a `slot` field. Use this table to position content within the correct pixel region.");
+  lines.push(
+    "Each beat has a `slot` field. Use this table to position content within the correct pixel region.",
+  );
   lines.push("");
-  lines.push("| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |");
-  lines.push("|---------|-------|----------|-----------|------------|-------------|");
+  lines.push(
+    "| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |",
+  );
+  lines.push(
+    "|---------|-------|----------|-----------|------------|-------------|",
+  );
   for (const slot of slotEntries) {
     lines.push(
-      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`
+      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`,
     );
   }
   lines.push("");
@@ -37,7 +47,10 @@ function buildSlotPixelTable(layoutProfile: LayoutProfile): string {
   return lines.join("\n");
 }
 
-function buildCodeSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+function buildCodeSystemPrompt(
+  theme: AnimationTheme,
+  layoutProfile: LayoutProfile,
+): string {
   const { canvas, safeZone } = layoutProfile;
   const safeZoneBottom = safeZone.top + safeZone.height;
 
@@ -191,7 +204,8 @@ Scene Plan JSON:
 ${JSON.stringify(scenePlan, null, 1)}`;
 }
 
-const MAIN_EXPORT_PATTERN = /export\s+default\s+(?:function\s+)?Main|export\s*\{\s*Main\s+as\s+default\s*\}|function\s+Main\s*\(/;
+const MAIN_EXPORT_PATTERN =
+  /export\s+default\s+(?:function\s+)?Main|export\s*\{\s*Main\s+as\s+default\s*\}|function\s+Main\s*\(/;
 
 function hasMainComponent(code: string): boolean {
   return MAIN_EXPORT_PATTERN.test(code);
@@ -199,7 +213,9 @@ function hasMainComponent(code: string): boolean {
 
 function cleanCodeOutput(raw: string): string {
   let cleaned = raw.trim();
-  const fenceMatch = cleaned.match(/```(?:tsx?|jsx?|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/);
+  const fenceMatch = cleaned.match(
+    /```(?:tsx?|jsx?|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/,
+  );
   if (fenceMatch) cleaned = fenceMatch[1]!.trim();
   return cleaned;
 }
@@ -220,7 +236,10 @@ export class AICodeGenerator implements CodeGenerator {
       apiKey: process.env["GEMINI_API_KEY"] ?? "",
     });
 
-    const systemPrompt = buildCodeSystemPrompt(params.theme, params.layoutProfile);
+    const systemPrompt = buildCodeSystemPrompt(
+      params.theme,
+      params.layoutProfile,
+    );
     const prompt = buildCodePrompt(params.scenePlan);
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
@@ -246,13 +265,15 @@ export class AICodeGenerator implements CodeGenerator {
         }
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Unknown code generation error";
+          error instanceof Error
+            ? error.message
+            : "Unknown code generation error";
 
         if (attempt === this.config.maxRetries) {
           return Result.fail(
             PipelineError.codeGenerationFailed(
-              `Code generation failed after ${this.config.maxRetries + 1} attempts: ${message}`
-            )
+              `Code generation failed after ${this.config.maxRetries + 1} attempts: ${message}`,
+            ),
           );
         }
       }
@@ -260,8 +281,8 @@ export class AICodeGenerator implements CodeGenerator {
 
     return Result.fail(
       PipelineError.codeGenerationFailed(
-        `Generated code does not contain a "Main" component after ${this.config.maxRetries + 1} attempts`
-      )
+        `Generated code does not contain a "Main" component after ${this.config.maxRetries + 1} attempts`,
+      ),
     );
   }
 }

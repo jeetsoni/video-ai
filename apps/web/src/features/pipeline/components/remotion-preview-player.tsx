@@ -14,19 +14,26 @@ export interface RemotionPreviewPlayerProps {
   totalFrames: number;
   compositionWidth: number;
   compositionHeight: number;
+  onAudioError?: () => void;
 }
 
 interface CompositionProps {
   scenePlan: ScenePlan;
   audioUrl: string | null;
   MainComponent: React.ComponentType<{ scenePlan: ScenePlan }>;
+  onAudioError?: () => void;
 }
 
-function CompositionWrapper({ scenePlan, audioUrl, MainComponent }: CompositionProps) {
+function CompositionWrapper({
+  scenePlan,
+  audioUrl,
+  MainComponent,
+  onAudioError,
+}: CompositionProps) {
   return (
     <>
       <MainComponent scenePlan={scenePlan} />
-      {audioUrl && <Audio src={audioUrl} />}
+      {audioUrl && <Audio src={audioUrl} onError={onAudioError} />}
     </>
   );
 }
@@ -39,6 +46,7 @@ export function RemotionPreviewPlayer({
   totalFrames,
   compositionWidth,
   compositionHeight,
+  onAudioError,
 }: RemotionPreviewPlayerProps) {
   const Composition = useCallback(
     () => (
@@ -46,14 +54,15 @@ export function RemotionPreviewPlayer({
         scenePlan={scenePlan}
         audioUrl={audioUrl}
         MainComponent={component}
+        onAudioError={onAudioError}
       />
     ),
-    [scenePlan, audioUrl, component],
+    [scenePlan, audioUrl, component, onAudioError],
   );
 
   const inputProps = useMemo(
-    () => ({ scenePlan, audioUrl, MainComponent: component }),
-    [scenePlan, audioUrl, component],
+    () => ({ scenePlan, audioUrl, MainComponent: component, onAudioError }),
+    [scenePlan, audioUrl, component, onAudioError],
   );
 
   return (
