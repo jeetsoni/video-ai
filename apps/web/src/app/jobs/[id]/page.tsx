@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import type { SceneBoundary } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
-import { usePipelineJob } from "@/features/pipeline/hooks/use-pipeline-job";
+import { usePipelineProgress } from "@/features/pipeline/hooks/use-pipeline-progress";
 import { useStreamingScript } from "@/features/pipeline/hooks/use-streaming-script";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
@@ -16,9 +16,10 @@ export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { pipelineRepository, configService } = useAppDependencies();
 
-  const { job, isLoading, error, refetch, restartPolling } = usePipelineJob({
+  const { job, isLoading, error, refetch, reconnect } = usePipelineProgress({
     repository: pipelineRepository,
     jobId: id,
+    apiBaseUrl: configService.getApiBaseUrl(),
   });
 
   // Always call the streaming hook (React rules of hooks — no conditional calls).
@@ -36,9 +37,9 @@ export default function JobDetailPage() {
   const handleApproveScript = useCallback(
     async (editedScript?: string, scenes?: SceneBoundary[]) => {
       await pipelineRepository.approveScript({ jobId: id, script: editedScript, scenes });
-      refetch();
+      reconnect();
     },
-    [pipelineRepository, id, refetch],
+    [pipelineRepository, id, reconnect],
   );
 
   // Refetch job data when streaming completes so the backend status
@@ -51,13 +52,13 @@ export default function JobDetailPage() {
 
   const handleRegenerateScript = useCallback(async () => {
     await pipelineRepository.regenerateScript(id);
-    restartPolling();
-  }, [pipelineRepository, id, restartPolling]);
+    reconnect();
+  }, [pipelineRepository, id, reconnect]);
 
   const handleExport = useCallback(async () => {
     await pipelineRepository.exportVideo(id);
-    restartPolling();
-  }, [pipelineRepository, id, restartPolling]);
+    reconnect();
+  }, [pipelineRepository, id, reconnect]);
 
   if (isLoading) {
     return (
@@ -122,7 +123,7 @@ export default function JobDetailPage() {
   // Render the ScriptReviewEditor when streaming is active/complete OR when
   // the hook resolved from DB for a completed job.
   if (isStreamingActive || isStreamingComplete || isDbScriptReview) {
-    // Prefer streaming data when available; fall back to DB-loaded data from usePipelineJob
+    // Prefer streaming data when available; fall back to DB-loaded data from usePipelineProgress
     const script = streamedScript.length > 0 ? streamedScript : (job.generatedScript ?? "");
     const scenes = streamedScenes.length > 0 ? streamedScenes : (job.generatedScenes ?? []);
     const isStreaming = streamingStatus === "streaming" || streamingStatus === "loading";
@@ -154,7 +155,7 @@ export default function JobDetailPage() {
           job={job}
           onRetry={handleRegenerateScript}
           pollingError={error}
-          onRefresh={restartPolling}
+          onRefresh={reconnect}
           onExport={handleExport}
           repository={pipelineRepository}
         />

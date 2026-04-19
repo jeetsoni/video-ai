@@ -15,6 +15,7 @@ import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-prev
 import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
 import { StreamController } from "@/pipeline/presentation/controllers/stream.controller.js";
+import { ProgressController } from "@/pipeline/presentation/controllers/progress.controller.js";
 import { RedisStreamEventBuffer } from "@/shared/infrastructure/streaming/stream-event-buffer.js";
 import { RedisStreamEventSubscriber } from "@/shared/infrastructure/streaming/stream-event-subscriber.js";
 import { ExpressSSEResponseHelper } from "@/shared/infrastructure/streaming/sse-response-helper.js";
@@ -77,6 +78,20 @@ export function createPipelineModule(deps: {
     repository,
   );
 
-  // 8. Router
-  return createPipelineRouter(controller, streamController);
+  // 8. Progress SSE infrastructure
+  const progressRedisClient = new Redis({
+    host: deps.redisConnection.host,
+    port: deps.redisConnection.port,
+  });
+  const progressEventSubscriber = new RedisStreamEventSubscriber(progressRedisClient);
+
+  // 9. Progress controller
+  const progressController = new ProgressController(
+    progressEventSubscriber,
+    sseResponseHelper,
+    repository,
+  );
+
+  // 10. Router
+  return createPipelineRouter(controller, streamController, progressController);
 }

@@ -1,10 +1,12 @@
 import type { Job } from "bullmq";
-import type { ScriptStreamEvent } from "@video-ai/shared";
+import type { ScriptStreamEvent, ProgressEvent } from "@video-ai/shared";
 import type { StreamingScriptGenerator } from "@/pipeline/application/interfaces/streaming-script-generator.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 
 export class ScriptGenerationWorker {
+  private progressSeq = 0;
+
   constructor(
     private readonly streamingScriptGenerator: StreamingScriptGenerator,
     private readonly eventPublisher: StreamEventPublisher,
@@ -66,6 +68,7 @@ export class ScriptGenerationWorker {
     if (result.isFailure) {
       pipelineJob.markFailed("script_generation_failed", result.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "script_generation_failed", result.getError().message);
       return; // Don't throw — job is already marked failed, retrying would hit terminal status
     }
 
@@ -74,6 +77,7 @@ export class ScriptGenerationWorker {
     if (setScriptResult.isFailure) {
       pipelineJob.markFailed("script_generation_failed", setScriptResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "script_generation_failed", setScriptResult.getError().message);
       return;
     }
 
@@ -81,9 +85,33 @@ export class ScriptGenerationWorker {
     if (transitionResult.isFailure) {
       pipelineJob.markFailed("script_generation_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "script_generation_failed", transitionResult.getError().message);
       return;
     }
 
     await this.jobRepository.save(pipelineJob);
+    await this.publishProgressEvent(jobId, pipelineJob.stage.value, pipelineJob.status.value, pipelineJob.progressPercent);
+  }
+
+  private async publishProgressEvent(
+    jobId: string,
+    stage: string,
+    status: string,
+    progressPercent: number,
+    errorCode?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    const event: ProgressEvent = {
+      type: "progress",
+      seq: ++this.progressSeq,
+      data: {
+        stage: stage as ProgressEvent["data"]["stage"],
+        status: status as ProgressEvent["data"]["status"],
+        progressPercent,
+        ...(errorCode && { errorCode }),
+        ...(errorMessage && { errorMessage }),
+      },
+    };
+    await this.eventPublisher.publish(`stream:progress:${jobId}`, { ...event });
   }
 }

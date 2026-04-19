@@ -1,13 +1,18 @@
 import type { Job } from "bullmq";
+import type { ProgressEvent } from "@video-ai/shared";
 import type { TranscriptionService } from "@/pipeline/application/interfaces/transcription-service.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 
 export class TranscriptionWorker {
+  private seq = 0;
+
   constructor(
     private readonly transcriptionService: TranscriptionService,
     private readonly jobRepository: PipelineJobRepository,
     private readonly queueService: QueueService,
+    private readonly eventPublisher: StreamEventPublisher,
   ) {}
 
   async process(job: Job<{ jobId: string }>): Promise<void> {
@@ -38,6 +43,7 @@ export class TranscriptionWorker {
     if (setTranscriptResult.isFailure) {
       pipelineJob.markFailed("transcription_failed", setTranscriptResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "transcription_failed", setTranscriptResult.getError().message);
       throw setTranscriptResult.getError();
     }
 
@@ -45,11 +51,35 @@ export class TranscriptionWorker {
     if (transitionResult.isFailure) {
       pipelineJob.markFailed("transcription_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "transcription_failed", transitionResult.getError().message);
       throw transitionResult.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
+    await this.publishProgressEvent(jobId, pipelineJob.stage.value, pipelineJob.status.value, pipelineJob.progressPercent);
 
     await this.queueService.enqueue({ stage: "timestamp_mapping", jobId });
+  }
+
+  private async publishProgressEvent(
+    jobId: string,
+    stage: string,
+    status: string,
+    progressPercent: number,
+    errorCode?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    const event: ProgressEvent = {
+      type: "progress",
+      seq: ++this.seq,
+      data: {
+        stage: stage as ProgressEvent["data"]["stage"],
+        status: status as ProgressEvent["data"]["status"],
+        progressPercent,
+        ...(errorCode && { errorCode }),
+        ...(errorMessage && { errorMessage }),
+      },
+    };
+    await this.eventPublisher.publish(`stream:progress:${jobId}`, { ...event });
   }
 }
