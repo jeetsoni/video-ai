@@ -10,6 +10,84 @@ import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { FULL_PRIMITIVES } from "./remotion-primitives.js";
 
+const PRIMITIVE_NAMES = [
+  "GlassPanel",
+  "SceneEntry",
+  "Stagger",
+  "TypeWriter",
+  "CodeWindow",
+  "DataTable",
+  "FlowDiagram",
+  "BarChart",
+  "CountUp",
+  "Badge",
+  "IconBox",
+  "DrawBorder",
+  "_clamp",
+];
+
+/**
+ * Strip any re-declarations of built-in primitives from AI-generated code.
+ * The LLM sometimes redefines helpers that are already provided via
+ * FULL_PRIMITIVES, causing "Identifier X has already been declared" at eval.
+ */
+function stripDuplicatePrimitives(code: string): string {
+  let cleaned = code;
+
+  for (const name of PRIMITIVE_NAMES) {
+    // Remove: function Name(...) { ... } (top-level, brace-balanced)
+    const fnPattern = new RegExp(
+      `(?:^|\\n)function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`,
+    );
+    const match = fnPattern.exec(cleaned);
+    if (match) {
+      const start = match.index + (cleaned[match.index] === "\n" ? 1 : 0);
+      let depth = 0;
+      let end = start;
+      let inBody = false;
+      for (let i = start; i < cleaned.length; i++) {
+        if (cleaned[i] === "{") {
+          depth++;
+          inBody = true;
+        } else if (cleaned[i] === "}") {
+          depth--;
+          if (inBody && depth === 0) {
+            end = i + 1;
+            break;
+          }
+        }
+      }
+      cleaned = cleaned.slice(0, start) + cleaned.slice(end);
+    }
+
+    // Remove: const Name = ... (arrow fn or expression, up to matching ; or closing brace+;)
+    const constPattern = new RegExp(
+      `(?:^|\\n)(?:const|var|let)\\s+${name}\\s*=`,
+    );
+    const constMatch = constPattern.exec(cleaned);
+    if (constMatch) {
+      const start =
+        constMatch.index + (cleaned[constMatch.index] === "\n" ? 1 : 0);
+      let depth = 0;
+      let end = start;
+      for (let i = start; i < cleaned.length; i++) {
+        if (cleaned[i] === "{" || cleaned[i] === "(") depth++;
+        else if (cleaned[i] === "}" || cleaned[i] === ")") depth--;
+        else if (cleaned[i] === ";" && depth <= 0) {
+          end = i + 1;
+          break;
+        }
+        if (i === cleaned.length - 1) {
+          end = cleaned.length;
+        }
+      }
+      cleaned = cleaned.slice(0, start) + cleaned.slice(end);
+    }
+  }
+
+  return cleaned;
+}
+
 export interface AICodeGeneratorConfig {
   model: string;
   temperature: number;
@@ -148,6 +226,7 @@ Text: ${theme.textPrimary} primary, ${theme.textMuted} muted
 11. Add scene entry animation: scale 0.92->1 + opacity 0->1 over 12-15 frames per scene
 12. Smooth spring entries: spring({ frame, fps, config: { damping:14, stiffness:180 } })
 13. Subtle idle animations: Math.sin(frame * 0.04) * 3 for gentle floating on key elements
+14. NEVER redefine the helper primitives listed above (GlassPanel, SceneEntry, Stagger, TypeWriter, CodeWindow, DataTable, FlowDiagram, BarChart, CountUp, Badge, IconBox, DrawBorder, _clamp) — they are already declared in scope. Redefining them will cause a SyntaxError.
 
 ## Component Structure
 function Main({ scenePlan }) {
@@ -261,7 +340,8 @@ export class AICodeGenerator implements CodeGenerator {
         const code = cleanCodeOutput(text);
 
         if (hasMainComponent(code)) {
-          return Result.ok(FULL_PRIMITIVES + "\n" + code);
+          const deduped = stripDuplicatePrimitives(code);
+          return Result.ok(FULL_PRIMITIVES + "\n" + deduped);
         }
       } catch (error) {
         const message =

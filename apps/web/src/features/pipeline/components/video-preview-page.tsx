@@ -168,7 +168,15 @@ export function VideoPreviewPage({
 
     // Error state from fetch or code evaluation
     if (previewError) {
-      return <PreviewError error={previewError} onRetry={refetch} />;
+      const isSyntaxOrEvalError =
+        previewError.startsWith("SyntaxError") ||
+        previewError.includes("does not define a Main");
+      return (
+        <PreviewError
+          error={previewError}
+          onRetry={isSyntaxOrEvalError ? handleRegenerateCode : refetch}
+        />
+      );
     }
 
     // Always show Remotion live preview from code for preview-eligible stages
