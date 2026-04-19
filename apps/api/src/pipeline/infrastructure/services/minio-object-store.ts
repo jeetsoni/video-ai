@@ -36,6 +36,8 @@ export class MinioObjectStore implements ObjectStore {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
 
@@ -74,8 +76,8 @@ export class MinioObjectStore implements ObjectStore {
       return Result.fail(
         new PipelineError(
           `Storage upload failed: ${message}`,
-          "rendering_failed"
-        )
+          "rendering_failed",
+        ),
       );
     }
   }
@@ -98,8 +100,52 @@ export class MinioObjectStore implements ObjectStore {
       return Result.fail(
         new PipelineError(
           `Storage getSignedUrl failed: ${message}`,
-          "rendering_failed"
-        )
+          "rendering_failed",
+        ),
+      );
+    }
+  }
+
+  async getObject(
+    key: string,
+  ): Promise<
+    Result<
+      {
+        data: ReadableStream | Buffer;
+        contentType: string;
+        contentLength: number;
+      },
+      PipelineError
+    >
+  > {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      const response = await this.client.send(command);
+
+      const chunks: Uint8Array[] = [];
+      const stream = response.Body as NodeJS.ReadableStream;
+      for await (const chunk of stream) {
+        chunks.push(chunk as Uint8Array);
+      }
+      const data = Buffer.concat(chunks);
+
+      return Result.ok({
+        data,
+        contentType: response.ContentType ?? "application/octet-stream",
+        contentLength: response.ContentLength ?? data.length,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown getObject error";
+      return Result.fail(
+        new PipelineError(
+          `Storage getObject failed: ${message}`,
+          "rendering_failed",
+        ),
       );
     }
   }

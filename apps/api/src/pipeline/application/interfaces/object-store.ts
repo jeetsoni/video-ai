@@ -8,4 +8,16 @@ export interface ObjectStore {
     contentType: string;
   }): Promise<Result<string, PipelineError>>;
   getSignedUrl(key: string): Promise<Result<string, PipelineError>>;
+  getObject(
+    key: string,
+  ): Promise<
+    Result<
+      {
+        data: ReadableStream | Buffer;
+        contentType: string;
+        contentLength: number;
+      },
+      PipelineError
+    >
+  >;
 }

@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { JobListTable } from "./job-list-table";
 import type { PipelineJobDto } from "@video-ai/shared";
