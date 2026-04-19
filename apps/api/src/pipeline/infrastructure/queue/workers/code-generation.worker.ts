@@ -1,19 +1,23 @@
 import type { Job } from "bullmq";
-import type { ScenePlan } from "@video-ai/shared";
+import type { ScenePlan, ProgressEvent } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import { ANIMATION_THEMES, getLayoutProfile } from "@video-ai/shared";
 
 const MAX_VALIDATION_RETRIES = 2;
 
 export class CodeGenerationWorker {
+  private seq = 0;
+
   constructor(
     private readonly codeGenerator: CodeGenerator,
     private readonly jobRepository: PipelineJobRepository,
     private readonly objectStore: ObjectStore,
     private readonly layoutValidator: LayoutValidator,
+    private readonly eventPublisher: StreamEventPublisher,
   ) {}
 
   async process(job: Job<{ jobId: string }>): Promise<void> {
@@ -105,6 +109,7 @@ export class CodeGenerationWorker {
         `Layout validation failed after ${MAX_VALIDATION_RETRIES + 1} attempts: ${validation.summary}`,
       );
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Layout validation failed after ${MAX_VALIDATION_RETRIES + 1} attempts: ${validation.summary}`);
       throw new Error(`Layout validation failed: ${validation.summary}`);
     }
 
@@ -117,6 +122,7 @@ export class CodeGenerationWorker {
     if (uploadResult.isFailure) {
       pipelineJob.markFailed("code_generation_failed", uploadResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", uploadResult.getError().message);
       throw uploadResult.getError();
     }
 
@@ -126,6 +132,7 @@ export class CodeGenerationWorker {
     if (setCodeResult.isFailure) {
       pipelineJob.markFailed("code_generation_failed", setCodeResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", setCodeResult.getError().message);
       throw setCodeResult.getError();
     }
 
@@ -133,9 +140,33 @@ export class CodeGenerationWorker {
     if (transitionResult.isFailure) {
       pipelineJob.markFailed("code_generation_failed", transitionResult.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", transitionResult.getError().message);
       throw transitionResult.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
+    await this.publishProgressEvent(jobId, pipelineJob.stage.value, pipelineJob.status.value, pipelineJob.progressPercent);
+  }
+
+  private async publishProgressEvent(
+    jobId: string,
+    stage: string,
+    status: string,
+    progressPercent: number,
+    errorCode?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    const event: ProgressEvent = {
+      type: "progress",
+      seq: ++this.seq,
+      data: {
+        stage: stage as ProgressEvent["data"]["stage"],
+        status: status as ProgressEvent["data"]["status"],
+        progressPercent,
+        ...(errorCode && { errorCode }),
+        ...(errorMessage && { errorMessage }),
+      },
+    };
+    await this.eventPublisher.publish(`stream:progress:${jobId}`, { ...event });
   }
 }

@@ -4,6 +4,7 @@ import type { CodeGenerator } from "@/pipeline/application/interfaces/code-gener
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { WordTimestamp, SceneBoundary, SceneDirection, ValidationResult } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -121,6 +122,7 @@ describe("CodeGenerationWorker", () => {
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockObjectStore: { upload: AnyMockFn; getSignedUrl: AnyMockFn };
   let mockLayoutValidator: { validate: AnyMockFn };
+  let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
 
   const validValidationResult: ValidationResult = {
     valid: true,
@@ -146,11 +148,17 @@ describe("CodeGenerationWorker", () => {
     mockLayoutValidator = {
       validate: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(validValidationResult)),
     };
+    mockEventPublisher = {
+      publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+    };
     worker = new CodeGenerationWorker(
       mockCodeGenerator as unknown as CodeGenerator,
       mockRepository as unknown as PipelineJobRepository,
       mockObjectStore as unknown as ObjectStore,
       mockLayoutValidator as unknown as LayoutValidator,
+      mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 

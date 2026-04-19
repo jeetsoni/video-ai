@@ -25,11 +25,11 @@ const DEFAULT_CONFIG: AIDirectionGeneratorConfig = {
 const FPS = 30;
 
 function buildDesignSystem(theme: AnimationTheme): string {
-  return `## Design System — Cinematic Neon Glass Aesthetic
+  return `## Design System
 
 Colors:
-- Background: ${theme.background} (deep dark)
-- Surface: ${theme.surface} (glass panels use rgba(255,255,255,0.04-0.07) instead)
+- Background: ${theme.background}
+- Surface: ${theme.surface}
 - Raised: ${theme.raised}
 - Text Primary: ${theme.textPrimary}
 - Text Muted: ${theme.textMuted}
@@ -41,107 +41,99 @@ Colors:
   - cta (Yellow): ${theme.accents.cta} — CTA, power statements, revelations
   - violet: ${theme.accents.violet} — architecture, orchestration, system-level
 
-Visual Style:
-- Glass morphism panels: semi-transparent backgrounds with subtle borders and glow
-- Animated rainbow gradient borders on key containers (conic-gradient rotating with frame)
-- Neon glow: boxShadow with accent colors at 0.12-0.25 opacity
-- Ambient purple/violet light at bottom of canvas
-- Progressive construction: elements BUILD themselves (borders draw, rows reveal, code types)
-
 Typography (mobile canvas = 1080px wide — text must be LARGE to be readable):
 - Hero titles: 88-120px, fontWeight 900, letterSpacing: -2
 - Section headlines: 64-80px, fontWeight 800, letterSpacing: -1
 - Subheadings / labels: 44-52px, fontWeight 700
 - Body / descriptions: 36-42px, fontWeight 500
 - Monospace (code, terminals, data): 30-38px
-- Section headers: uppercase, letterSpacing 3-6px
-- NEVER use text smaller than 30px — it becomes unreadable on mobile`;
+- NEVER use text smaller than 30px — it becomes unreadable on mobile
+
+Visual rules:
+- FILL THE SAFE ZONE — content must occupy at least 800px of the usable height
+- Large breathing layouts: elements should span 70-100% of the usable width
+- Card-based layouts with tinted backgrounds visibly distinct from the main bg
+- Flat vector SVG icons inside icon boxes (56-72px, borderRadius:14-16)
+- Thin 1px–1.5px solid borders with color at 0.2–0.35 opacity — consistent stroke weight throughout
+- NO box-shadow, NO drop-shadow, NO glow — borders and tinted backgrounds define depth
+- NO gradients on text, icons, or backgrounds — flat fills only; solid colors only
+- NO glowing effects, NO 3D, NO neon, NO cartoon elements, NO exaggerated shapes
+- Maximum 3-4 colors per visual — palette restraint is what makes it feel professional
+- Stripe / Linear / Notion enterprise aesthetic — LARGE and BOLD for mobile
+- Visual hierarchy per scene: clear headline title in the upper zone, primary visualization spanning the center, supporting labels/captions below`;
 }
 
 const ANIMATION_RULES = `## THE #1 RULE: VISUALIZE THE THING ITSELF — Not a Card About It
 
-When the speaker talks about a concept, BUILD THE ACTUAL THING on screen — not a card that describes it.
+You are an expert motion graphics animator with a master teacher's instinct for visual explanation. The topics can be ANYTHING — science, history, business, technology, health, finance, philosophy, etc. When the speaker talks about a concept, you BUILD THE ACTUAL THING on screen — not a card that describes it.
+
+Think: "If I were explaining this on a whiteboard or with a screen recording, what would I actually draw?"
+
+### Concept → Real Visualization (MANDATORY)
+
+For EVERY concept the speaker mentions, you don't make a card ABOUT it — you BUILD IT:
 
 | Speaker talks about... | DON'T build | DO build |
 |---|---|---|
-| Chat conversation | Card with emoji saying "chat" | Actual chat UI with message bubbles, timestamps |
-| API request | Card saying "API Call" | Terminal-style UI with method badge, URL, JSON response |
-| Database query | Card saying "Database" | SQL query with syntax highlighting, table result |
-| Code execution | Card saying "Code runs" | Mini IDE with syntax-highlighted code, output panel |
-| Error/bug | Card with X saying "Error" | Terminal with red stack trace, file paths |
-| Pipeline/flow | Arrow between two cards | Full flow diagram with nodes, animated connection lines that draw themselves |
-| Dashboard/metrics | Card saying "Analytics" | Actual dashboard with stat cards, animated bar charts |
-| Comparison table | Bullet list | Full data table with rows that reveal one-by-one with scanning highlight |
+| A process/workflow | Arrow between two labeled boxes | Full flow diagram with nodes, animated arrows, data moving along paths |
+| Statistics/numbers | Card saying "85% increase" | Animated bar chart or pie chart with values counting up, axis labels, grid |
+| Comparison | Two bullet points | Split-screen with actual visualizations side by side, pros/cons with icons |
+| Timeline/history | List of dates | Horizontal timeline with era markers, event nodes, connecting lines |
+| Hierarchy/structure | Nested bullet list | Org chart or tree diagram with boxes, connecting lines, labels |
+| Cause and effect | Card saying "A causes B" | Domino-style chain diagram with animated triggers between stages |
+| Geographic concept | Card with a flag emoji | Simplified map outline with highlighted regions, labels, data overlays |
+| Scientific concept | Card with a beaker emoji | Actual diagram — molecule structure, cell cross-section, force diagram with vectors |
+| Financial concept | Card saying "Revenue" | Dashboard with stat cards, mini line charts, percentage changes with arrows |
+| Code/technical | Card saying "Code" | Mini IDE with syntax-highlighted code, line numbers, output panel |
+| Conversation/quote | Card with quote marks | Actual chat-style UI with message bubbles, speaker labels, timestamps |
+| List of items | Plain bullet list | Visual grid of cards with icons, labels, and short descriptions per item |
+| Ranking | Numbered list | Podium-style visualization or horizontal bar chart with ranked items |
+| Anatomy/parts | Card saying "3 parts" | Exploded diagram with labeled parts, connecting lines to a central element |
 
-Self-Check: If your visual description could be a bullet point on a PowerPoint slide, it's NOT visual enough.
-
-## CINEMATIC VISUAL STYLE (ByteMonk-grade)
-
-Every visual MUST use these production techniques:
-
-### Container Style:
-- Dark glass panels: background rgba(255,255,255,0.03-0.06), backdropFilter blur(20px)
-- Animated gradient borders: use conic-gradient that rotates (rainbow: magenta→yellow→green→cyan→blue→magenta)
-- Subtle glow: boxShadow with accent color at 0.15-0.25 opacity, spread 20-40px
-- Nested containers: outer glow border → inner frosted glass panel → content
-- Rounded corners: borderRadius 12-20px on panels
-
-### Ambient Atmosphere:
-- Purple/magenta ambient light at bottom of canvas (radial gradient, opacity 0.15-0.25)
-- Subtle grid pattern on background (very faint lines, opacity 0.03-0.05)
-- Floating particles or subtle noise texture for depth
-
-### Progressive Construction (CRITICAL — elements must BUILD themselves):
-- Borders DRAW themselves: SVG rect with stroke-dasharray/dashoffset animating from full to 0
-- Table rows appear ONE AT A TIME with a horizontal scanning glow (left-to-right highlight sweep)
-- Flow diagram nodes appear first, THEN connection lines draw between them sequentially
-- Code blocks TYPE themselves character by character with a blinking cursor
-- Bar charts grow UPWARD from zero
-- Numbers COUNT UP to their final value
-- Icons/badges scale from 0 with a spring bounce
-
-### Connection Lines & Flows:
-- Use SVG paths with animated stroke-dashoffset for "drawing" effect
-- Dashed lines with animated dash offset for "flowing data" effect
-- Arrow heads that appear after the line finishes drawing
-- Labels on connections fade in AFTER the line draws
+### Self-Check: If your visual description could be a bullet point on a PowerPoint slide, it's NOT visual enough. Rebuild it as a real diagram, chart, UI, or visual metaphor.
 
 ## Animation Direction Rules
 
 Each scene gets 2-4 beats. Each beat must have:
 
-### visual field (CRITICAL — describe the REAL UI/VISUALIZATION):
-1. What real-world UI or visualization this represents
-2. What appears: every element with REALISTIC content (real data, real code, real labels)
-3. Container style: glass panel with gradient border glow, specific glow color from accents
-4. Construction sequence: what draws/builds first, second, third (progressive reveal order)
-5. Where it sits: spatial position within the slot
-6. What changes: state transitions, highlight sweeps, glow pulses
-7. How it connects to speech: which visual construction event syncs to which spoken word
+### visual field (CRITICAL — describe the REAL VISUALIZATION):
+1. What visualization this represents — name the THING (flow diagram, bar chart, timeline, tree diagram, dashboard, etc.)
+2. What appears: every element with SPECIFIC content relevant to the topic (real labels, real numbers, real terms — not placeholders)
+3. How it looks: exact colors from design system, sizes, border styles, backgrounds
+4. Where it sits: spatial position within the slot
+5. What changes: state transitions, reveals, highlights
+6. How it connects to speech: which visual event at which spoken word
+7. Continuity: what carries over from previous beat, what fades out
+
+GOOD visual (builds the actual thing):
+"Full-width comparison layout. LEFT panel (480px, red-tinted bg, 1.5px border): Title 'Before' at top, 3 stat rows showing declining metrics with red down-arrows and monospace numbers. RIGHT panel (480px, green-tinted bg): Title 'After', same 3 stats but with green up-arrows and improved numbers. Center divider line with 'VS' badge."
+
+BAD visual (just a labeled card — NEVER DO THIS):
+"Show a card with a chart emoji and title 'Performance Comparison'"
 
 ### typography field:
 - Which spoken words get accent colors (word + hex color)
-- Monospace font for code/technical terms
-- Labels in uppercase with letter-spacing for section headers
+- Any special treatment: bold, larger scale
 
 ### motion field (Remotion-compatible):
-- Spring configs: spring({ frame, fps, config: { damping:12, stiffness:170 } })
-- Interpolation: interpolate(frame, [start, end], [0, 1], { extrapolateRight:'clamp' })
-- Entry: scale from 0.85->1 with opacity 0->1 (NOT just translateY — use scale for cinematic feel)
-- Border draw: strokeDashoffset interpolating from perimeter to 0
-- Glow pulse: boxShadow opacity oscillating with Math.sin(frame * 0.08)
-- Scanning highlight: translateX from -100% to 100% across a row
-- Stagger: each element delays by 6-10 frames from the previous one
-
-### sfx field:
-Format: "filename at Xs volume:V playbackRate:R (reason)"
-Available: tech_blip.wav, notification_ping.wav, error_buzz.wav, success_chime.wav
+- Spring configs: spring(damping:14, stiffness:200)
+- Interpolation: interpolate(frame, [start, end], [0, 1])
+- Entry: translateY from 40→0, scale from 0→1, opacity 0→1
+- Exit: opacity fade over 8 frames
+- Idle: Math.sin(frame*0.05)*3 for floating
 
 ## Attention Engineering
 - Motion every 0.7-1.2 seconds
 - Micro-payoff every 3-5 seconds
-- Sound at every visual event
-- ALWAYS have something subtly moving (glow pulse, floating particles, gradient rotation)`;
+- Scale/direction change every 2-3 seconds
+- Every visual event should feel purposeful and timed to the narration
+
+## Anti-Card-Laziness Validation
+Before finalizing, check EVERY beat:
+- Is any beat just "emoji + title + subtitle" on a card? → REDO IT as a real visualization
+- Does every concept have a real visual (diagrams, charts, timelines, UIs, visual metaphors)?
+- Is all content specific to the topic (real terms, real numbers, real labels)?
+- Would a viewer understand the concept with audio muted? If not, visuals are too abstract.`;
 
 function buildSlotVocabulary(layoutProfile: LayoutProfile): string {
   const slotEntries = Object.values(layoutProfile.slots);
@@ -204,7 +196,6 @@ Respond with ONLY valid JSON for this single scene:
       "visual": "detailed description",
       "typography": "accent color assignments",
       "motion": "spring/interpolation specs",
-      "sfx": ["filename.wav at time (reason)"],
       "slot": "slot id from available slots"
     }]
   }

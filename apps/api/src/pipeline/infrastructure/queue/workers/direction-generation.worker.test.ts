@@ -9,6 +9,7 @@ import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
 import { AnimationThemeId } from "@/pipeline/domain/value-objects/animation-theme.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import { DirectionGenerationWorker } from "./direction-generation.worker.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,6 +106,7 @@ describe("DirectionGenerationWorker", () => {
   let mockDirectionGenerator: { generateDirection: AnyMockFn };
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockQueueService: { enqueue: AnyMockFn };
+  let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
 
   beforeEach(() => {
     mockDirectionGenerator = {
@@ -119,10 +121,16 @@ describe("DirectionGenerationWorker", () => {
     mockQueueService = {
       enqueue: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(undefined)),
     };
+    mockEventPublisher = {
+      publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+    };
     worker = new DirectionGenerationWorker(
       mockDirectionGenerator as unknown as DirectionGenerator,
       mockRepository as unknown as PipelineJobRepository,
       mockQueueService as unknown as QueueService,
+      mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 

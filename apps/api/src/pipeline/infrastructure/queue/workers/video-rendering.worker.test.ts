@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import type { Job } from "bullmq";
 import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { WordTimestamp, SceneBoundary, SceneDirection } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -120,6 +121,7 @@ describe("VideoRenderingWorker", () => {
   let worker: VideoRenderingWorker;
   let mockVideoRenderer: { render: AnyMockFn };
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
+  let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
 
   beforeEach(() => {
     mockVideoRenderer = {
@@ -131,9 +133,15 @@ describe("VideoRenderingWorker", () => {
       findAll: jest.fn() as AnyMockFn,
       count: jest.fn() as AnyMockFn,
     };
+    mockEventPublisher = {
+      publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+    };
     worker = new VideoRenderingWorker(
       mockVideoRenderer as unknown as VideoRenderer,
       mockRepository as unknown as PipelineJobRepository,
+      mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 

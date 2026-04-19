@@ -3,6 +3,7 @@ import type { Job } from "bullmq";
 import type { TTSService } from "@/pipeline/application/interfaces/tts-service.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
@@ -50,11 +51,17 @@ describe("TTSGenerationWorker", () => {
     mockQueueService = {
       enqueue: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(undefined)),
     };
+    const mockEventPublisher = {
+      publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+    };
     worker = new TTSGenerationWorker(
       mockTTSService as unknown as TTSService,
       mockRepository as unknown as PipelineJobRepository,
       mockQueueService as unknown as QueueService,
       voiceId,
+      mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 

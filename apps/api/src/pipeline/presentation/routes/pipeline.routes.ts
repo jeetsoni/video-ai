@@ -4,10 +4,12 @@ import { HttpRequest } from "@/shared/presentation/http/http-request.js";
 import { HttpResponse } from "@/shared/presentation/http/http-response.js";
 import type { PipelineController } from "../controllers/pipeline.controller.js";
 import type { StreamController } from "../controllers/stream.controller.js";
+import type { ProgressController } from "../controllers/progress.controller.js";
 
 export function createPipelineRouter(
   controller: PipelineController,
   streamController: StreamController,
+  progressController: ProgressController,
 ): Router {
   const router = Router();
 
@@ -58,6 +60,10 @@ export function createPipelineRouter(
 
   router.get("/jobs/:id/stream", async (req: Request, res: Response) => {
     await streamController.streamScriptGeneration(req, res);
+  });
+
+  router.get("/jobs/:id/progress", async (req: Request, res: Response) => {
+    await progressController.streamProgress(req, res);
   });
 
   router.get("/themes", async (req: Request, res: Response) => {

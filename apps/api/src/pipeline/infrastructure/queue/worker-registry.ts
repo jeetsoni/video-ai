@@ -60,13 +60,13 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
 
   // Pipeline workers (application-level handlers)
   const scriptGenerationWorker = new ScriptGenerationWorker(streamingScriptGenerator, eventPublisher, jobRepository);
-  const ttsGenerationWorker = new TTSGenerationWorker(ttsService, jobRepository, queueService, elevenLabsVoiceId);
-  const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService);
-  const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService);
-  const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService);
+  const ttsGenerationWorker = new TTSGenerationWorker(ttsService, jobRepository, queueService, elevenLabsVoiceId, eventPublisher);
+  const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService, eventPublisher);
+  const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService, eventPublisher);
+  const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService, eventPublisher);
   const layoutValidator = new BoundingBoxValidator();
-  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, layoutValidator);
-  const videoRenderingWorker = new VideoRenderingWorker(videoRenderer, jobRepository);
+  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, layoutValidator, eventPublisher);
+  const videoRenderingWorker = new VideoRenderingWorker(videoRenderer, jobRepository, eventPublisher);
 
   // Stage name → worker process handler mapping
   const stageHandlers: Record<string, (job: Job<{ jobId: string }>) => Promise<void>> = {

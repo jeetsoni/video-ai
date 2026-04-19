@@ -80,3 +80,10 @@ export {
   validateSlotMap,
   validateSlotNonOverlap,
 } from "./layout/layout-validation.js";
+
+export type {
+  ProgressEvent,
+  ProgressEventData,
+} from "./types/pipeline-progress.types.js";
+
+export { isTerminalStatus } from "./types/pipeline-progress.types.js";

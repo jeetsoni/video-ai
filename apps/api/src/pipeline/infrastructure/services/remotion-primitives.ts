@@ -2,8 +2,8 @@
  * Reusable Remotion visual primitives library.
  *
  * This string is prepended to every generated Remotion component so the LLM
- * can compose pre-built, battle-tested helpers instead of writing raw JSX
- * from scratch each time.
+ * can use pre-built helpers when they fit the visualization. The LLM is free
+ * to build custom visuals from scratch when these don't match.
  *
  * All primitives use only the globals already in scope:
  *   React, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig,
@@ -13,9 +13,6 @@ export const REMOTION_PRIMITIVES = `
 const _clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' };
 
 function GlassPanel({ children, glow, padding = 32, borderRadius = 16, style = {} }) {
-  const glowStyle = glow
-    ? { boxShadow: '0 0 30px ' + glow + '22, 0 0 60px ' + glow + '11' }
-    : {};
   return React.createElement('div', {
     style: Object.assign({
       background: 'rgba(255,255,255,0.05)',
@@ -23,41 +20,8 @@ function GlassPanel({ children, glow, padding = 32, borderRadius = 16, style = {
       borderRadius: borderRadius,
       padding: padding,
       boxSizing: 'border-box',
-    }, glowStyle, style),
+    }, style),
   }, children);
-}
-
-function RainbowBorder({ children, frame, borderWidth = 2, borderRadius = 20, style = {} }) {
-  const angle = (frame * 2) % 360;
-  return React.createElement('div', {
-    style: Object.assign({
-      padding: borderWidth,
-      borderRadius: borderRadius,
-      background: 'conic-gradient(from ' + angle + 'deg, #ff00ff, #ffff00, #00ff00, #00ffff, #0066ff, #ff00ff)',
-    }, style),
-  }, React.createElement('div', {
-    style: {
-      background: 'rgba(10,10,20,0.95)',
-      borderRadius: borderRadius - borderWidth,
-      height: '100%',
-      boxSizing: 'border-box',
-    },
-  }, children));
-}
-
-function AmbientGlow({ color = 'rgba(139,92,246,0.18)', style = {} }) {
-  return React.createElement('div', {
-    style: Object.assign({
-      position: 'absolute',
-      bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '80%',
-      height: '60%',
-      background: 'radial-gradient(ellipse at center bottom, ' + color + ' 0%, transparent 70%)',
-      pointerEvents: 'none',
-    }, style),
-  });
 }
 
 function SceneEntry({ children, frame, duration = 15 }) {
@@ -147,7 +111,6 @@ function DataTable({ headers, rows, frame, delayPerRow = 10, startDelay = 0, acc
   var dataRows = rows.map(function(row, ri) {
     var delay = startDelay + ri * delayPerRow;
     var rowOp = interpolate(frame, [delay, delay + 12], [0, 1], _clamp);
-    var sweepX = interpolate(frame, [delay, delay + 20], [-100, 200], _clamp);
     return React.createElement('div', {
       key: ri,
       style: {
@@ -155,18 +118,8 @@ function DataTable({ headers, rows, frame, delayPerRow = 10, startDelay = 0, acc
         padding: '10px 0',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         opacity: rowOp,
-        position: 'relative',
-        overflow: 'hidden',
       },
     },
-      React.createElement('div', {
-        style: {
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'linear-gradient(90deg, transparent, ' + accentColor + '15, transparent)',
-          transform: 'translateX(' + sweepX + '%)',
-          pointerEvents: 'none',
-        },
-      }),
       row.map(function(cell, ci) {
         return React.createElement('div', {
           key: ci,
@@ -239,7 +192,7 @@ function BarChart({ bars, frame, startDelay = 0, delayPerBar = 8, maxHeight = 20
         style: { fontSize: 24, fontWeight: 700, color: bar.color || '#FFFFFF' },
       }, Math.round(interpolate(frame, [delay, delay + 20], [0, bar.value], _clamp))),
       React.createElement('div', {
-        style: { width: barWidth, height: h, borderRadius: 6, background: bar.color || '#06B6D4', boxShadow: '0 0 12px ' + (bar.color || '#06B6D4') + '40' },
+        style: { width: barWidth, height: h, borderRadius: 6, background: bar.color || '#06B6D4' },
       }),
       React.createElement('div', {
         style: { fontSize: 20, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 4 },
@@ -265,7 +218,6 @@ function Badge({ label, color = '#06B6D4', fontSize = 26, style = {} }) {
       padding: '6px 14px', borderRadius: 8,
       background: color + '25', border: '1px solid ' + color + '60',
       color: color, fontSize: fontSize, fontWeight: 600,
-      boxShadow: '0 0 10px ' + color + '30',
     }, style),
   }, label);
 }
@@ -277,7 +229,6 @@ function IconBox({ icon, size = 56, color = '#06B6D4', style = {} }) {
       background: color + '18', border: '1px solid ' + color + '35',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.5, color: color,
-      filter: 'drop-shadow(0 0 6px ' + color + ')',
     }, style),
   }, icon);
 }
@@ -297,21 +248,6 @@ function DrawBorder({ width, height, frame, duration = 30, color = '#06B6D4', st
     fill: 'none', stroke: color, strokeWidth: strokeWidth,
     strokeDasharray: perim, strokeDashoffset: offset,
   }));
-}
-
-function GlowPulse({ children, frame, color = '#8B5CF6', intensity = 0.15, speed = 0.08 }) {
-  var pulse = Math.sin(frame * speed) * 0.5 + 0.5;
-  var alpha = (intensity * pulse).toFixed(3);
-  return React.createElement('div', {
-    style: { boxShadow: '0 0 40px rgba(' + _hexToRgb(color) + ',' + alpha + '), 0 0 80px rgba(' + _hexToRgb(color) + ',' + (alpha * 0.5).toFixed(3) + ')' },
-  }, children);
-}
-
-function _hexToRgb(hex) {
-  var r = parseInt(hex.slice(1, 3), 16);
-  var g = parseInt(hex.slice(3, 5), 16);
-  var b = parseInt(hex.slice(5, 7), 16);
-  return r + ',' + g + ',' + b;
 }
 `;
 

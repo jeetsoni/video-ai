@@ -3,6 +3,7 @@ import type { Job } from "bullmq";
 import type { TranscriptionService } from "@/pipeline/application/interfaces/transcription-service.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
+import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { WordTimestamp } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -42,6 +43,7 @@ describe("TranscriptionWorker", () => {
   let mockTranscriptionService: { transcribe: AnyMockFn };
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockQueueService: { enqueue: AnyMockFn };
+  let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
 
   beforeEach(() => {
     mockTranscriptionService = {
@@ -56,10 +58,16 @@ describe("TranscriptionWorker", () => {
     mockQueueService = {
       enqueue: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(undefined)),
     };
+    mockEventPublisher = {
+      publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+      markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
+    };
     worker = new TranscriptionWorker(
       mockTranscriptionService as unknown as TranscriptionService,
       mockRepository as unknown as PipelineJobRepository,
       mockQueueService as unknown as QueueService,
+      mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 
