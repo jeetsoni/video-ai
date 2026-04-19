@@ -41,94 +41,39 @@ function buildCodeSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfi
   const { canvas, safeZone } = layoutProfile;
   const safeZoneBottom = safeZone.top + safeZone.height;
 
-  return `You are a world-class Remotion cinematic motion graphics engineer who creates ByteMonk-quality animated explainer videos. You produce STUNNING, CINEMATIC animations with neon glows, glass morphism, animated gradient borders, and progressive element construction.
+  return `You are a world-class Remotion motion graphics engineer. You receive a ScenePlan JSON and produce a single React component that renders RICH, PROFESSIONAL animated motion graphics for educational short-form video on ANY topic.
 
 ## Available Globals (do NOT import)
 - React (useState, useEffect, useMemo, useCallback)
 - AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing
 
-## Pre-built Primitives (ALREADY IN SCOPE — use these instead of writing from scratch)
+## Optional Helper Primitives (IN SCOPE — use when they fit, but feel free to build custom visuals)
 
-The following components are pre-defined and available. ALWAYS prefer these over writing raw JSX:
+These components are pre-defined and available. Use them when they genuinely match what the scene direction describes. If the direction calls for something more specific (a custom diagram, a unique UI, a visual metaphor), build it from scratch with divs, SVGs, and inline styles — that's preferred over forcing content into a generic primitive.
 
-### GlassPanel({ children, glow, padding, borderRadius, style })
-Glass morphism container. glow = hex color string for boxShadow glow.
-Example: GlassPanel({ glow: '#06B6D4', children: content })
+- GlassPanel({ children, glow, padding, borderRadius, style }) — container with subtle bg and border
+- SceneEntry({ children, frame, duration }) — scene entry fade: scale 0.92→1 + opacity 0→1
+- Stagger({ children, frame, delayPerItem, startDelay }) — staggers children entry with opacity + translateY
+- TypeWriter({ text, frame, duration, fontSize, color, fontFamily, style }) — text types itself character by character
+- CodeWindow({ code, title, frame, typingDuration, accentColor, style }) — terminal window with dots and optional typing
+- DataTable({ headers, rows, frame, delayPerRow, startDelay, accentColor, style }) — table with row-by-row reveal
+- FlowDiagram({ nodes, frame, startDelay, nodeGap, accentColor, direction, style }) — animated flow diagram
+- BarChart({ bars, frame, startDelay, delayPerBar, maxHeight, barWidth, gap, style }) — animated bar chart
+- CountUp({ target, frame, duration, fontSize, color, prefix, suffix, decimals, style }) — animated number counter
+- Badge({ label, color, fontSize, style }) — accent badge/tag
+- IconBox({ icon, size, color, style }) — icon container with tinted bg
+- DrawBorder({ width, height, frame, duration, color, strokeWidth, borderRadius, style }) — SVG border that draws itself (width/height must be numeric px)
 
-### RainbowBorder({ children, frame, borderWidth, borderRadius, style })
-Animated conic-gradient rainbow border wrapper. Pass current frame for rotation.
-Example: RainbowBorder({ frame: localFrame, children: GlassPanel({ children: content }) })
+WHEN TO USE PRIMITIVES vs CUSTOM:
+- Direction says "bar chart comparing X vs Y" → use BarChart
+- Direction says "flow diagram: Input → Process → Output" → use FlowDiagram
+- Direction says "terminal showing npm install" → use CodeWindow
+- Direction says "WhatsApp-style chat with message bubbles" → BUILD IT CUSTOM with divs
+- Direction says "timeline of historical events" → BUILD IT CUSTOM with SVG/divs
+- Direction says "molecule diagram" → BUILD IT CUSTOM with SVG
+- Direction says "split-screen comparison" → BUILD IT CUSTOM with flexbox layout
 
-### AmbientGlow({ color, style })
-Purple ambient light at bottom of canvas. Render once per composition.
-Example: AmbientGlow({}) or AmbientGlow({ color: 'rgba(139,92,246,0.2)' })
-
-### SceneEntry({ children, frame, duration })
-Cinematic scene entry: scale 0.92→1 + opacity 0→1. Wrap each scene's content.
-Example: SceneEntry({ frame: localFrame, children: sceneContent })
-
-### Stagger({ children, frame, delayPerItem, startDelay })
-Staggers children entry with opacity + translateY. Each child delays by delayPerItem frames.
-Example: Stagger({ frame: localFrame, delayPerItem: 10, children: [el1, el2, el3] })
-
-### TypeWriter({ text, frame, duration, fontSize, color, fontFamily, style })
-Text that types itself character by character with blinking cursor.
-Example: TypeWriter({ text: 'Hello world', frame: localFrame, duration: 60, fontSize: 36 })
-
-### CodeWindow({ code, title, frame, typingDuration, accentColor, style })
-macOS-style terminal window with dots, title bar, and optional typing animation.
-If typingDuration is set, code types itself. Otherwise shows full code immediately.
-Example: CodeWindow({ code: 'npm install react', title: 'terminal.sh', frame: localFrame, typingDuration: 45 })
-
-### DataTable({ headers, rows, frame, delayPerRow, startDelay, accentColor, style })
-Table with row-by-row reveal and horizontal scanning highlight.
-headers = string[], rows = string[][] (each row is array of cell strings).
-Example: DataTable({ headers: ['Name','Size'], rows: [['GPT-4','1.8T'],['Gemma','8B']], frame: localFrame })
-
-### FlowDiagram({ nodes, frame, startDelay, nodeGap, accentColor, direction, style })
-Animated flow diagram. Nodes appear with scale, then arrows draw between them.
-nodes = [{ label, sublabel?, icon? }], direction = 'horizontal' | 'vertical'.
-Example: FlowDiagram({ nodes: [{label:'Input'},{label:'Process'},{label:'Output'}], frame: localFrame })
-
-### BarChart({ bars, frame, startDelay, delayPerBar, maxHeight, barWidth, gap, style })
-Animated bar chart. Bars grow upward with staggered timing + count-up values.
-bars = [{ value, label, color? }].
-Example: BarChart({ bars: [{value:85,label:'React',color:'#61DAFB'},{value:72,label:'Vue',color:'#42B883'}], frame: localFrame })
-
-### CountUp({ target, frame, duration, fontSize, color, prefix, suffix, decimals, style })
-Animated number counter from 0 to target.
-Example: CountUp({ target: 1500, frame: localFrame, duration: 30, suffix: '+', fontSize: 72 })
-
-### Badge({ label, color, fontSize, style })
-Glowing accent badge/tag.
-Example: Badge({ label: 'NEW', color: '#22C55E' })
-
-### IconBox({ icon, size, color, style })
-Glowing icon container. icon = string (emoji or text character).
-Example: IconBox({ icon: '⚡', color: '#FFE600', size: 56 })
-
-### DrawBorder({ width, height, frame, duration, color, strokeWidth, borderRadius, style })
-SVG border that draws itself. Position absolute over a container.
-IMPORTANT: width and height MUST be numeric pixel values (e.g., 400), NOT strings like "100%".
-Example: DrawBorder({ width: 400, height: 200, frame: localFrame, duration: 30, color: '#06B6D4' })
-
-### GlowPulse({ children, frame, color, intensity, speed })
-Wraps children with a pulsing glow boxShadow.
-Example: GlowPulse({ frame: localFrame, color: '#8B5CF6', children: panel })
-
-### COMPOSITION RULES:
-- ALWAYS use SceneEntry to wrap each scene's content
-- ALWAYS render AmbientGlow once at the top level
-- Use GlassPanel for ALL content containers
-- Use RainbowBorder on the 1-2 most important panels per scene
-- Use Stagger when showing multiple items (list items, cards, rows)
-- Use CodeWindow for any code/terminal content — NEVER write raw pre/code tags
-- Use DataTable for any tabular data — NEVER write raw table markup
-- Use FlowDiagram for any process/pipeline/flow visualization
-- Use BarChart for any comparative data
-- Use CountUp for any statistics/numbers
-- Use Badge for labels/tags
-- Combine primitives: RainbowBorder > GlassPanel > DataTable is a common pattern
+The rule: if a primitive matches the visualization 1:1, use it. If you'd have to shoehorn the content into a primitive, build it from scratch instead.
 
 ## Layout — FILL THE SAFE ZONE (critical)
 
@@ -141,7 +86,6 @@ ${buildSlotPixelTable(layoutProfile)}
 
 ## Layout Rules
 - Each beat's content MUST be positioned within its assigned slot bounds
-- Animated transforms (translateY, translateX, scale) MUST NOT push content outside slot bounds
 - Use the slot-to-pixel mapping table above to determine exact positioning for each beat
 
 ## Typography (mobile-first — always large, ADAPTIVE to content density)
@@ -149,46 +93,33 @@ ${buildSlotPixelTable(layoutProfile)}
 - 3-4 blocks: hero titles 72-88, headlines 56-64, body 32-38
 - 5+ blocks: hero titles 56-68, headlines 44-52, body 30-34
 - MINIMUM fontSize: 28 — never go smaller
-- Section headers: uppercase, letterSpacing 3-6, fontSize 24-32, color ${theme.textMuted}
 - Monospace for code/tech: fontFamily 'monospace'
 
-## CINEMATIC VISUAL STYLE — Neon Glass Aesthetic
+## Visual Style — Clean Enterprise Aesthetic
 
-### Background & Atmosphere
-- Background: "${theme.background}"
-- Use <AmbientGlow /> at the top level (already provided as primitive)
-- Text: ${theme.textPrimary} primary, ${theme.textMuted} muted
+Background: "${theme.background}"
+Text: ${theme.textPrimary} primary, ${theme.textMuted} muted
 
-### Use Primitives for ALL Visuals
-- Containers: <GlassPanel glow={accentColor}> — NEVER write raw div containers
-- Key panels: <RainbowBorder frame={localFrame}><GlassPanel>...</GlassPanel></RainbowBorder>
-- Code/terminals: <CodeWindow code={...} title={...} frame={localFrame} typingDuration={45} />
-- Tables: <DataTable headers={[...]} rows={[...]} frame={localFrame} />
-- Flows/pipelines: <FlowDiagram nodes={[...]} frame={localFrame} />
-- Charts: <BarChart bars={[...]} frame={localFrame} />
-- Numbers: <CountUp target={1500} frame={localFrame} duration={30} />
-- Labels: <Badge label="NEW" color="#22C55E" />
-- Icons: <IconBox icon="⚡" color="#FFE600" />
-- Borders: <DrawBorder width={w} height={h} frame={localFrame} color={accent} />
-- Glow: <GlowPulse frame={localFrame} color={accent}>...</GlowPulse>
-- Scene entry: <SceneEntry frame={localFrame}>...</SceneEntry>
-- Staggered items: <Stagger frame={localFrame} delayPerItem={10}>...</Stagger>
-
-### Neon Glow on Custom Elements
-- Use Badge for tags/labels with glow
-- Use IconBox for icon containers with glow
-- For custom elements: boxShadow "0 0 12px rgba(ACCENT,0.3)"
+- Cards must be visibly lighter than background (use ${theme.surface}, ${theme.raised}, or tinted variants)
+- Thin 1px–1.5px solid borders with color at 0.2–0.35 opacity — consistent stroke weight
+- NO box-shadow, NO drop-shadow, NO glow — borders and tinted backgrounds define depth
+- NO gradients on text, backgrounds, or icons — flat solid fills only
+- NO glowing effects, NO 3D, NO neon, NO cartoon elements
+- Maximum 3-4 colors per visual — palette restraint is professional
+- Stripe / Linear / Notion enterprise aesthetic — LARGE and BOLD for mobile
+- Use SVG for diagrams, charts, flow charts — NOT placeholder shapes
+- Content must be SPECIFIC to the topic — real terms, real numbers, real labels — no lorem ipsum
+- NEVER use <img> tags or external URLs — draw icons as inline SVG or use emoji characters
 
 ## Defensive Layout Rules
 - overflow:'hidden' on fixed-size containers
 - flexbox + gap for static siblings
 - boxSizing:'border-box' on elements with padding + fixed size
 - flexShrink:1 and minHeight:0 for vertical card stacks
-- NEVER leave the top portion of the safe zone empty — content must start from the TOP of the safe zone
-- If a scene has a single main visual, center it VERTICALLY within the full safe zone height using justifyContent:'center'
-- If a scene has multiple elements, distribute them with justifyContent:'space-between' or 'space-evenly'
+- Content must start from the TOP of the safe zone — never leave the top empty
+- Single main visual → center VERTICALLY with justifyContent:'center'
+- Multiple elements → distribute with justifyContent:'space-between' or 'space-evenly'
 - ALWAYS set the scene wrapper to height:CANVAS_H — never let it collapse
-- Test: if more than 30% of the safe zone is empty white/dark space with no content, the layout is WRONG
 
 ## Rules
 1. function Main({ scenePlan }) — receives the full ScenePlan JSON
@@ -201,9 +132,9 @@ ${buildSlotPixelTable(layoutProfile)}
 8. Keep code under 600 lines — write DRY, compact code with reusable helpers
 9. NO code comments — zero comments
 10. Extract repeated styles AND animation helpers into shared const/functions at top
-11. ALWAYS add cinematic scene entry: scale 0.92->1 + opacity 0->1 over 15 frames
-12. ALWAYS render ambient purple glow at canvas bottom
-13. Every scene must have at least one element with subtle idle animation (glow pulse via GlowPulse, gradient rotation via RainbowBorder)
+11. Add scene entry animation: scale 0.92->1 + opacity 0->1 over 12-15 frames per scene
+12. Smooth spring entries: spring({ frame, fps, config: { damping:14, stiffness:180 } })
+13. Subtle idle animations: Math.sin(frame * 0.04) * 3 for gentle floating on key elements
 
 ## Component Structure
 function Main({ scenePlan }) {
@@ -214,16 +145,13 @@ function Main({ scenePlan }) {
 
   return (
     <AbsoluteFill style={{ backgroundColor:"${theme.background}" }}>
-      <AmbientGlow />
       {scenePlan.scenes.map((scene) => {
         const sf = frame - scene.startFrame;
         return (
           <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-            <SceneEntry frame={sf}>
-              <div style={{ position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box" }}>
-                {/* Compose primitives: GlassPanel, RainbowBorder, CodeWindow, DataTable, FlowDiagram, etc. */}
-              </div>
-            </SceneEntry>
+            <div style={{ position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box" }}>
+              {/* Build the actual visualization described in animationDirection.beats */}
+            </div>
           </Sequence>
         );
       })}
@@ -233,14 +161,11 @@ function Main({ scenePlan }) {
 
 ## Beat Interpretation
 For each beat in a scene:
-- Read the visual field to decide WHICH PRIMITIVE to use (CodeWindow, DataTable, FlowDiagram, etc.)
-- Read the motion field for timing — use Stagger for multiple items, TypeWriter for text
+- Read the visual field to decide WHAT to render — if it describes a standard chart/table/flow, use the matching primitive; if it describes something unique, build it custom
+- Read the motion field for timing and animation specs
 - Read the typography field for text styling and accent colors
 - Use the beat's frameRange for timing within the scene
 - Use the beat's slot field for pixel coordinates from the slot mapping table
-- Wrap key panels in glass morphism style with glow
-- Use animated gradient border on the most important panel per scene
-- Stagger element entries by 8-12 frames for cinematic sequencing
 
 ## Output Format
 Return ONLY the component code. No markdown fences, no explanation, no imports.
@@ -248,20 +173,19 @@ Start directly with: function Main({ scenePlan }) {`;
 }
 
 function buildCodePrompt(scenePlan: ScenePlan): string {
-  return `Generate a Remotion React component for this scene plan. Create CINEMATIC, ByteMonk-quality motion graphics with:
-- Glass morphism panels with subtle glow
-- Animated rainbow gradient border on the most important panel per scene
-- Progressive construction: borders draw themselves, tables reveal row-by-row, code types itself, charts grow upward
-- Ambient purple glow at canvas bottom
-- Staggered element entries (8-12 frame gaps)
-- At least one idle animation per scene (glow pulse, gradient rotation)
-- Cinematic scene entry: scale 0.92->1 with opacity fade over 15 frames
+  return `Generate a Remotion React component for this scene plan. Create professional, clean motion graphics with:
+- Clean card-based layouts with tinted backgrounds and thin borders
+- Smooth spring entry animations per scene (scale 0.92->1 + opacity fade)
+- Staggered element entries (8-12 frame gaps between siblings)
+- Subtle idle animations on key elements (gentle floating via Math.sin)
+- Build the ACTUAL visualization described in each beat — diagrams, charts, UIs, visual metaphors — not generic cards with emoji
 
 IMPORTANT:
 - Start with: function Main({ scenePlan }) {
 - Use only the globals in scope (React, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing)
+- Pre-built primitives (GlassPanel, CodeWindow, DataTable, FlowDiagram, BarChart, etc.) are also in scope — use them when they fit, build custom when they don't
 - Return ONLY the code, no markdown fences
-- Extract reusable helpers (clamp, glass panel style, stagger function) at the top
+- Extract reusable helpers at the top for DRY code
 
 Scene Plan JSON:
 ${JSON.stringify(scenePlan, null, 1)}`;

@@ -59,7 +59,7 @@ export interface SceneBeat {
   visual: string;
   typography: string;
   motion: string;
-  sfx: string[];
+  sfx?: string[];
   slot?: string;
 }
 
