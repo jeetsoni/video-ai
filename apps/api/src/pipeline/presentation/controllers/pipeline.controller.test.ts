@@ -32,7 +32,9 @@ function makeReq(overrides: {
   );
 }
 
-function buildController(overrides: Partial<Record<string, unknown>> = {}): PipelineController {
+function buildController(
+  overrides: Partial<Record<string, unknown>> = {},
+): PipelineController {
   const defaults = {
     createPipelineJobUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     getJobStatusUseCase: { execute: jest.fn<(...args: any[]) => any>() },
@@ -43,6 +45,7 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     getThemesFn: jest.fn<(...args: any[]) => any>(),
     getPreviewDataUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     exportVideoUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    listVoicesUseCase: { execute: jest.fn<(...args: any[]) => any>() },
   };
   const merged = { ...defaults, ...overrides };
   return new PipelineController(
@@ -55,22 +58,28 @@ function buildController(overrides: Partial<Record<string, unknown>> = {}): Pipe
     merged.getThemesFn as any,
     merged.getPreviewDataUseCase as any,
     merged.exportVideoUseCase as any,
+    merged.listVoicesUseCase as any,
   );
 }
 
 describe("PipelineController", () => {
   describe("createJob", () => {
     it("returns 201 with jobId and status on success", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.ok({ id: "job-1", status: "pending" }),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(Result.ok({ id: "job-1", status: "pending" }));
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
-      const req = makeReq({ body: { topic: "AI basics", format: "reel", themeId: "t1" } });
+      const req = makeReq({
+        body: { topic: "AI basics", format: "reel", themeId: "t1" },
+      });
       const res = mockRes();
 
       await ctrl.createJob(req, res);
 
-      expect(res.created).toHaveBeenCalledWith({ jobId: "job-1", status: "pending" });
+      expect(res.created).toHaveBeenCalledWith({
+        jobId: "job-1",
+        status: "pending",
+      });
     });
 
     it("returns 400 when body fails Zod validation", async () => {
@@ -86,22 +95,31 @@ describe("PipelineController", () => {
     });
 
     it("returns 400 when use case fails with validation error", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Bad format", "INVALID_INPUT")),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Bad format", "INVALID_INPUT")),
+        );
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
-      const req = makeReq({ body: { topic: "AI basics", format: "reel", themeId: "t1" } });
+      const req = makeReq({
+        body: { topic: "AI basics", format: "reel", themeId: "t1" },
+      });
       const res = mockRes();
 
       await ctrl.createJob(req, res);
 
-      expect(res.badRequest).toHaveBeenCalledWith({ error: "INVALID_INPUT", message: "Bad format" });
+      expect(res.badRequest).toHaveBeenCalledWith({
+        error: "INVALID_INPUT",
+        message: "Bad format",
+      });
     });
 
     it("returns 500 on unexpected error", async () => {
       const execute = jest.fn<AnyFn>().mockRejectedValue(new Error("boom"));
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
-      const req = makeReq({ body: { topic: "AI basics", format: "reel", themeId: "t1" } });
+      const req = makeReq({
+        body: { topic: "AI basics", format: "reel", themeId: "t1" },
+      });
       const res = mockRes();
 
       await ctrl.createJob(req, res);
@@ -128,16 +146,21 @@ describe("PipelineController", () => {
     });
 
     it("returns 404 when job not found", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Not found", "NOT_FOUND")),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Not found", "NOT_FOUND")),
+        );
       const ctrl = buildController({ getJobStatusUseCase: { execute } });
       const req = makeReq({ params: { id: "missing" } });
       const res = mockRes();
 
       await ctrl.getJobStatus(req, res);
 
-      expect(res.notFound).toHaveBeenCalledWith({ error: "NOT_FOUND", message: "Not found" });
+      expect(res.notFound).toHaveBeenCalledWith({
+        error: "NOT_FOUND",
+        message: "Not found",
+      });
     });
   });
 
@@ -180,13 +203,20 @@ describe("PipelineController", () => {
 
       await ctrl.approveScript(req, res);
 
-      expect(execute).toHaveBeenCalledWith({ jobId: "job-1", editedScript: "edited script text here", scenes: undefined });
+      expect(execute).toHaveBeenCalledWith({
+        jobId: "job-1",
+        editedScript: "edited script text here",
+        scenes: undefined,
+      });
       expect(res.ok).toHaveBeenCalledWith({ status: "ok" });
     });
 
     it("returns 400 on invalid body", async () => {
       const ctrl = buildController();
-      const req = makeReq({ params: { id: "job-1" }, body: { action: "reject" } });
+      const req = makeReq({
+        params: { id: "job-1" },
+        body: { action: "reject" },
+      });
       const res = mockRes();
 
       await ctrl.approveScript(req, res);
@@ -197,9 +227,11 @@ describe("PipelineController", () => {
     });
 
     it("returns 409 on CONFLICT error", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Wrong status", "CONFLICT")),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Wrong status", "CONFLICT")),
+        );
       const ctrl = buildController({ approveScriptUseCase: { execute } });
       const req = makeReq({
         params: { id: "job-1" },
@@ -209,13 +241,18 @@ describe("PipelineController", () => {
 
       await ctrl.approveScript(req, res);
 
-      expect(res.conflict).toHaveBeenCalledWith({ error: "CONFLICT", message: "Wrong status" });
+      expect(res.conflict).toHaveBeenCalledWith({
+        error: "CONFLICT",
+        message: "Wrong status",
+      });
     });
 
     it("returns 404 on NOT_FOUND error", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Not found", "NOT_FOUND")),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Not found", "NOT_FOUND")),
+        );
       const ctrl = buildController({ approveScriptUseCase: { execute } });
       const req = makeReq({
         params: { id: "job-1" },
@@ -225,7 +262,10 @@ describe("PipelineController", () => {
 
       await ctrl.approveScript(req, res);
 
-      expect(res.notFound).toHaveBeenCalledWith({ error: "NOT_FOUND", message: "Not found" });
+      expect(res.notFound).toHaveBeenCalledWith({
+        error: "NOT_FOUND",
+        message: "Not found",
+      });
     });
   });
 
@@ -243,23 +283,35 @@ describe("PipelineController", () => {
     });
 
     it("returns 409 on CONFLICT", async () => {
-      const execute = jest.fn<AnyFn>().mockResolvedValue(
-        Result.fail(new ValidationError("Wrong status", "CONFLICT")),
-      );
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Wrong status", "CONFLICT")),
+        );
       const ctrl = buildController({ regenerateScriptUseCase: { execute } });
       const req = makeReq({ params: { id: "job-1" } });
       const res = mockRes();
 
       await ctrl.regenerateScript(req, res);
 
-      expect(res.conflict).toHaveBeenCalledWith({ error: "CONFLICT", message: "Wrong status" });
+      expect(res.conflict).toHaveBeenCalledWith({
+        error: "CONFLICT",
+        message: "Wrong status",
+      });
     });
   });
 
   describe("getThemes", () => {
     it("returns 200 with themes array", async () => {
       const themes = [
-        { id: "t1", name: "Studio", description: "Clean", palette: {}, isDefault: true, sortOrder: 0 },
+        {
+          id: "t1",
+          name: "Studio",
+          description: "Clean",
+          palette: {},
+          isDefault: true,
+          sortOrder: 0,
+        },
       ];
       const getThemesFn = jest.fn<AnyFn>().mockResolvedValue(themes);
       const ctrl = buildController({ getThemesFn });
@@ -272,7 +324,9 @@ describe("PipelineController", () => {
     });
 
     it("returns 500 on unexpected error", async () => {
-      const getThemesFn = jest.fn<AnyFn>().mockRejectedValue(new Error("db down"));
+      const getThemesFn = jest
+        .fn<AnyFn>()
+        .mockRejectedValue(new Error("db down"));
       const ctrl = buildController({ getThemesFn });
       const req = makeReq({});
       const res = mockRes();

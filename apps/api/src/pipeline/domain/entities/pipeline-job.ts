@@ -44,6 +44,7 @@ interface PipelineJobProps {
   topic: string;
   format: VideoFormat;
   themeId: AnimationThemeId;
+  voiceId: string | null;
   status: PipelineStatus;
   stage: PipelineStage;
   error: JobError | null;
@@ -77,6 +78,9 @@ export class PipelineJob {
   }
   get themeId(): AnimationThemeId {
     return this.props.themeId;
+  }
+  get voiceId(): string | null {
+    return this.props.voiceId;
   }
   get status(): PipelineStatus {
     return this.props.status;
@@ -135,6 +139,7 @@ export class PipelineJob {
     topic: string;
     format: VideoFormat;
     themeId: AnimationThemeId;
+    voiceId?: string | null;
   }): PipelineJob {
     const now = new Date();
     return new PipelineJob({
@@ -142,6 +147,7 @@ export class PipelineJob {
       topic: params.topic,
       format: params.format,
       themeId: params.themeId,
+      voiceId: params.voiceId ?? null,
       status: PipelineStatus.pending(),
       stage: PipelineStage.initial(),
       error: null,
@@ -167,6 +173,7 @@ export class PipelineJob {
     topic: string;
     format: VideoFormat;
     themeId: AnimationThemeId;
+    voiceId: string | null;
     status: PipelineStatus;
     stage: PipelineStage;
     error: JobError | null;
@@ -188,7 +195,9 @@ export class PipelineJob {
     return new PipelineJob({ ...params });
   }
 
-  transitionTo(targetStageValue: PipelineStageType): Result<void, ValidationError> {
+  transitionTo(
+    targetStageValue: PipelineStageType,
+  ): Result<void, ValidationError> {
     const isPreviewStage = this.props.stage.value === "preview";
     if (this.props.status.isTerminal() && !isPreviewStage) {
       return Result.fail(
@@ -242,7 +251,10 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  setScript(script: string, scenes: SceneBoundary[]): Result<void, ValidationError> {
+  setScript(
+    script: string,
+    scenes: SceneBoundary[],
+  ): Result<void, ValidationError> {
     if (this.props.stage.value !== "script_generation") {
       return Result.fail(
         new ValidationError(
@@ -257,7 +269,10 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  setApprovedScript(script: string, scenes: SceneBoundary[]): Result<void, ValidationError> {
+  setApprovedScript(
+    script: string,
+    scenes: SceneBoundary[],
+  ): Result<void, ValidationError> {
     if (this.props.stage.value !== "script_review") {
       return Result.fail(
         new ValidationError(
@@ -314,7 +329,9 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  setSceneDirections(directions: SceneDirection[]): Result<void, ValidationError> {
+  setSceneDirections(
+    directions: SceneDirection[],
+  ): Result<void, ValidationError> {
     if (this.props.stage.value !== "direction_generation") {
       return Result.fail(
         new ValidationError(
@@ -328,7 +345,10 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  setGeneratedCode(code: string, codePath?: string): Result<void, ValidationError> {
+  setGeneratedCode(
+    code: string,
+    codePath?: string,
+  ): Result<void, ValidationError> {
     if (this.props.stage.value !== "code_generation") {
       return Result.fail(
         new ValidationError(

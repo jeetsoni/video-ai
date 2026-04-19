@@ -13,6 +13,8 @@ import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regene
 import { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
 import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
+import { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
+import { ElevenLabsVoiceService } from "@/pipeline/infrastructure/services/elevenlabs-voice-service.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
 import { StreamController } from "@/pipeline/presentation/controllers/stream.controller.js";
 import { RedisStreamEventBuffer } from "@/shared/infrastructure/streaming/stream-event-buffer.js";
@@ -25,6 +27,7 @@ export function createPipelineModule(deps: {
   queue: Queue;
   objectStore: ObjectStore;
   redisConnection: { host: string; port: number };
+  elevenlabsApiKey: string;
 }): Router {
   // 1. Infrastructure
   const repository = new PrismaPipelineJobRepository(deps.prisma);
@@ -34,14 +37,37 @@ export function createPipelineModule(deps: {
   const idGenerator = { generate: () => crypto.randomUUID() };
 
   // 3. Use cases
-  const createPipelineJobUseCase = new CreatePipelineJobUseCase(repository, queueService, idGenerator);
-  const getJobStatusUseCase = new GetJobStatusUseCase(repository, deps.objectStore);
+  const createPipelineJobUseCase = new CreatePipelineJobUseCase(
+    repository,
+    queueService,
+    idGenerator,
+  );
+  const getJobStatusUseCase = new GetJobStatusUseCase(
+    repository,
+    deps.objectStore,
+  );
   const listPipelineJobsUseCase = new ListPipelineJobsUseCase(repository);
-  const approveScriptUseCase = new ApproveScriptUseCase(repository, queueService);
-  const regenerateScriptUseCase = new RegenerateScriptUseCase(repository, queueService);
-  const regenerateCodeUseCase = new RegenerateCodeUseCase(repository, queueService);
-  const getPreviewDataUseCase = new GetPreviewDataUseCase(repository, deps.objectStore);
+  const approveScriptUseCase = new ApproveScriptUseCase(
+    repository,
+    queueService,
+  );
+  const regenerateScriptUseCase = new RegenerateScriptUseCase(
+    repository,
+    queueService,
+  );
+  const regenerateCodeUseCase = new RegenerateCodeUseCase(
+    repository,
+    queueService,
+  );
+  const getPreviewDataUseCase = new GetPreviewDataUseCase(
+    repository,
+    deps.objectStore,
+  );
   const exportVideoUseCase = new ExportVideoUseCase(repository, queueService);
+
+  // Voice service + use case
+  const voiceService = new ElevenLabsVoiceService(deps.elevenlabsApiKey);
+  const listVoicesUseCase = new ListVoicesUseCase(voiceService);
 
   // 4. Themes query
   const getThemesFn = () =>
@@ -58,6 +84,7 @@ export function createPipelineModule(deps: {
     getThemesFn,
     getPreviewDataUseCase,
     exportVideoUseCase,
+    listVoicesUseCase,
   );
 
   // 6. Streaming SSE infrastructure

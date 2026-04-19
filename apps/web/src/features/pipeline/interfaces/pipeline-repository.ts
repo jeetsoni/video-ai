@@ -2,6 +2,7 @@ import type {
   VideoFormat,
   PipelineJobDto,
   SceneBoundary,
+  ListVoicesResponse,
 } from "@video-ai/shared";
 import type {
   CreateJobResponse,
@@ -15,6 +16,7 @@ export interface CreateJobParams {
   topic: string;
   format: VideoFormat;
   themeId: string;
+  voiceId?: string;
 }
 
 export interface ApproveScriptParams {
@@ -33,4 +35,5 @@ export interface PipelineRepository {
   getThemes(): Promise<ListThemesResponse>;
   getPreviewData(jobId: string): Promise<PreviewDataResponse>;
   exportVideo(jobId: string): Promise<ActionResponse>;
+  listVoices(): Promise<ListVoicesResponse>;
 }

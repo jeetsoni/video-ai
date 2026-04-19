@@ -14,7 +14,9 @@ async function main() {
   const port = process.env["API_PORT"] ?? 4000;
 
   // --- Redis connection ---
-  const redisUrl = new URL(process.env["REDIS_URL"] ?? "redis://localhost:6379");
+  const redisUrl = new URL(
+    process.env["REDIS_URL"] ?? "redis://localhost:6379",
+  );
   const redisConnection = {
     host: redisUrl.hostname,
     port: Number(redisUrl.port) || 6379,
@@ -37,14 +39,21 @@ async function main() {
 
   // --- ElevenLabs config ---
   const elevenLabsApiKey = process.env["ELEVENLABS_API_KEY"] ?? "";
-  const elevenLabsVoiceId = process.env["ELEVENLABS_VOICE_ID"] ?? "21m00Tcm4TlvDq8ikWAM";
+  const elevenLabsVoiceId =
+    process.env["ELEVENLABS_VOICE_ID"] ?? "21m00Tcm4TlvDq8ikWAM";
 
   // --- Shared dependencies ---
   const prisma = new PrismaClient();
   const queue = createPipelineQueue(redisConnection);
 
   // --- Express app ---
-  const app = createApp({ prisma, queue, objectStore, redisConnection });
+  const app = createApp({
+    prisma,
+    queue,
+    objectStore,
+    redisConnection,
+    elevenlabsApiKey: elevenLabsApiKey,
+  });
 
   // --- BullMQ workers ---
   const workerRegistry = createWorkerRegistry({

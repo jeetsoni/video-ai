@@ -123,6 +123,7 @@ export interface PipelineJobDto {
   topic: string;
   format: VideoFormat;
   themeId: string;
+  voiceId?: string;
   status: PipelineStatus;
   stage: PipelineStage;
   progressPercent: number;

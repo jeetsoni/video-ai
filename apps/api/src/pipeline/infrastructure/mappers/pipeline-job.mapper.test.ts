@@ -5,11 +5,15 @@ import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
 import { AnimationThemeId } from "@/pipeline/domain/value-objects/animation-theme.js";
 
 describe("PipelineJobMapper", () => {
-  const basePrismaRecord: PrismaPipelineJob & { generatedScenes?: unknown; approvedScenes?: unknown } = {
+  const basePrismaRecord: PrismaPipelineJob & {
+    generatedScenes?: unknown;
+    approvedScenes?: unknown;
+  } = {
     id: "test-id-123",
     topic: "How async/await works in JavaScript",
     format: "short",
     themeId: "studio",
+    voiceId: null,
     status: "pending",
     stage: "script_generation",
     errorCode: null,
@@ -72,7 +76,16 @@ describe("PipelineJobMapper", () => {
 
     it("should map JSON fields (transcript, scenePlan, sceneDirections)", () => {
       const transcript = [{ word: "hello", start: 0, end: 0.5 }];
-      const scenePlan = [{ id: 1, name: "Hook", type: "Hook", startTime: 0, endTime: 5, text: "hello" }];
+      const scenePlan = [
+        {
+          id: 1,
+          name: "Hook",
+          type: "Hook",
+          startTime: 0,
+          endTime: 5,
+          text: "hello",
+        },
+      ];
 
       const record = {
         ...basePrismaRecord,
@@ -90,12 +103,40 @@ describe("PipelineJobMapper", () => {
 
     it("should map generatedScenes and approvedScenes from Prisma record", () => {
       const generatedScenes = [
-        { id: 1, name: "Hook", type: "Hook", startTime: 0, endTime: 0, text: "Welcome to the show" },
-        { id: 2, name: "Body", type: "Architecture", startTime: 0, endTime: 0, text: "Let me explain" },
+        {
+          id: 1,
+          name: "Hook",
+          type: "Hook",
+          startTime: 0,
+          endTime: 0,
+          text: "Welcome to the show",
+        },
+        {
+          id: 2,
+          name: "Body",
+          type: "Architecture",
+          startTime: 0,
+          endTime: 0,
+          text: "Let me explain",
+        },
       ];
       const approvedScenes = [
-        { id: 1, name: "Hook", type: "Hook", startTime: 0, endTime: 0, text: "Welcome to the show edited" },
-        { id: 2, name: "Body", type: "Architecture", startTime: 0, endTime: 0, text: "Let me explain edited" },
+        {
+          id: 1,
+          name: "Hook",
+          type: "Hook",
+          startTime: 0,
+          endTime: 0,
+          text: "Welcome to the show edited",
+        },
+        {
+          id: 2,
+          name: "Body",
+          type: "Architecture",
+          startTime: 0,
+          endTime: 0,
+          text: "Let me explain edited",
+        },
       ];
 
       const record = {
@@ -155,7 +196,9 @@ describe("PipelineJobMapper", () => {
       });
 
       const persisted = PipelineJobMapper.toPersistence(original);
-      const reconstituted = PipelineJobMapper.toDomain(persisted as PrismaPipelineJob);
+      const reconstituted = PipelineJobMapper.toDomain(
+        persisted as PrismaPipelineJob,
+      );
 
       expect(reconstituted.id).toBe(original.id);
       expect(reconstituted.topic).toBe(original.topic);
@@ -182,21 +225,54 @@ describe("PipelineJobMapper", () => {
 
       // Set script with scenes (requires script_generation stage)
       const scenes = [
-        { id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Welcome" },
-        { id: 2, name: "CTA", type: "CTA" as const, startTime: 0, endTime: 0, text: "Subscribe now" },
+        {
+          id: 1,
+          name: "Hook",
+          type: "Hook" as const,
+          startTime: 0,
+          endTime: 0,
+          text: "Welcome",
+        },
+        {
+          id: 2,
+          name: "CTA",
+          type: "CTA" as const,
+          startTime: 0,
+          endTime: 0,
+          text: "Subscribe now",
+        },
       ];
       job.setScript("Welcome Subscribe now", scenes);
 
       // Transition to script_review and approve
       job.transitionTo("script_review");
       const approvedScenes = [
-        { id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Welcome edited" },
-        { id: 2, name: "CTA", type: "CTA" as const, startTime: 0, endTime: 0, text: "Subscribe now edited" },
+        {
+          id: 1,
+          name: "Hook",
+          type: "Hook" as const,
+          startTime: 0,
+          endTime: 0,
+          text: "Welcome edited",
+        },
+        {
+          id: 2,
+          name: "CTA",
+          type: "CTA" as const,
+          startTime: 0,
+          endTime: 0,
+          text: "Subscribe now edited",
+        },
       ];
-      job.setApprovedScript("Welcome edited Subscribe now edited", approvedScenes);
+      job.setApprovedScript(
+        "Welcome edited Subscribe now edited",
+        approvedScenes,
+      );
 
       const persisted = PipelineJobMapper.toPersistence(job);
-      const reconstituted = PipelineJobMapper.toDomain(persisted as PrismaPipelineJob);
+      const reconstituted = PipelineJobMapper.toDomain(
+        persisted as PrismaPipelineJob,
+      );
 
       expect(reconstituted.generatedScenes).toEqual(scenes);
       expect(reconstituted.approvedScenes).toEqual(approvedScenes);

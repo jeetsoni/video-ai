@@ -12,7 +12,10 @@ export type {
   PipelineJobDto,
 } from "./types/pipeline.types.js";
 
-export { FORMAT_WORD_RANGES, FORMAT_RESOLUTIONS } from "./types/format-config.js";
+export {
+  FORMAT_WORD_RANGES,
+  FORMAT_RESOLUTIONS,
+} from "./types/format-config.js";
 
 export {
   createPipelineJobSchema,
@@ -40,7 +43,19 @@ export type {
   ErrorEvent,
 } from "./schemas/script-stream-event.schema.js";
 
-export { ANIMATION_THEMES, DEFAULT_THEME_ID } from "./themes/animation-themes.js";
+export {
+  ANIMATION_THEMES,
+  DEFAULT_THEME_ID,
+} from "./themes/animation-themes.js";
+
+export type { FeaturedVoice } from "./voices/voice-registry.js";
+export {
+  FEATURED_VOICES,
+  FEATURED_VOICE_IDS,
+  DEFAULT_VOICE_ID,
+} from "./voices/voice-registry.js";
+
+export type { VoiceEntry, ListVoicesResponse } from "./types/voice.types.js";
 
 export type {
   LayoutProfile,

@@ -1,15 +1,32 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Smartphone, Monitor, ChevronDown, Check, Palette } from "lucide-react";
-import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
-import { ANIMATION_THEMES, DEFAULT_THEME_ID } from "@video-ai/shared";
+import {
+  Sparkles,
+  Smartphone,
+  Monitor,
+  ChevronDown,
+  Check,
+  Palette,
+} from "lucide-react";
+import type { VideoFormat, AnimationTheme, VoiceEntry } from "@video-ai/shared";
+import {
+  ANIMATION_THEMES,
+  DEFAULT_THEME_ID,
+  DEFAULT_VOICE_ID,
+} from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { VoiceSelector } from "./voice-selector";
 
-type AspectOption = { format: VideoFormat; label: string; ratio: string; icon: typeof Smartphone };
+type AspectOption = {
+  format: VideoFormat;
+  label: string;
+  ratio: string;
+  icon: typeof Smartphone;
+};
 
 const ASPECT_OPTIONS: AspectOption[] = [
   { format: "reel", label: "Vertical", ratio: "9:16", icon: Smartphone },
@@ -17,11 +34,20 @@ const ASPECT_OPTIONS: AspectOption[] = [
 ];
 
 function ThemeSwatches({ theme }: { theme: AnimationTheme }) {
-  const colors = [theme.background, theme.accents.techCode, theme.accents.violet, theme.accents.revelation];
+  const colors = [
+    theme.background,
+    theme.accents.techCode,
+    theme.accents.violet,
+    theme.accents.revelation,
+  ];
   return (
     <div className="flex gap-1">
       {colors.map((c, i) => (
-        <span key={i} className="size-3 rounded-full" style={{ backgroundColor: c }} />
+        <span
+          key={i}
+          className="size-3 rounded-full"
+          style={{ backgroundColor: c }}
+        />
       ))}
     </div>
   );
@@ -36,7 +62,28 @@ export function DraftHero() {
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
+  const [voices, setVoices] = useState<VoiceEntry[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    pipelineRepository
+      .listVoices()
+      .then((res) => {
+        if (!cancelled) setVoices(res.voices);
+      })
+      .catch(() => {
+        // Fallback handled by VoiceSelector via static registry
+      })
+      .finally(() => {
+        if (!cancelled) setVoicesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pipelineRepository]);
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -56,7 +103,8 @@ export function DraftHero() {
     [autoResize],
   );
 
-  const selectedTheme = ANIMATION_THEMES.find((t) => t.id === themeId) ?? ANIMATION_THEMES[0]!;
+  const selectedTheme =
+    ANIMATION_THEMES.find((t) => t.id === themeId) ?? ANIMATION_THEMES[0]!;
 
   const handleDraft = useCallback(async () => {
     const trimmed = topic.trim();
@@ -64,12 +112,25 @@ export function DraftHero() {
 
     setIsSubmitting(true);
     try {
-      const res = await pipelineRepository.createJob({ topic: trimmed, format, themeId });
+      const res = await pipelineRepository.createJob({
+        topic: trimmed,
+        format,
+        themeId,
+        voiceId,
+      });
       router.push(`/jobs/${res.jobId}`);
     } finally {
       setIsSubmitting(false);
     }
-  }, [topic, format, themeId, isSubmitting, pipelineRepository, router]);
+  }, [
+    topic,
+    format,
+    themeId,
+    voiceId,
+    isSubmitting,
+    pipelineRepository,
+    router,
+  ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -87,7 +148,8 @@ export function DraftHero() {
         Director&apos;s <span className="text-primary-dim">Draft</span>
       </h1>
       <p className="text-base leading-relaxed text-on-surface-variant">
-        Enter an educational topic to generate a professional cinematic video using AI.
+        Enter an educational topic to generate a professional cinematic video
+        using AI.
       </p>
 
       <div className="mt-8 space-y-3">
@@ -151,12 +213,20 @@ export function DraftHero() {
               <Palette className="size-3.5" />
               <ThemeSwatches theme={selectedTheme} />
               <span className="hidden sm:inline">{selectedTheme.name}</span>
-              <ChevronDown className={cn("size-3 transition-transform", themeOpen && "rotate-180")} />
+              <ChevronDown
+                className={cn(
+                  "size-3 transition-transform",
+                  themeOpen && "rotate-180",
+                )}
+              />
             </button>
 
             {themeOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setThemeOpen(false)} />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setThemeOpen(false)}
+                />
                 <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-outline-variant bg-surface-container-highest p-2 shadow-ambient-lg backdrop-blur-xl">
                   {ANIMATION_THEMES.map((theme) => {
                     const isSelected = themeId === theme.id;
@@ -164,7 +234,10 @@ export function DraftHero() {
                       <button
                         key={theme.id}
                         type="button"
-                        onClick={() => { setThemeId(theme.id); setThemeOpen(false); }}
+                        onClick={() => {
+                          setThemeId(theme.id);
+                          setThemeOpen(false);
+                        }}
                         className={cn(
                           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all",
                           isSelected
@@ -174,10 +247,16 @@ export function DraftHero() {
                       >
                         <ThemeSwatches theme={theme} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{theme.name}</p>
-                          <p className="text-[10px] text-on-surface-variant truncate">{theme.description}</p>
+                          <p className="text-xs font-medium truncate">
+                            {theme.name}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant truncate">
+                            {theme.description}
+                          </p>
                         </div>
-                        {isSelected && <Check className="size-3.5 text-primary shrink-0" />}
+                        {isSelected && (
+                          <Check className="size-3.5 text-primary shrink-0" />
+                        )}
                       </button>
                     );
                   })}
@@ -185,6 +264,19 @@ export function DraftHero() {
               </>
             )}
           </div>
+        </div>
+
+        {/* Voice selector */}
+        <div className="mt-2">
+          <label className="text-xs font-medium text-on-surface-variant mb-2 block">
+            Narrator Voice
+          </label>
+          <VoiceSelector
+            voices={voices}
+            selectedVoiceId={voiceId}
+            onSelect={setVoiceId}
+            isLoading={voicesLoading}
+          />
         </div>
       </div>
     </section>

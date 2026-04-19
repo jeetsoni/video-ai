@@ -30,13 +30,41 @@ const sampleTranscript: WordTimestamp[] = [
 ];
 
 const sampleApprovedScenes: SceneBoundary[] = [
-  { id: 1, name: "Intro", type: "Hook", startTime: 0, endTime: 0, text: "Hello world this" },
-  { id: 2, name: "Body", type: "Bridge", startTime: 0, endTime: 0, text: "is a test" },
+  {
+    id: 1,
+    name: "Intro",
+    type: "Hook",
+    startTime: 0,
+    endTime: 0,
+    text: "Hello world this",
+  },
+  {
+    id: 2,
+    name: "Body",
+    type: "Bridge",
+    startTime: 0,
+    endTime: 0,
+    text: "is a test",
+  },
 ];
 
 const mappedScenes: SceneBoundary[] = [
-  { id: 1, name: "Intro", type: "Hook", startTime: 0, endTime: 1.5, text: "Hello world this" },
-  { id: 2, name: "Body", type: "Bridge", startTime: 1.5, endTime: 3.0, text: "is a test" },
+  {
+    id: 1,
+    name: "Intro",
+    type: "Hook",
+    startTime: 0,
+    endTime: 1.5,
+    text: "Hello world this",
+  },
+  {
+    id: 2,
+    name: "Body",
+    type: "Bridge",
+    startTime: 1.5,
+    endTime: 3.0,
+    text: "is a test",
+  },
 ];
 
 function createPipelineJobAtTimestampMappingStage(id: string): PipelineJob {
@@ -48,6 +76,7 @@ function createPipelineJobAtTimestampMappingStage(id: string): PipelineJob {
     topic: "Test topic",
     format,
     themeId,
+    voiceId: null,
     status: PipelineStatus.processing(),
     stage: PipelineStage.create("timestamp_mapping")!,
     error: null,
@@ -71,7 +100,12 @@ function createPipelineJobAtTimestampMappingStage(id: string): PipelineJob {
 describe("TimestampMappingWorker", () => {
   let worker: TimestampMappingWorker;
   let mockTimestampMapper: { mapTimestamps: AnyMockFn };
-  let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
+  let mockRepository: {
+    save: AnyMockFn;
+    findById: AnyMockFn;
+    findAll: AnyMockFn;
+    count: AnyMockFn;
+  };
   let mockQueueService: { enqueue: AnyMockFn };
 
   beforeEach(() => {
@@ -138,6 +172,7 @@ describe("TimestampMappingWorker", () => {
       topic: "Test topic",
       format: pipelineJob.format,
       themeId: pipelineJob.themeId,
+      voiceId: null,
       status: PipelineStatus.processing(),
       stage: PipelineStage.create("timestamp_mapping")!,
       error: null,
@@ -170,6 +205,7 @@ describe("TimestampMappingWorker", () => {
       topic: "Test topic",
       format: VideoFormat.create("short").getValue(),
       themeId: AnimationThemeId.create("studio").getValue(),
+      voiceId: null,
       status: PipelineStatus.processing(),
       stage: PipelineStage.create("timestamp_mapping")!,
       error: null,

@@ -4,7 +4,11 @@ import { PipelineStage } from "@/pipeline/domain/value-objects/pipeline-stage.js
 import { PipelineStatus } from "@/pipeline/domain/value-objects/pipeline-status.js";
 import { AnimationThemeId } from "@/pipeline/domain/value-objects/animation-theme.js";
 import { JobError } from "@/pipeline/domain/value-objects/job-error.js";
-import type { WordTimestamp, SceneBoundary, SceneDirection } from "@video-ai/shared";
+import type {
+  WordTimestamp,
+  SceneBoundary,
+  SceneDirection,
+} from "@video-ai/shared";
 
 function makeJob() {
   return PipelineJob.create({
@@ -38,7 +42,10 @@ function makeSceneDirection(): SceneDirection {
     endFrame: 150,
     durationFrames: 150,
     text: "Hello world",
-    words: [{ word: "Hello", start: 0, end: 2 }, { word: "world", start: 2, end: 5 }],
+    words: [
+      { word: "Hello", start: 0, end: 2 },
+      { word: "world", start: 2, end: 5 },
+    ],
     animationDirection: {
       colorAccent: "#06B6D4",
       mood: "energetic",
@@ -56,6 +63,7 @@ describe("PipelineJob", () => {
       expect(job.topic).toBe("How databases work");
       expect(job.format.value).toBe("short");
       expect(job.themeId.value).toBe("studio");
+      expect(job.voiceId).toBeNull();
       expect(job.status.value).toBe("pending");
       expect(job.stage.value).toBe("script_generation");
       expect(job.progressPercent).toBe(0);
@@ -77,12 +85,16 @@ describe("PipelineJob", () => {
   describe("reconstitute", () => {
     it("rebuilds a job from persistence data", () => {
       const now = new Date();
-      const error = JobError.create("script_generation_failed", "LLM timeout").getValue();
+      const error = JobError.create(
+        "script_generation_failed",
+        "LLM timeout",
+      ).getValue();
       const job = PipelineJob.reconstitute({
         id: "job-2",
         topic: "AI basics",
         format: VideoFormat.create("reel").getValue(),
         themeId: AnimationThemeId.create("neon").getValue(),
+        voiceId: null,
         status: PipelineStatus.failed(),
         stage: PipelineStage.create("script_generation")!,
         error,
@@ -114,6 +126,7 @@ describe("PipelineJob", () => {
         topic: "Scene test",
         format: VideoFormat.create("short").getValue(),
         themeId: AnimationThemeId.create("studio").getValue(),
+        voiceId: null,
         status: PipelineStatus.processing(),
         stage: PipelineStage.create("tts_generation")!,
         error: null,
@@ -140,17 +153,22 @@ describe("PipelineJob", () => {
   describe("transitionTo", () => {
     it("follows the happy path through all stages", () => {
       const job = makeJob();
-      const stages: Array<{ stage: string; status: string; progress: number }> = [
-        { stage: "script_review", status: "awaiting_script_review", progress: 15 },
-        { stage: "tts_generation", status: "processing", progress: 30 },
-        { stage: "transcription", status: "processing", progress: 45 },
-        { stage: "timestamp_mapping", status: "processing", progress: 55 },
-        { stage: "direction_generation", status: "processing", progress: 65 },
-        { stage: "code_generation", status: "processing", progress: 80 },
-        { stage: "preview", status: "completed", progress: 95 },
-        { stage: "rendering", status: "processing", progress: 90 },
-        { stage: "done", status: "completed", progress: 100 },
-      ];
+      const stages: Array<{ stage: string; status: string; progress: number }> =
+        [
+          {
+            stage: "script_review",
+            status: "awaiting_script_review",
+            progress: 15,
+          },
+          { stage: "tts_generation", status: "processing", progress: 30 },
+          { stage: "transcription", status: "processing", progress: 45 },
+          { stage: "timestamp_mapping", status: "processing", progress: 55 },
+          { stage: "direction_generation", status: "processing", progress: 65 },
+          { stage: "code_generation", status: "processing", progress: 80 },
+          { stage: "preview", status: "completed", progress: 95 },
+          { stage: "rendering", status: "processing", progress: 90 },
+          { stage: "done", status: "completed", progress: 100 },
+        ];
 
       for (const expected of stages) {
         const result = job.transitionTo(expected.stage as any);
@@ -335,7 +353,10 @@ describe("PipelineJob", () => {
       job.transitionTo("timestamp_mapping");
       job.transitionTo("direction_generation");
       job.transitionTo("code_generation");
-      const result = job.setGeneratedCode("export const Main = () => <div/>;", "code/job-1.tsx");
+      const result = job.setGeneratedCode(
+        "export const Main = () => <div/>;",
+        "code/job-1.tsx",
+      );
       expect(result.isSuccess).toBe(true);
       expect(job.generatedCode).toBe("export const Main = () => <div/>;");
       expect(job.codePath).toBe("code/job-1.tsx");

@@ -10,6 +10,7 @@ import type { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/r
 import type { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
 import type { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
+import type { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
 
 type ThemeDto = {
   id: string;
@@ -31,6 +32,7 @@ export class PipelineController {
     private readonly getThemesFn: () => Promise<ThemeDto[]>,
     private readonly getPreviewDataUseCase: GetPreviewDataUseCase,
     private readonly exportVideoUseCase: ExportVideoUseCase,
+    private readonly listVoicesUseCase: ListVoicesUseCase,
   ) {}
 
   async createJob(req: HttpRequest, res: HttpResponse): Promise<void> {
@@ -51,7 +53,10 @@ export class PipelineController {
       const { id, status } = result.getValue();
       res.created({ jobId: id, status });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -66,7 +71,10 @@ export class PipelineController {
 
       res.ok(result.getValue());
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -75,7 +83,10 @@ export class PipelineController {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
 
-      const result = await this.listPipelineJobsUseCase.execute({ page, limit });
+      const result = await this.listPipelineJobsUseCase.execute({
+        page,
+        limit,
+      });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;
@@ -83,7 +94,10 @@ export class PipelineController {
 
       res.ok(result.getValue());
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -115,7 +129,10 @@ export class PipelineController {
 
       res.ok({ status: "ok" });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -130,7 +147,10 @@ export class PipelineController {
 
       res.ok({ status: "ok" });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -145,7 +165,10 @@ export class PipelineController {
 
       res.ok({ status: "ok" });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -154,7 +177,10 @@ export class PipelineController {
       const themes = await this.getThemesFn();
       res.ok({ themes });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -169,7 +195,10 @@ export class PipelineController {
 
       res.ok(result.getValue());
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
@@ -184,11 +213,36 @@ export class PipelineController {
 
       res.ok({ status: "ok" });
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
-  private handleValidationError(res: HttpResponse, error: ValidationError): void {
+  async listVoices(_req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const result = await this.listVoicesUseCase.execute();
+      if (result.isFailure) {
+        res.serverError({
+          error: "voice_fetch_failed",
+          message: result.getError().message,
+        });
+        return;
+      }
+      res.ok(result.getValue());
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  private handleValidationError(
+    res: HttpResponse,
+    error: ValidationError,
+  ): void {
     const payload = { error: error.code, message: error.message };
 
     switch (error.code) {

@@ -1,26 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import type { VideoFormat } from "@video-ai/shared";
-import { DEFAULT_THEME_ID } from "@video-ai/shared";
+import type { VideoFormat, VoiceEntry } from "@video-ai/shared";
+import { DEFAULT_THEME_ID, DEFAULT_VOICE_ID } from "@video-ai/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { FormatSelector } from "./format-selector";
 import { ThemeSelector } from "./theme-selector";
+import { VoiceSelector } from "./voice-selector";
 
 const TOPIC_MIN = 3;
 const TOPIC_MAX = 500;
 
 interface PipelineWizardProps {
-  onSubmit: (data: { topic: string; format: VideoFormat; themeId: string }) => void;
+  onSubmit: (data: {
+    topic: string;
+    format: VideoFormat;
+    themeId: string;
+    voiceId: string;
+  }) => void;
   isSubmitting?: boolean;
   initialTopic?: string;
+  voices?: VoiceEntry[];
+  voicesLoading?: boolean;
 }
 
-export function PipelineWizard({ onSubmit, isSubmitting = false, initialTopic = "" }: PipelineWizardProps) {
+export function PipelineWizard({
+  onSubmit,
+  isSubmitting = false,
+  initialTopic = "",
+  voices = [],
+  voicesLoading = false,
+}: PipelineWizardProps) {
   const [topic, setTopic] = useState(initialTopic);
   const [format, setFormat] = useState<VideoFormat | null>(null);
   const [themeId, setThemeId] = useState<string | null>(null);
+  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
   const [errors, setErrors] = useState<{ topic?: string; format?: string }>({});
 
   function validate(): boolean {
@@ -47,11 +62,13 @@ export function PipelineWizard({ onSubmit, isSubmitting = false, initialTopic = 
       topic: topic.trim(),
       format: format!,
       themeId: themeId ?? DEFAULT_THEME_ID,
+      voiceId,
     });
   }
 
   const charCount = topic.trim().length;
-  const isTopicInvalid = charCount > 0 && (charCount < TOPIC_MIN || charCount > TOPIC_MAX);
+  const isTopicInvalid =
+    charCount > 0 && (charCount < TOPIC_MIN || charCount > TOPIC_MAX);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -74,14 +91,18 @@ export function PipelineWizard({ onSubmit, isSubmitting = false, initialTopic = 
           ) : (
             <span />
           )}
-          <p className={`text-xs ${isTopicInvalid ? "text-destructive" : "text-on-surface-variant"}`}>
+          <p
+            className={`text-xs ${isTopicInvalid ? "text-destructive" : "text-on-surface-variant"}`}
+          >
             {charCount}/{TOPIC_MAX}
           </p>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-on-surface">Video Format</label>
+        <label className="text-sm font-medium text-on-surface">
+          Video Format
+        </label>
         <FormatSelector value={format} onChange={setFormat} />
         {errors.format && (
           <p className="text-sm text-destructive">{errors.format}</p>
@@ -89,8 +110,22 @@ export function PipelineWizard({ onSubmit, isSubmitting = false, initialTopic = 
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-on-surface">Animation Theme</label>
+        <label className="text-sm font-medium text-on-surface">
+          Animation Theme
+        </label>
         <ThemeSelector value={themeId} onChange={setThemeId} />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-on-surface">
+          Narrator Voice
+        </label>
+        <VoiceSelector
+          voices={voices}
+          selectedVoiceId={voiceId}
+          onSelect={setVoiceId}
+          isLoading={voicesLoading}
+        />
       </div>
 
       <Button type="submit" disabled={isSubmitting} size="lg">

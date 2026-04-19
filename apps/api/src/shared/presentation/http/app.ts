@@ -10,12 +10,16 @@ export function createApp(deps?: {
   queue: Queue;
   objectStore: ObjectStore;
   redisConnection: { host: string; port: number };
+  elevenlabsApiKey: string;
 }): express.Express {
   const app = express();
 
   app.use((_req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,DELETE,OPTIONS",
+    );
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (_req.method === "OPTIONS") {
       res.status(204).end();

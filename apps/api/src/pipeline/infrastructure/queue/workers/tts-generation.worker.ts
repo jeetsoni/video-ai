@@ -24,10 +24,12 @@ export class TTSGenerationWorker {
       throw new Error(`Pipeline job ${jobId} has no approved script`);
     }
 
+    const voiceId = pipelineJob.voiceId ?? this.voiceId;
+
     // ElevenLabs with-timestamps returns audio + word-level timestamps in one call
     const result = await this.ttsService.generateSpeech({
       text: approvedScript,
-      voiceId: this.voiceId,
+      voiceId,
     });
 
     if (result.isFailure) {
@@ -39,7 +41,10 @@ export class TTSGenerationWorker {
     // Set audio path
     const setAudioResult = pipelineJob.setAudioPath(audioPath);
     if (setAudioResult.isFailure) {
-      pipelineJob.markFailed("tts_generation_failed", setAudioResult.getError().message);
+      pipelineJob.markFailed(
+        "tts_generation_failed",
+        setAudioResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
       throw setAudioResult.getError();
     }
@@ -47,7 +52,10 @@ export class TTSGenerationWorker {
     // Transition through transcription stage (we already have timestamps)
     const toTranscription = pipelineJob.transitionTo("transcription");
     if (toTranscription.isFailure) {
-      pipelineJob.markFailed("tts_generation_failed", toTranscription.getError().message);
+      pipelineJob.markFailed(
+        "tts_generation_failed",
+        toTranscription.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
       throw toTranscription.getError();
     }
@@ -55,7 +63,10 @@ export class TTSGenerationWorker {
     // Set transcript from ElevenLabs alignment data
     const setTranscriptResult = pipelineJob.setTranscript(timestamps);
     if (setTranscriptResult.isFailure) {
-      pipelineJob.markFailed("transcription_failed", setTranscriptResult.getError().message);
+      pipelineJob.markFailed(
+        "transcription_failed",
+        setTranscriptResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
       throw setTranscriptResult.getError();
     }
@@ -63,7 +74,10 @@ export class TTSGenerationWorker {
     // Skip transcription worker — go straight to timestamp_mapping
     const toTimestampMapping = pipelineJob.transitionTo("timestamp_mapping");
     if (toTimestampMapping.isFailure) {
-      pipelineJob.markFailed("transcription_failed", toTimestampMapping.getError().message);
+      pipelineJob.markFailed(
+        "transcription_failed",
+        toTimestampMapping.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
       throw toTimestampMapping.getError();
     }

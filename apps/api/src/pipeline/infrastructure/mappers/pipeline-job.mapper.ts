@@ -34,17 +34,22 @@ export class PipelineJobMapper {
       topic: record.topic,
       format,
       themeId,
+      voiceId: record.voiceId ?? null,
       status,
       stage,
       error,
       generatedScript: record.generatedScript,
       approvedScript: record.approvedScript,
-      generatedScenes: (record.generatedScenes ?? null) as SceneBoundary[] | null,
+      generatedScenes: (record.generatedScenes ?? null) as
+        | SceneBoundary[]
+        | null,
       approvedScenes: (record.approvedScenes ?? null) as SceneBoundary[] | null,
       audioPath: record.audioPath,
       transcript: record.transcript as unknown as WordTimestamp[] | null,
       scenePlan: record.scenePlan as unknown as SceneBoundary[] | null,
-      sceneDirections: record.sceneDirections as unknown as SceneDirection[] | null,
+      sceneDirections: record.sceneDirections as unknown as
+        | SceneDirection[]
+        | null,
       generatedCode: record.generatedCode,
       codePath: record.codePath,
       videoPath: record.videoPath,
@@ -54,7 +59,10 @@ export class PipelineJobMapper {
     });
   }
 
-  static toPersistence(job: PipelineJob): Omit<PrismaPipelineJobWithScenes, "createdAt" | "updatedAt"> & {
+  static toPersistence(job: PipelineJob): Omit<
+    PrismaPipelineJobWithScenes,
+    "createdAt" | "updatedAt"
+  > & {
     createdAt: Date;
     updatedAt: Date;
   } {
@@ -63,18 +71,34 @@ export class PipelineJobMapper {
       topic: job.topic,
       format: job.format.value as PrismaPipelineJob["format"],
       themeId: job.themeId.value,
+      voiceId: job.voiceId,
       status: job.status.value as PrismaPipelineJob["status"],
       stage: job.stage.value as PrismaPipelineJob["stage"],
       errorCode: job.error?.code ?? null,
       errorMessage: job.error?.message ?? null,
       generatedScript: job.generatedScript,
       approvedScript: job.approvedScript,
-      generatedScenes: job.generatedScenes !== null ? (job.generatedScenes as unknown as Prisma.JsonValue) : null,
-      approvedScenes: job.approvedScenes !== null ? (job.approvedScenes as unknown as Prisma.JsonValue) : null,
+      generatedScenes:
+        job.generatedScenes !== null
+          ? (job.generatedScenes as unknown as Prisma.JsonValue)
+          : null,
+      approvedScenes:
+        job.approvedScenes !== null
+          ? (job.approvedScenes as unknown as Prisma.JsonValue)
+          : null,
       audioPath: job.audioPath,
-      transcript: job.transcript !== null ? (job.transcript as unknown as Prisma.JsonValue) : null,
-      scenePlan: job.scenePlan !== null ? (job.scenePlan as unknown as Prisma.JsonValue) : null,
-      sceneDirections: job.sceneDirections !== null ? (job.sceneDirections as unknown as Prisma.JsonValue) : null,
+      transcript:
+        job.transcript !== null
+          ? (job.transcript as unknown as Prisma.JsonValue)
+          : null,
+      scenePlan:
+        job.scenePlan !== null
+          ? (job.scenePlan as unknown as Prisma.JsonValue)
+          : null,
+      sceneDirections:
+        job.sceneDirections !== null
+          ? (job.sceneDirections as unknown as Prisma.JsonValue)
+          : null,
       generatedCode: job.generatedCode,
       codePath: job.codePath,
       videoPath: job.videoPath,

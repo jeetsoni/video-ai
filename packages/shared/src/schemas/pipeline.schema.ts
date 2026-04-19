@@ -4,13 +4,23 @@ export const createPipelineJobSchema = z.object({
   topic: z.string().min(3).max(500),
   format: z.enum(["reel", "short", "longform"]),
   themeId: z.string().min(1),
+  voiceId: z.string().min(1).optional(),
 });
 
 /** Schema for the scene block within a structured script (no timestamps yet) */
 export const sceneBlockSchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.enum(["Hook", "Analogy", "Bridge", "Architecture", "Spotlight", "Comparison", "Power", "CTA"]),
+  type: z.enum([
+    "Hook",
+    "Analogy",
+    "Bridge",
+    "Architecture",
+    "Spotlight",
+    "Comparison",
+    "Power",
+    "CTA",
+  ]),
   text: z.string().min(1),
 });
 
@@ -29,7 +39,16 @@ export const wordTimestampSchema = z.object({
 export const sceneBoundarySchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.enum(["Hook", "Analogy", "Bridge", "Architecture", "Spotlight", "Comparison", "Power", "CTA"]),
+  type: z.enum([
+    "Hook",
+    "Analogy",
+    "Bridge",
+    "Architecture",
+    "Spotlight",
+    "Comparison",
+    "Power",
+    "CTA",
+  ]),
   startTime: z.number().nonnegative(),
   endTime: z.number().positive(),
   text: z.string(),

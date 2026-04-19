@@ -1,4 +1,4 @@
-import type { PipelineJobDto } from "@video-ai/shared";
+import type { PipelineJobDto, ListVoicesResponse } from "@video-ai/shared";
 import type { HttpClient } from "@/shared/interfaces/http-client";
 import type {
   PipelineRepository,
@@ -79,6 +79,12 @@ export class HttpPipelineRepository implements PipelineRepository {
     return this.http.post<ActionResponse>({
       path: `${BASE}/jobs/${jobId}/export`,
       body: {},
+    });
+  }
+
+  listVoices(): Promise<ListVoicesResponse> {
+    return this.http.get<ListVoicesResponse>({
+      path: `${BASE}/voices`,
     });
   }
 }

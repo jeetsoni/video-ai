@@ -13,6 +13,7 @@ interface CreatePipelineJobRequest {
   topic: string;
   format: string;
   themeId: string;
+  voiceId?: string;
 }
 
 interface CreatePipelineJobResponse {
@@ -20,9 +21,10 @@ interface CreatePipelineJobResponse {
   status: string;
 }
 
-export class CreatePipelineJobUseCase
-  implements UseCase<CreatePipelineJobRequest, Result<CreatePipelineJobResponse, ValidationError>>
-{
+export class CreatePipelineJobUseCase implements UseCase<
+  CreatePipelineJobRequest,
+  Result<CreatePipelineJobResponse, ValidationError>
+> {
   constructor(
     private readonly repository: PipelineJobRepository,
     private readonly queueService: QueueService,
@@ -35,12 +37,10 @@ export class CreatePipelineJobUseCase
     const parsed = createPipelineJobSchema.safeParse(request);
     if (!parsed.success) {
       const firstIssue = parsed.error?.issues[0]?.message ?? "Invalid input";
-      return Result.fail(
-        new ValidationError(firstIssue, "INVALID_INPUT"),
-      );
+      return Result.fail(new ValidationError(firstIssue, "INVALID_INPUT"));
     }
 
-    const { topic, format, themeId } = parsed.data;
+    const { topic, format, themeId, voiceId } = parsed.data;
 
     const formatResult = VideoFormat.create(format);
     if (formatResult.isFailure) {
@@ -57,6 +57,7 @@ export class CreatePipelineJobUseCase
       topic,
       format: formatResult.getValue(),
       themeId: themeIdResult.getValue(),
+      voiceId,
     });
 
     await this.repository.save(job);

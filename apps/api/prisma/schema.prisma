@@ -46,6 +46,7 @@ model PipelineJob {
   topic   String      @db.VarChar(500)
   format  VideoFormat
   themeId String      // References AnimationTheme.id
+  voiceId String?     // ElevenLabs voice ID, null = use default voice
 
   // Pipeline state
   status PipelineStatus @default(pending)

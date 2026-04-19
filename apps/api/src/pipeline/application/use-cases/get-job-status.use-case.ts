@@ -27,6 +27,9 @@ function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
     dto.errorCode = job.error.code;
     dto.errorMessage = job.error.message;
   }
+  if (job.voiceId) {
+    dto.voiceId = job.voiceId;
+  }
   if (job.generatedScript) {
     dto.generatedScript = job.generatedScript;
   }
@@ -49,9 +52,10 @@ function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
   return dto;
 }
 
-export class GetJobStatusUseCase
-  implements UseCase<GetJobStatusRequest, Result<PipelineJobDto, ValidationError>>
-{
+export class GetJobStatusUseCase implements UseCase<
+  GetJobStatusRequest,
+  Result<PipelineJobDto, ValidationError>
+> {
   constructor(
     private readonly repository: PipelineJobRepository,
     private readonly objectStore: ObjectStore,
