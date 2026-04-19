@@ -4,6 +4,7 @@ import type {
   WordTimestamp,
   SceneBoundary,
   SceneDirection,
+  VoiceSettings,
 } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { ValidationError } from "@/shared/domain/errors/validation.error.js";
@@ -45,6 +46,7 @@ interface PipelineJobProps {
   format: VideoFormat;
   themeId: AnimationThemeId;
   voiceId: string | null;
+  voiceSettings: VoiceSettings | null;
   status: PipelineStatus;
   stage: PipelineStage;
   error: JobError | null;
@@ -81,6 +83,9 @@ export class PipelineJob {
   }
   get voiceId(): string | null {
     return this.props.voiceId;
+  }
+  get voiceSettings(): VoiceSettings | null {
+    return this.props.voiceSettings;
   }
   get status(): PipelineStatus {
     return this.props.status;
@@ -140,6 +145,7 @@ export class PipelineJob {
     format: VideoFormat;
     themeId: AnimationThemeId;
     voiceId?: string | null;
+    voiceSettings?: VoiceSettings | null;
   }): PipelineJob {
     const now = new Date();
     return new PipelineJob({
@@ -148,6 +154,7 @@ export class PipelineJob {
       format: params.format,
       themeId: params.themeId,
       voiceId: params.voiceId ?? null,
+      voiceSettings: params.voiceSettings ?? null,
       status: PipelineStatus.pending(),
       stage: PipelineStage.initial(),
       error: null,
@@ -174,6 +181,7 @@ export class PipelineJob {
     format: VideoFormat;
     themeId: AnimationThemeId;
     voiceId: string | null;
+    voiceSettings: VoiceSettings | null;
     status: PipelineStatus;
     stage: PipelineStage;
     error: JobError | null;

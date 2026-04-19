@@ -1,3 +1,5 @@
+import type { VoiceSettings } from "./voice-settings.types.js";
+
 export type VideoFormat = "reel" | "short" | "longform";
 
 export type PipelineStatus =
@@ -124,6 +126,7 @@ export interface PipelineJobDto {
   format: VideoFormat;
   themeId: string;
   voiceId?: string;
+  voiceSettings?: VoiceSettings;
   status: PipelineStatus;
   stage: PipelineStage;
   progressPercent: number;

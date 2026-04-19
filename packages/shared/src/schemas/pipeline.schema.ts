@@ -1,10 +1,18 @@
 import { z } from "zod";
 
+export const voiceSettingsSchema = z.object({
+  speed: z.number().min(0.7).max(1.2),
+  stability: z.number().min(0).max(1),
+  similarityBoost: z.number().min(0).max(1),
+  style: z.number().min(0).max(1),
+});
+
 export const createPipelineJobSchema = z.object({
   topic: z.string().min(3).max(500),
   format: z.enum(["reel", "short", "longform"]),
   themeId: z.string().min(1),
   voiceId: z.string().min(1).optional(),
+  voiceSettings: voiceSettingsSchema.optional(),
 });
 
 /** Schema for the scene block within a structured script (no timestamps yet) */

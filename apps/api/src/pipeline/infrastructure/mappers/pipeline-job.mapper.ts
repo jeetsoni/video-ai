@@ -4,6 +4,7 @@ import type {
   WordTimestamp,
   SceneBoundary,
   SceneDirection,
+  VoiceSettings,
 } from "@video-ai/shared";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
@@ -35,6 +36,7 @@ export class PipelineJobMapper {
       format,
       themeId,
       voiceId: record.voiceId ?? null,
+      voiceSettings: (record.voiceSettings as unknown as VoiceSettings) ?? null,
       status,
       stage,
       error,
@@ -72,6 +74,10 @@ export class PipelineJobMapper {
       format: job.format.value as PrismaPipelineJob["format"],
       themeId: job.themeId.value,
       voiceId: job.voiceId,
+      voiceSettings:
+        job.voiceSettings !== null
+          ? (job.voiceSettings as unknown as Prisma.JsonValue)
+          : null,
       status: job.status.value as PrismaPipelineJob["status"],
       stage: job.stage.value as PrismaPipelineJob["stage"],
       errorCode: job.error?.code ?? null,

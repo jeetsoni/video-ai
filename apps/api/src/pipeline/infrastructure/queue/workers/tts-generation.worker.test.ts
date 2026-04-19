@@ -1,5 +1,6 @@
 import { jest } from "@jest/globals";
 import type { Job } from "bullmq";
+import { DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
 import type { TTSService } from "@/pipeline/application/interfaces/tts-service.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
@@ -85,6 +86,7 @@ describe("TTSGenerationWorker", () => {
     expect(mockTTSService.generateSpeech).toHaveBeenCalledWith({
       text: "Approved script content",
       voiceId: "test-voice-id",
+      voiceSettings: DEFAULT_VOICE_SETTINGS,
     });
     expect(pipelineJob.audioPath).toBe("audio/test-uuid.mp3");
     expect(pipelineJob.transcript).toEqual([
@@ -127,7 +129,8 @@ describe("TTSGenerationWorker", () => {
     const themeId = AnimationThemeId.create("studio").getValue();
     const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
     // Advance to tts_generation but without setting approvedScript
-    pipelineJob.setScript("Generated script");
+    const scenes = [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }];
+    pipelineJob.setScript("Generated script", scenes);
     pipelineJob.transitionTo("script_review");
     // Skip setApprovedScript — transition directly
     pipelineJob.transitionTo("tts_generation");

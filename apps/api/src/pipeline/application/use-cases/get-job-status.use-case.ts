@@ -30,6 +30,9 @@ function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
   if (job.voiceId) {
     dto.voiceId = job.voiceId;
   }
+  if (job.voiceSettings) {
+    dto.voiceSettings = job.voiceSettings;
+  }
   if (job.generatedScript) {
     dto.generatedScript = job.generatedScript;
   }

@@ -10,16 +10,18 @@ import {
   Check,
   Palette,
 } from "lucide-react";
-import type { VideoFormat, AnimationTheme, VoiceEntry } from "@video-ai/shared";
+import type { VideoFormat, AnimationTheme, VoiceEntry, VoiceSettings } from "@video-ai/shared";
 import {
   ANIMATION_THEMES,
   DEFAULT_THEME_ID,
   DEFAULT_VOICE_ID,
+  DEFAULT_VOICE_SETTINGS,
 } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { VoiceSelector } from "./voice-selector";
+import { VoiceSettingsControls } from "./voice-settings-controls";
 
 type AspectOption = {
   format: VideoFormat;
@@ -63,6 +65,7 @@ export function DraftHero() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(DEFAULT_VOICE_SETTINGS);
   const [voices, setVoices] = useState<VoiceEntry[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -117,6 +120,7 @@ export function DraftHero() {
         format,
         themeId,
         voiceId,
+        voiceSettings,
       });
       router.push(`/jobs/${res.jobId}`);
     } finally {
@@ -127,6 +131,7 @@ export function DraftHero() {
     format,
     themeId,
     voiceId,
+    voiceSettings,
     isSubmitting,
     pipelineRepository,
     router,
@@ -278,6 +283,9 @@ export function DraftHero() {
             isLoading={voicesLoading}
           />
         </div>
+
+        {/* Voice settings controls */}
+        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} />
       </div>
     </section>
   );

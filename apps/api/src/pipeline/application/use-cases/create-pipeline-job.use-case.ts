@@ -1,4 +1,5 @@
 import { createPipelineJobSchema } from "@video-ai/shared";
+import type { VoiceSettings } from "@video-ai/shared";
 import type { UseCase } from "@/shared/domain/use-case.js";
 import { Result } from "@/shared/domain/result.js";
 import { ValidationError } from "@/shared/domain/errors/validation.error.js";
@@ -14,6 +15,7 @@ interface CreatePipelineJobRequest {
   format: string;
   themeId: string;
   voiceId?: string;
+  voiceSettings?: VoiceSettings;
 }
 
 interface CreatePipelineJobResponse {
@@ -58,6 +60,7 @@ export class CreatePipelineJobUseCase implements UseCase<
       format: formatResult.getValue(),
       themeId: themeIdResult.getValue(),
       voiceId,
+      voiceSettings: parsed.data.voiceSettings ?? null,
     });
 
     await this.repository.save(job);

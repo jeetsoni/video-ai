@@ -17,7 +17,18 @@ export {
   FORMAT_RESOLUTIONS,
 } from "./types/format-config.js";
 
+export type {
+  VoiceSettings,
+  VoiceSettingRange,
+} from "./types/voice-settings.types.js";
+
 export {
+  VOICE_SETTINGS_RANGES,
+  DEFAULT_VOICE_SETTINGS,
+} from "./types/voice-settings.types.js";
+
+export {
+  voiceSettingsSchema,
   createPipelineJobSchema,
   approveScriptSchema,
   wordTimestampSchema,

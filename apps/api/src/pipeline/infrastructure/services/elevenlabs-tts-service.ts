@@ -1,7 +1,7 @@
 import { ElevenLabsClient, type ElevenLabs } from "@elevenlabs/elevenlabs-js";
 
 type Alignment = ElevenLabs.CharacterAlignmentResponseModel;
-import type { WordTimestamp } from "@video-ai/shared";
+import type { VoiceSettings, WordTimestamp } from "@video-ai/shared";
 import type { TTSService } from "@/pipeline/application/interfaces/tts-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import { Result } from "@/shared/domain/result.js";
@@ -41,6 +41,7 @@ export class ElevenLabsTTSService implements TTSService {
   async generateSpeech(params: {
     text: string;
     voiceId: string;
+    voiceSettings: VoiceSettings;
   }): Promise<
     Result<
       { audioPath: string; format: "mp3"; timestamps: WordTimestamp[] },
@@ -58,8 +59,10 @@ export class ElevenLabsTTSService implements TTSService {
           text: params.text,
           modelId: this.modelId,
           voiceSettings: {
-            stability: 0.5,
-            similarityBoost: 0.75,
+            stability: params.voiceSettings.stability,
+            similarityBoost: params.voiceSettings.similarityBoost,
+            style: params.voiceSettings.style,
+            speed: params.voiceSettings.speed,
           },
         },
       );

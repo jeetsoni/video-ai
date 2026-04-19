@@ -14,6 +14,7 @@ describe("PipelineJobMapper", () => {
     format: "short",
     themeId: "studio",
     voiceId: null,
+    voiceSettings: null,
     status: "pending",
     stage: "script_generation",
     errorCode: null,

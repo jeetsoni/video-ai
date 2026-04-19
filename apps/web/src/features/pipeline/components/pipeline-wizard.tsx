@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { VideoFormat, VoiceEntry } from "@video-ai/shared";
-import { DEFAULT_THEME_ID, DEFAULT_VOICE_ID } from "@video-ai/shared";
+import type { VideoFormat, VoiceEntry, VoiceSettings } from "@video-ai/shared";
+import { DEFAULT_THEME_ID, DEFAULT_VOICE_ID, DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { FormatSelector } from "./format-selector";
 import { ThemeSelector } from "./theme-selector";
 import { VoiceSelector } from "./voice-selector";
+import { VoiceSettingsControls } from "./voice-settings-controls";
 
 const TOPIC_MIN = 3;
 const TOPIC_MAX = 500;
@@ -18,6 +19,7 @@ interface PipelineWizardProps {
     format: VideoFormat;
     themeId: string;
     voiceId: string;
+    voiceSettings: VoiceSettings;
   }) => void;
   isSubmitting?: boolean;
   initialTopic?: string;
@@ -36,6 +38,7 @@ export function PipelineWizard({
   const [format, setFormat] = useState<VideoFormat | null>(null);
   const [themeId, setThemeId] = useState<string | null>(null);
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(DEFAULT_VOICE_SETTINGS);
   const [errors, setErrors] = useState<{ topic?: string; format?: string }>({});
 
   function validate(): boolean {
@@ -63,6 +66,7 @@ export function PipelineWizard({
       format: format!,
       themeId: themeId ?? DEFAULT_THEME_ID,
       voiceId,
+      voiceSettings,
     });
   }
 
@@ -126,6 +130,13 @@ export function PipelineWizard({
           onSelect={setVoiceId}
           isLoading={voicesLoading}
         />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-on-surface">
+          Voice Settings
+        </label>
+        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} />
       </div>
 
       <Button type="submit" disabled={isSubmitting} size="lg">

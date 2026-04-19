@@ -1,5 +1,6 @@
 import type { Job } from "bullmq";
 import type { ProgressEvent } from "@video-ai/shared";
+import { DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
 import type { TTSService } from "@/pipeline/application/interfaces/tts-service.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { QueueService } from "@/pipeline/application/interfaces/queue-service.js";
@@ -30,11 +31,13 @@ export class TTSGenerationWorker {
     }
 
     const voiceId = pipelineJob.voiceId ?? this.voiceId;
+    const voiceSettings = pipelineJob.voiceSettings ?? DEFAULT_VOICE_SETTINGS;
 
     // ElevenLabs with-timestamps returns audio + word-level timestamps in one call
     const result = await this.ttsService.generateSpeech({
       text: approvedScript,
       voiceId,
+      voiceSettings,
     });
 
     if (result.isFailure) {

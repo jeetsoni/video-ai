@@ -3,6 +3,7 @@ import type {
   PipelineJobDto,
   SceneBoundary,
   ListVoicesResponse,
+  VoiceSettings,
 } from "@video-ai/shared";
 import type {
   CreateJobResponse,
@@ -17,6 +18,7 @@ export interface CreateJobParams {
   format: VideoFormat;
   themeId: string;
   voiceId?: string;
+  voiceSettings?: VoiceSettings;
 }
 
 export interface ApproveScriptParams {

@@ -46,7 +46,8 @@ model PipelineJob {
   topic   String      @db.VarChar(500)
   format  VideoFormat
   themeId String      // References AnimationTheme.id
-  voiceId String?     // ElevenLabs voice ID, null = use default voice
+  voiceId       String? // ElevenLabs voice ID, null = use default voice
+  voiceSettings Json?   // ElevenLabs voice tuning parameters (speed, stability, similarityBoost, style)
 
   // Pipeline state
   status PipelineStatus @default(pending)
