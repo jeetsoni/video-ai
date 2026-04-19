@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 async function seedThemes(): Promise<void> {
   console.log("🎨 Seeding animation themes...");
 
+  const validIds = ANIMATION_THEMES.map((t) => t.id);
+
   for (let i = 0; i < ANIMATION_THEMES.length; i++) {
     const theme = ANIMATION_THEMES[i]!;
     const { id, name, description, background, surface, raised, textPrimary, textMuted, accents } = theme;
@@ -32,6 +34,15 @@ async function seedThemes(): Promise<void> {
     });
 
     console.log(`  ✓ ${name} (${id})${id === DEFAULT_THEME_ID ? " [default]" : ""}`);
+  }
+
+  // Remove themes that are no longer in the shared constant
+  const deleted = await prisma.animationTheme.deleteMany({
+    where: { id: { notIn: validIds } },
+  });
+
+  if (deleted.count > 0) {
+    console.log(`  🗑️  Removed ${deleted.count} obsolete theme(s)`);
   }
 
   console.log(`\n✅ Seeded ${ANIMATION_THEMES.length} animation themes.`);

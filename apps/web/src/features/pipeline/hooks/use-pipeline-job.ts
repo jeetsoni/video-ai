@@ -32,6 +32,8 @@ export interface UsePipelineJobResult {
   error: Error | null;
   /** Manually trigger a single refetch. */
   refetch: () => Promise<void>;
+  /** Restart the polling loop (e.g. after a regenerate action). */
+  restartPolling: () => void;
 }
 
 export function usePipelineJob({
@@ -43,6 +45,7 @@ export function usePipelineJob({
   const [job, setJob] = useState<PipelineJobDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [pollGeneration, setPollGeneration] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -70,6 +73,10 @@ export function usePipelineJob({
   const refetch = useCallback(async () => {
     await fetchJob();
   }, [fetchJob]);
+
+  const restartPolling = useCallback(() => {
+    setPollGeneration((g) => g + 1);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -102,7 +109,7 @@ export function usePipelineJob({
         timerRef.current = null;
       }
     };
-  }, [fetchJob, intervalMs, enabled]);
+  }, [fetchJob, intervalMs, enabled, pollGeneration]);
 
-  return { job, isLoading, error, refetch };
+  return { job, isLoading, error, refetch, restartPolling };
 }

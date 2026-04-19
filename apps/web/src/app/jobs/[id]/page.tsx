@@ -16,7 +16,7 @@ export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { pipelineRepository, configService } = useAppDependencies();
 
-  const { job, isLoading, error, refetch } = usePipelineJob({
+  const { job, isLoading, error, refetch, restartPolling } = usePipelineJob({
     repository: pipelineRepository,
     jobId: id,
   });
@@ -51,13 +51,13 @@ export default function JobDetailPage() {
 
   const handleRegenerateScript = useCallback(async () => {
     await pipelineRepository.regenerateScript(id);
-    refetch();
-  }, [pipelineRepository, id, refetch]);
+    restartPolling();
+  }, [pipelineRepository, id, restartPolling]);
 
   const handleExport = useCallback(async () => {
     await pipelineRepository.exportVideo(id);
-    refetch();
-  }, [pipelineRepository, id, refetch]);
+    restartPolling();
+  }, [pipelineRepository, id, restartPolling]);
 
   if (isLoading) {
     return (
@@ -154,7 +154,7 @@ export default function JobDetailPage() {
           job={job}
           onRetry={handleRegenerateScript}
           pollingError={error}
-          onRefresh={refetch}
+          onRefresh={restartPolling}
           onExport={handleExport}
           repository={pipelineRepository}
         />

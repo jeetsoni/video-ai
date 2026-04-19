@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import {
   AlertTriangle,
   Download,
@@ -115,6 +116,20 @@ export function VideoPreviewPage({
   const isCompletedWithoutVideo =
     job.stage === "done" && job.status === "completed" && !job.videoUrl;
 
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handleRegenerateCode = useCallback(async () => {
+    setIsRegenerating(true);
+    try {
+      await repository.regenerateCode(job.id);
+      onRefresh?.();
+    } catch {
+      // Polling will pick up the state change
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [job.id, repository, onRefresh]);
+
   // Determine what to render in the preview area
   function renderPreviewArea() {
     // For stages before preview, use the existing VideoPreviewSection
@@ -226,6 +241,21 @@ export function VideoPreviewPage({
             {/* Download MP4 — triggers export when in preview, shows download when done */}
             {isPreviewEligible && evaluatedComponent && (
               <>
+                {(job.stage === "preview" || job.stage === "done") && (
+                  <Button
+                    variant="secondary"
+                    className="gap-2"
+                    onClick={handleRegenerateCode}
+                    disabled={isRegenerating}
+                  >
+                    {isRegenerating ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="size-4" />
+                    )}
+                    {isRegenerating ? "Regenerating…" : "Regenerate"}
+                  </Button>
+                )}
                 {job.stage === "preview" && onExport && (
                   <Button className="gap-2" onClick={onExport}>
                     <Download className="size-4" />

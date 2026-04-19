@@ -28,7 +28,7 @@ export class BullMQQueueService implements QueueService {
       const retryConfig = STAGE_RETRY_CONFIG[stage];
 
       await this.queue.add(stage, { jobId }, {
-        jobId: `${jobId}--${stage}`,
+        jobId: `${jobId}--${stage}--${Date.now()}`,
         attempts: retryConfig.attempts,
         backoff: retryConfig.backoff,
       });

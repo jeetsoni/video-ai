@@ -102,7 +102,7 @@ describe("PipelineWizard", () => {
     expect(mockOnSubmit).toHaveBeenCalledWith({
       topic: "How to learn TypeScript",
       format: "reel",
-      themeId: "studio",
+      themeId: "neon",
     });
   });
 

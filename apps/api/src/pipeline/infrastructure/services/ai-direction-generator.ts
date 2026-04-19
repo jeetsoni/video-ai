@@ -25,11 +25,11 @@ const DEFAULT_CONFIG: AIDirectionGeneratorConfig = {
 const FPS = 30;
 
 function buildDesignSystem(theme: AnimationTheme): string {
-  return `## Design System
+  return `## Design System — Cinematic Neon Glass Aesthetic
 
 Colors:
-- Background: ${theme.background}
-- Surface: ${theme.surface}
+- Background: ${theme.background} (deep dark)
+- Surface: ${theme.surface} (glass panels use rgba(255,255,255,0.04-0.07) instead)
 - Raised: ${theme.raised}
 - Text Primary: ${theme.textPrimary}
 - Text Muted: ${theme.textMuted}
@@ -41,12 +41,20 @@ Colors:
   - cta (Yellow): ${theme.accents.cta} — CTA, power statements, revelations
   - violet: ${theme.accents.violet} — architecture, orchestration, system-level
 
+Visual Style:
+- Glass morphism panels: semi-transparent backgrounds with subtle borders and glow
+- Animated rainbow gradient borders on key containers (conic-gradient rotating with frame)
+- Neon glow: boxShadow with accent colors at 0.12-0.25 opacity
+- Ambient purple/violet light at bottom of canvas
+- Progressive construction: elements BUILD themselves (borders draw, rows reveal, code types)
+
 Typography (mobile canvas = 1080px wide — text must be LARGE to be readable):
 - Hero titles: 88-120px, fontWeight 900, letterSpacing: -2
 - Section headlines: 64-80px, fontWeight 800, letterSpacing: -1
 - Subheadings / labels: 44-52px, fontWeight 700
 - Body / descriptions: 36-42px, fontWeight 500
 - Monospace (code, terminals, data): 30-38px
+- Section headers: uppercase, letterSpacing 3-6px
 - NEVER use text smaller than 30px — it becomes unreadable on mobile`;
 }
 
@@ -61,10 +69,42 @@ When the speaker talks about a concept, BUILD THE ACTUAL THING on screen — not
 | Database query | Card saying "Database" | SQL query with syntax highlighting, table result |
 | Code execution | Card saying "Code runs" | Mini IDE with syntax-highlighted code, output panel |
 | Error/bug | Card with X saying "Error" | Terminal with red stack trace, file paths |
-| Pipeline/flow | Arrow between two cards | Full flow diagram with nodes, animated arrows |
-| Dashboard/metrics | Card saying "Analytics" | Actual dashboard with stat cards, mini charts |
+| Pipeline/flow | Arrow between two cards | Full flow diagram with nodes, animated connection lines that draw themselves |
+| Dashboard/metrics | Card saying "Analytics" | Actual dashboard with stat cards, animated bar charts |
+| Comparison table | Bullet list | Full data table with rows that reveal one-by-one with scanning highlight |
 
 Self-Check: If your visual description could be a bullet point on a PowerPoint slide, it's NOT visual enough.
+
+## CINEMATIC VISUAL STYLE (ByteMonk-grade)
+
+Every visual MUST use these production techniques:
+
+### Container Style:
+- Dark glass panels: background rgba(255,255,255,0.03-0.06), backdropFilter blur(20px)
+- Animated gradient borders: use conic-gradient that rotates (rainbow: magenta→yellow→green→cyan→blue→magenta)
+- Subtle glow: boxShadow with accent color at 0.15-0.25 opacity, spread 20-40px
+- Nested containers: outer glow border → inner frosted glass panel → content
+- Rounded corners: borderRadius 12-20px on panels
+
+### Ambient Atmosphere:
+- Purple/magenta ambient light at bottom of canvas (radial gradient, opacity 0.15-0.25)
+- Subtle grid pattern on background (very faint lines, opacity 0.03-0.05)
+- Floating particles or subtle noise texture for depth
+
+### Progressive Construction (CRITICAL — elements must BUILD themselves):
+- Borders DRAW themselves: SVG rect with stroke-dasharray/dashoffset animating from full to 0
+- Table rows appear ONE AT A TIME with a horizontal scanning glow (left-to-right highlight sweep)
+- Flow diagram nodes appear first, THEN connection lines draw between them sequentially
+- Code blocks TYPE themselves character by character with a blinking cursor
+- Bar charts grow UPWARD from zero
+- Numbers COUNT UP to their final value
+- Icons/badges scale from 0 with a spring bounce
+
+### Connection Lines & Flows:
+- Use SVG paths with animated stroke-dashoffset for "drawing" effect
+- Dashed lines with animated dash offset for "flowing data" effect
+- Arrow heads that appear after the line finishes drawing
+- Labels on connections fade in AFTER the line draws
 
 ## Animation Direction Rules
 
@@ -72,19 +112,26 @@ Each scene gets 2-4 beats. Each beat must have:
 
 ### visual field (CRITICAL — describe the REAL UI/VISUALIZATION):
 1. What real-world UI or visualization this represents
-2. What appears: every element with REALISTIC content
-3. How it looks: exact colors from design system, sizes, border styles
-4. Where it sits: spatial position
-5. What changes: state transitions
-6. How it connects to speech: which visual event at which spoken word
+2. What appears: every element with REALISTIC content (real data, real code, real labels)
+3. Container style: glass panel with gradient border glow, specific glow color from accents
+4. Construction sequence: what draws/builds first, second, third (progressive reveal order)
+5. Where it sits: spatial position within the slot
+6. What changes: state transitions, highlight sweeps, glow pulses
+7. How it connects to speech: which visual construction event syncs to which spoken word
 
 ### typography field:
 - Which spoken words get accent colors (word + hex color)
+- Monospace font for code/technical terms
+- Labels in uppercase with letter-spacing for section headers
 
 ### motion field (Remotion-compatible):
-- Spring configs: spring(damping:14, stiffness:200)
-- Interpolation: interpolate(frame, [start, end], [0, 1])
-- Entry: translateY from 40->0, scale from 0->1, opacity 0->1
+- Spring configs: spring({ frame, fps, config: { damping:12, stiffness:170 } })
+- Interpolation: interpolate(frame, [start, end], [0, 1], { extrapolateRight:'clamp' })
+- Entry: scale from 0.85->1 with opacity 0->1 (NOT just translateY — use scale for cinematic feel)
+- Border draw: strokeDashoffset interpolating from perimeter to 0
+- Glow pulse: boxShadow opacity oscillating with Math.sin(frame * 0.08)
+- Scanning highlight: translateX from -100% to 100% across a row
+- Stagger: each element delays by 6-10 frames from the previous one
 
 ### sfx field:
 Format: "filename at Xs volume:V playbackRate:R (reason)"
@@ -93,7 +140,8 @@ Available: tech_blip.wav, notification_ping.wav, error_buzz.wav, success_chime.w
 ## Attention Engineering
 - Motion every 0.7-1.2 seconds
 - Micro-payoff every 3-5 seconds
-- Sound at every visual event`;
+- Sound at every visual event
+- ALWAYS have something subtly moving (glow pulse, floating particles, gradient rotation)`;
 
 function buildSlotVocabulary(layoutProfile: LayoutProfile): string {
   const slotEntries = Object.values(layoutProfile.slots);

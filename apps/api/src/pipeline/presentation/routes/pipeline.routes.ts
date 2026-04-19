@@ -38,6 +38,12 @@ export function createPipelineRouter(controller: PipelineController, streamContr
     await controller.regenerateScript(httpReq, httpRes);
   });
 
+  router.post("/jobs/:id/regenerate-code", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.regenerateCode(httpReq, httpRes);
+  });
+
   router.get("/jobs/:id/stream", async (req: Request, res: Response) => {
     await streamController.streamScriptGeneration(req, res);
   });

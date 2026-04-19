@@ -28,6 +28,7 @@ export interface PipelineRepository {
   getJobStatus(jobId: string): Promise<PipelineJobDto>;
   approveScript(params: ApproveScriptParams): Promise<ActionResponse>;
   regenerateScript(jobId: string): Promise<ActionResponse>;
+  regenerateCode(jobId: string): Promise<ActionResponse>;
   listJobs(page: number, limit: number): Promise<ListJobsResponse>;
   getThemes(): Promise<ListThemesResponse>;
   getPreviewData(jobId: string): Promise<PreviewDataResponse>;

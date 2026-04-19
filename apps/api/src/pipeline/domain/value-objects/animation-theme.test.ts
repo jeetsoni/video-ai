@@ -38,7 +38,7 @@ describe("AnimationThemeId", () => {
   });
 
   it("toString returns the ID string", () => {
-    const id = AnimationThemeId.create("daylight").getValue();
-    expect(id.toString()).toBe("daylight");
+    const id = AnimationThemeId.create("ember").getValue();
+    expect(id.toString()).toBe("ember");
   });
 });

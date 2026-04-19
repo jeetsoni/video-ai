@@ -27,7 +27,7 @@ describe("BullMQQueueService", () => {
       "script_generation",
       { jobId: "job-123" },
       {
-        jobId: "job-123--script_generation",
+        jobId: expect.stringMatching(/^job-123--script_generation--\d+$/),
         attempts: 3,
         backoff: { type: "exponential", delay: 2000 },
       }

@@ -22,9 +22,9 @@ const VALID_TRANSITIONS: ReadonlyMap<PipelineStageType, readonly PipelineStageTy
     ["timestamp_mapping", ["direction_generation"]],
     ["direction_generation", ["code_generation"]],
     ["code_generation", ["preview"]],
-    ["preview", ["rendering", "done"]],
+    ["preview", ["rendering", "done", "direction_generation"]],
     ["rendering", ["done"]],
-    ["done", []],
+    ["done", ["direction_generation"]],
   ]);
 
 export class PipelineStage {

@@ -49,6 +49,13 @@ export class HttpPipelineRepository implements PipelineRepository {
     });
   }
 
+  regenerateCode(jobId: string): Promise<ActionResponse> {
+    return this.http.post<ActionResponse>({
+      path: `${BASE}/jobs/${jobId}/regenerate-code`,
+      body: {},
+    });
+  }
+
   listJobs(page: number, limit: number): Promise<ListJobsResponse> {
     return this.http.get<ListJobsResponse>({
       path: `${BASE}/jobs`,

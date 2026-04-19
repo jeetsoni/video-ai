@@ -58,10 +58,22 @@ describe("PipelineStage", () => {
       expect(from.canTransitionTo(to)).toBe(false);
     });
 
-    it("rejects transitions from done", () => {
+    it("rejects invalid transitions from done", () => {
       const from = PipelineStage.create("done")!;
       const to = PipelineStage.create("script_generation")!;
       expect(from.canTransitionTo(to)).toBe(false);
+    });
+
+    it("allows done → direction_generation (regenerate)", () => {
+      const from = PipelineStage.create("done")!;
+      const to = PipelineStage.create("direction_generation")!;
+      expect(from.canTransitionTo(to)).toBe(true);
+    });
+
+    it("allows preview → direction_generation (regenerate)", () => {
+      const from = PipelineStage.create("preview")!;
+      const to = PipelineStage.create("direction_generation")!;
+      expect(from.canTransitionTo(to)).toBe(true);
     });
   });
 
