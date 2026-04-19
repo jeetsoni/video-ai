@@ -30,7 +30,7 @@ export const AppDependenciesProvider = ({
   const dependencies = useMemo(() => {
     const configService = new AppConfigServiceAdapter();
     const httpClient = new FetchHttpServiceAdapter(configService);
-    const pipelineRepository = new HttpPipelineRepository(httpClient);
+    const pipelineRepository = new HttpPipelineRepository(httpClient, configService);
     return { httpClient, configService, pipelineRepository };
   }, []);
 

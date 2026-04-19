@@ -38,4 +38,8 @@ export interface PipelineRepository {
   getPreviewData(jobId: string): Promise<PreviewDataResponse>;
   exportVideo(jobId: string): Promise<ActionResponse>;
   listVoices(): Promise<ListVoicesResponse>;
+  previewVoice(params: {
+    voiceId?: string;
+    voiceSettings: VoiceSettings;
+  }): Promise<Blob>;
 }

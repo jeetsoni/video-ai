@@ -74,3 +74,9 @@ export const structuredScriptResponseSchema = z.object({
   script: z.string().min(1),
   scenes: z.array(sceneBlockSchema).min(2).max(15),
 });
+
+/** Schema for voice preview request validation */
+export const voicePreviewSchema = z.object({
+  voiceId: z.string().optional(),
+  voiceSettings: voiceSettingsSchema,
+});

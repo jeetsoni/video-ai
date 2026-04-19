@@ -107,6 +107,44 @@ export class ElevenLabsTTSService implements TTSService {
     });
   }
 
+  async generatePreview(params: {
+    text: string;
+    voiceId: string;
+    voiceSettings: VoiceSettings;
+  }): Promise<Result<Buffer, PipelineError>> {
+    const voiceId = params.voiceId || this.defaultVoiceId;
+
+    try {
+      const stream = await this.client.textToSpeech.convert(voiceId, {
+        text: params.text,
+        modelId: "eleven_flash_v2_5",
+        voiceSettings: {
+          stability: params.voiceSettings.stability,
+          similarityBoost: params.voiceSettings.similarityBoost,
+          style: params.voiceSettings.style,
+          speed: params.voiceSettings.speed,
+        },
+      });
+
+      const reader = stream.getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      return Result.ok(Buffer.concat(chunks));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown TTS error";
+      return Result.fail(
+        PipelineError.ttsGenerationFailed(
+          `ElevenLabs TTS preview failed: ${message}`,
+        ),
+      );
+    }
+  }
+
   private alignmentToWordTimestamps(
     alignment: Alignment,
   ): WordTimestamp[] {

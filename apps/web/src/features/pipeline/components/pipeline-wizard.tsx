@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { VideoFormat, VoiceEntry, VoiceSettings } from "@video-ai/shared";
 import { DEFAULT_THEME_ID, DEFAULT_VOICE_ID, DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
 import { Button } from "@/shared/components/ui/button";
@@ -40,6 +40,17 @@ export function PipelineWizard({
   const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(DEFAULT_VOICE_SETTINGS);
   const [errors, setErrors] = useState<{ topic?: string; format?: string }>({});
+
+  // Default to the first available voice when the hardcoded default
+  // doesn't exist in the fetched voice list.
+  useEffect(() => {
+    if (voices.length > 0) {
+      const ids = new Set(voices.map((v) => v.voiceId));
+      if (!ids.has(voiceId)) {
+        setVoiceId(voices[0]!.voiceId);
+      }
+    }
+  }, [voices]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function validate(): boolean {
     const next: { topic?: string; format?: string } = {};
@@ -136,7 +147,7 @@ export function PipelineWizard({
         <label className="text-sm font-medium text-on-surface">
           Voice Settings
         </label>
-        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} />
+        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} voiceId={voiceId} />
       </div>
 
       <Button type="submit" disabled={isSubmitting} size="lg">

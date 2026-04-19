@@ -2,6 +2,27 @@ import { jest } from "@jest/globals";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PipelineWizard } from "./pipeline-wizard";
 
+// Mock useAppDependencies so VoiceSettingsControls can render without the provider
+jest.mock("@/shared/providers/app-dependencies-context", () => ({
+  useAppDependencies: () => ({
+    httpClient: {},
+    configService: {},
+    pipelineRepository: {},
+  }),
+}));
+
+// Mock the useVoiceSettingsPreview hook so VoiceSettingsControls doesn't need a real repository
+jest.mock("../hooks/use-voice-settings-preview", () => ({
+  useVoiceSettingsPreview: () => ({
+    isLoading: false,
+    isPlaying: false,
+    error: null,
+    cooldownRemaining: 0,
+    requestPreview: jest.fn(),
+    stopPlayback: jest.fn(),
+  }),
+}));
+
 describe("PipelineWizard", () => {
   const mockOnSubmit = jest.fn();
 

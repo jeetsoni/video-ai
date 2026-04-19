@@ -15,6 +15,11 @@ import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-prev
 import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
 import { ElevenLabsVoiceService } from "@/pipeline/infrastructure/services/elevenlabs-voice-service.js";
+import { ElevenLabsTTSService } from "@/pipeline/infrastructure/services/elevenlabs-tts-service.js";
+import { InMemoryRateLimiter } from "@/shared/infrastructure/rate-limiter/in-memory-rate-limiter.js";
+import { GenerateVoicePreviewUseCase } from "@/pipeline/application/use-cases/generate-voice-preview.use-case.js";
+import { VoicePreviewController } from "@/pipeline/presentation/controllers/voice-preview.controller.js";
+import { createRateLimitMiddleware } from "@/shared/presentation/middleware/rate-limit.middleware.js";
 import { PipelineController } from "@/pipeline/presentation/controllers/pipeline.controller.js";
 import { StreamController } from "@/pipeline/presentation/controllers/stream.controller.js";
 import { ProgressController } from "@/pipeline/presentation/controllers/progress.controller.js";
@@ -22,6 +27,7 @@ import { RedisStreamEventBuffer } from "@/shared/infrastructure/streaming/stream
 import { RedisStreamEventSubscriber } from "@/shared/infrastructure/streaming/stream-event-subscriber.js";
 import { ExpressSSEResponseHelper } from "@/shared/infrastructure/streaming/sse-response-helper.js";
 import { createPipelineRouter } from "@/pipeline/presentation/routes/pipeline.routes.js";
+import { createVoicePreviewRouter } from "@/pipeline/presentation/routes/voice-preview.routes.js";
 
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
@@ -119,6 +125,20 @@ export function createPipelineModule(deps: {
     repository,
   );
 
-  // 10. Router
-  return createPipelineRouter(controller, streamController, progressController);
+  // 10. Voice preview
+  const ttsService = new ElevenLabsTTSService(
+    { apiKey: deps.elevenlabsApiKey },
+    deps.objectStore,
+  );
+  const generateVoicePreviewUseCase = new GenerateVoicePreviewUseCase(ttsService);
+  const voicePreviewController = new VoicePreviewController(generateVoicePreviewUseCase);
+  const rateLimiter = new InMemoryRateLimiter(10, 60_000);
+  const rateLimitMiddleware = createRateLimitMiddleware(rateLimiter);
+  const voicePreviewRouter = createVoicePreviewRouter(voicePreviewController, rateLimitMiddleware);
+
+  // 11. Router
+  const router = Router();
+  router.use(createPipelineRouter(controller, streamController, progressController));
+  router.use(voicePreviewRouter);
+  return router;
 }

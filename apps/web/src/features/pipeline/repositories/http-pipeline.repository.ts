@@ -1,5 +1,10 @@
-import type { PipelineJobDto, ListVoicesResponse } from "@video-ai/shared";
+import type {
+  PipelineJobDto,
+  ListVoicesResponse,
+  VoiceSettings,
+} from "@video-ai/shared";
 import type { HttpClient } from "@/shared/interfaces/http-client";
+import type { ConfigClient } from "@/shared/interfaces/config-client";
 import type {
   PipelineRepository,
   CreateJobParams,
@@ -16,7 +21,10 @@ import type {
 const BASE = "/api/pipeline";
 
 export class HttpPipelineRepository implements PipelineRepository {
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly configService?: ConfigClient,
+  ) {}
 
   createJob(params: CreateJobParams): Promise<CreateJobResponse> {
     return this.http.post<CreateJobResponse>({
@@ -86,5 +94,26 @@ export class HttpPipelineRepository implements PipelineRepository {
     return this.http.get<ListVoicesResponse>({
       path: `${BASE}/voices`,
     });
+  }
+
+  async previewVoice(params: {
+    voiceId?: string;
+    voiceSettings: VoiceSettings;
+  }): Promise<Blob> {
+    const apiBase = this.configService?.getApiBaseUrl() ?? "";
+    const response = await fetch(`${apiBase}${BASE}/voice-preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(
+        errorData?.message ?? `Preview request failed (${response.status})`,
+      );
+    }
+
+    return response.blob();
   }
 }

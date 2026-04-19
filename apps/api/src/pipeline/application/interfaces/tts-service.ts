@@ -8,4 +8,10 @@ export interface TTSService {
     voiceId: string;
     voiceSettings: VoiceSettings;
   }): Promise<Result<{ audioPath: string; format: "mp3"; timestamps: WordTimestamp[] }, PipelineError>>;
+
+  generatePreview(params: {
+    text: string;
+    voiceId: string;
+    voiceSettings: VoiceSettings;
+  }): Promise<Result<Buffer, PipelineError>>;
 }

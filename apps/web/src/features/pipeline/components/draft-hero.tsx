@@ -75,7 +75,16 @@ export function DraftHero() {
     pipelineRepository
       .listVoices()
       .then((res) => {
-        if (!cancelled) setVoices(res.voices);
+        if (cancelled) return;
+        setVoices(res.voices);
+        // Default to the first available voice when the hardcoded default
+        // doesn't exist in the user's ElevenLabs account.
+        if (res.voices.length > 0) {
+          const ids = new Set(res.voices.map((v) => v.voiceId));
+          if (!ids.has(voiceId)) {
+            setVoiceId(res.voices[0]!.voiceId);
+          }
+        }
       })
       .catch(() => {
         // Fallback handled by VoiceSelector via static registry
@@ -86,7 +95,7 @@ export function DraftHero() {
     return () => {
       cancelled = true;
     };
-  }, [pipelineRepository]);
+  }, [pipelineRepository]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -285,7 +294,7 @@ export function DraftHero() {
         </div>
 
         {/* Voice settings controls */}
-        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} />
+        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} voiceId={voiceId} />
       </div>
     </section>
   );

@@ -1,11 +1,17 @@
 "use client";
 
+import { Volume2, Square, Loader2 } from "lucide-react";
 import type { VoiceSettings } from "@video-ai/shared";
 import { VOICE_SETTINGS_RANGES } from "@video-ai/shared";
+import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
+import { useVoiceSettingsPreview } from "../hooks/use-voice-settings-preview";
+import { Button } from "@/shared/components/ui/button";
 
 interface VoiceSettingsControlsProps {
   value: VoiceSettings;
   onChange: (settings: VoiceSettings) => void;
+  voiceId?: string;
+  showPreview?: boolean;
 }
 
 const SLIDER_CONFIG: {
@@ -42,10 +48,32 @@ const SLIDER_CONFIG: {
 export function VoiceSettingsControls({
   value,
   onChange,
+  voiceId,
+  showPreview = true,
 }: VoiceSettingsControlsProps) {
+  const { pipelineRepository } = useAppDependencies();
+  const {
+    isLoading,
+    isPlaying,
+    error,
+    cooldownRemaining,
+    requestPreview,
+    stopPlayback,
+  } = useVoiceSettingsPreview(pipelineRepository);
+
   function handleChange(key: keyof VoiceSettings, newValue: number) {
     onChange({ ...value, [key]: newValue });
   }
+
+  function handlePreviewClick() {
+    if (isPlaying) {
+      stopPlayback();
+    } else {
+      requestPreview({ voiceId, voiceSettings: value });
+    }
+  }
+
+  const isDisabled = isLoading || cooldownRemaining > 0;
 
   return (
     <div className="space-y-4">
@@ -84,6 +112,55 @@ export function VoiceSettingsControls({
           </div>
         );
       })}
+
+      {showPreview && (
+        <div className="space-y-2 pt-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={isDisabled && !isPlaying}
+            onClick={handlePreviewClick}
+            aria-label={
+              isPlaying
+                ? "Stop preview"
+                : isLoading
+                  ? "Generating preview"
+                  : cooldownRemaining > 0
+                    ? `Wait ${cooldownRemaining} seconds`
+                    : "Preview voice"
+            }
+          >
+            {isLoading && (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                <span>Generating...</span>
+              </>
+            )}
+            {isPlaying && (
+              <>
+                <Square className="size-3.5" />
+                <span>Stop</span>
+              </>
+            )}
+            {!isLoading && !isPlaying && cooldownRemaining > 0 && (
+              <span>Wait {cooldownRemaining}s</span>
+            )}
+            {!isLoading && !isPlaying && cooldownRemaining === 0 && (
+              <>
+                <Volume2 className="size-3.5" />
+                <span>Preview</span>
+              </>
+            )}
+          </Button>
+
+          {error && (
+            <p className="text-xs text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

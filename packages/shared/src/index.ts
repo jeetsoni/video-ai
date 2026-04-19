@@ -29,6 +29,7 @@ export {
 
 export {
   voiceSettingsSchema,
+  voicePreviewSchema,
   createPipelineJobSchema,
   approveScriptSchema,
   wordTimestampSchema,
