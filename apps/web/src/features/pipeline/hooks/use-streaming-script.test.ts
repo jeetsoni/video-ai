@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { TextEncoder, TextDecoder } from "util";
 
 Object.assign(globalThis, { TextEncoder, TextDecoder });
@@ -52,12 +53,15 @@ describe("useStreamingScript", () => {
       'event: done\nid: 4\ndata: {"type":"done","seq":4,"data":{"script":"Hello world","scenes":[{"id":1,"name":"Hook","type":"Hook","startTime":0,"endTime":0,"text":"Hello world"}]}}\n\n',
     ];
 
-    globalThis.fetch = jest.fn().mockResolvedValue(
-      mockFetchSSE(createMockReader(sseData))
-    );
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(mockFetchSSE(createMockReader(sseData)));
 
     const { result } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost:3001" })
+      useStreamingScript({
+        jobId: "job-1",
+        apiBaseUrl: "http://localhost:3001",
+      }),
     );
 
     await waitFor(() => expect(result.current.status).toBe("complete"));
@@ -68,7 +72,7 @@ describe("useStreamingScript", () => {
     expect(result.current.error).toBeNull();
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "http://localhost:3001/api/pipeline/jobs/job-1/stream",
-      expect.objectContaining({ headers: { Accept: "text/event-stream" } })
+      expect.objectContaining({ headers: { Accept: "text/event-stream" } }),
     );
   });
 
@@ -77,12 +81,12 @@ describe("useStreamingScript", () => {
       'event: error\nid: 1\ndata: {"type":"error","seq":1,"data":{"code":"script_generation_failed","message":"LLM timeout"}}\n\n',
     ];
 
-    globalThis.fetch = jest.fn().mockResolvedValue(
-      mockFetchSSE(createMockReader(sseData))
-    );
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(mockFetchSSE(createMockReader(sseData)));
 
     const { result } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     await waitFor(() => expect(result.current.status).toBe("error"));
@@ -99,11 +103,13 @@ describe("useStreamingScript", () => {
     } as unknown as Response);
 
     const { result } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     // SSE client retries 3 times with exponential backoff before failing
-    await waitFor(() => expect(result.current.status).toBe("error"), { timeout: 15000 });
+    await waitFor(() => expect(result.current.status).toBe("error"), {
+      timeout: 15000,
+    });
     expect(result.current.error).toContain("500");
   }, 20000);
 
@@ -114,12 +120,12 @@ describe("useStreamingScript", () => {
       'event: done\nid: 3\ndata: {"type":"done","seq":3,"data":{"script":"AB","scenes":[]}}\n\n',
     ];
 
-    globalThis.fetch = jest.fn().mockResolvedValue(
-      mockFetchSSE(createMockReader(sseData))
-    );
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(mockFetchSSE(createMockReader(sseData)));
 
     const { result } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     await waitFor(() => expect(result.current.status).toBe("complete"));
@@ -129,15 +135,21 @@ describe("useStreamingScript", () => {
   it("transitions to streaming status on first chunk event", async () => {
     let resolveSecondRead: (() => void) | null = null;
     const encoder = new TextEncoder();
-    const firstChunk = 'event: chunk\nid: 1\ndata: {"type":"chunk","seq":1,"data":{"text":"Hi"}}\n\n';
+    const firstChunk =
+      'event: chunk\nid: 1\ndata: {"type":"chunk","seq":1,"data":{"text":"Hi"}}\n\n';
 
     const mockReader = {
-      read: jest.fn()
-        .mockResolvedValueOnce({ done: false, value: encoder.encode(firstChunk) })
+      read: jest
+        .fn()
+        .mockResolvedValueOnce({
+          done: false,
+          value: encoder.encode(firstChunk),
+        })
         .mockImplementationOnce(
-          () => new Promise<{ done: boolean; value?: Uint8Array }>((resolve) => {
-            resolveSecondRead = () => resolve({ done: true });
-          })
+          () =>
+            new Promise<{ done: boolean; value?: Uint8Array }>((resolve) => {
+              resolveSecondRead = () => resolve({ done: true });
+            }),
         ),
       cancel: jest.fn().mockResolvedValue(undefined),
     };
@@ -145,7 +157,7 @@ describe("useStreamingScript", () => {
     globalThis.fetch = jest.fn().mockResolvedValue(mockFetchSSE(mockReader));
 
     const { result, unmount } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     // Initially loading
@@ -164,12 +176,12 @@ describe("useStreamingScript", () => {
       'event: done\nid: 1\ndata: {"type":"done","seq":1,"data":{"script":"Full script","scenes":[{"id":1,"name":"Hook","type":"Hook","startTime":0,"endTime":0,"text":"Full script"}]}}\n\n',
     ];
 
-    globalThis.fetch = jest.fn().mockResolvedValue(
-      mockFetchSSE(createMockReader(sseData))
-    );
+    globalThis.fetch = jest
+      .fn()
+      .mockResolvedValue(mockFetchSSE(createMockReader(sseData)));
 
     const { result } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     await waitFor(() => expect(result.current.status).toBe("complete"));
@@ -185,7 +197,7 @@ describe("useStreamingScript", () => {
         () =>
           new Promise<{ done: boolean; value?: Uint8Array }>((resolve) => {
             resolveRead = () => resolve({ done: true });
-          })
+          }),
       ),
       cancel: jest.fn().mockResolvedValue(undefined),
     };
@@ -193,7 +205,7 @@ describe("useStreamingScript", () => {
     globalThis.fetch = jest.fn().mockResolvedValue(mockFetchSSE(mockReader));
 
     const { unmount } = renderHook(() =>
-      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" })
+      useStreamingScript({ jobId: "job-1", apiBaseUrl: "http://localhost" }),
     );
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());

@@ -187,7 +187,13 @@ export class PipelineController {
   async getPreviewData(req: HttpRequest, res: HttpResponse): Promise<void> {
     try {
       const id = req.params.id as string;
-      const result = await this.getPreviewDataUseCase.execute({ jobId: id });
+      const host = req.headers.host as string | undefined;
+      const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
+      const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
+      const result = await this.getPreviewDataUseCase.execute({
+        jobId: id,
+        apiBaseUrl,
+      });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;

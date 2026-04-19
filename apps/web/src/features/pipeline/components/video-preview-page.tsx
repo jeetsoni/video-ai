@@ -107,6 +107,8 @@ export function VideoPreviewPage({
     isLoading: previewLoading,
     error: previewError,
     refetch,
+    audioLoadError,
+    refreshAudioUrl,
   } = usePreviewData({
     repository,
     jobId: job.id,
@@ -173,6 +175,7 @@ export function VideoPreviewPage({
             totalFrames={previewData.totalFrames}
             compositionWidth={previewData.compositionWidth}
             compositionHeight={previewData.compositionHeight}
+            onAudioError={refreshAudioUrl}
           />
         </div>
       );
@@ -221,9 +224,7 @@ export function VideoPreviewPage({
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[1fr_220px]">
         <div className="flex min-h-0 flex-col">
           {/* Preview / video area — takes available space */}
-          <div className="min-h-0 flex-1">
-            {renderPreviewArea()}
-          </div>
+          <div className="min-h-0 flex-1">{renderPreviewArea()}</div>
 
           {/* Action bar — pinned below the player, never overlaps */}
           <div className="flex shrink-0 flex-wrap items-center gap-3 pt-3">
@@ -232,6 +233,23 @@ export function VideoPreviewPage({
               <div className="flex items-center gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant">
                 <Volume2 className="size-4 shrink-0" />
                 <span>Audio unavailable.</span>
+              </div>
+            )}
+
+            {/* Client-side audio load error banner */}
+            {isPreviewEligible && audioLoadError && (
+              <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-sm text-stage-failed">
+                <AlertTriangle className="size-4 shrink-0" />
+                <span>Voiceover audio failed to load</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-stage-failed"
+                  onClick={refreshAudioUrl}
+                >
+                  <RefreshCw className="size-3.5" />
+                  Retry
+                </Button>
               </div>
             )}
 

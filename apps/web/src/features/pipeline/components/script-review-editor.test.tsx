@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { SceneBoundary } from "@video-ai/shared";
 import { ScriptReviewEditor } from "./script-review-editor";
@@ -8,9 +9,30 @@ const LONG_SCRIPT =
   "Here are some additional words to make sure we comfortably exceed the minimum.";
 
 const API_SCENES: SceneBoundary[] = [
-  { id: 1, name: "Hook", type: "Hook", startTime: 0, endTime: 0, text: "This is a sample script that contains enough words to pass the minimum word count validation for testing purposes." },
-  { id: 2, name: "Main Content", type: "Architecture", startTime: 0, endTime: 0, text: "We need at least fifty words to be within the reel format range so let us keep adding more words until we reach that threshold." },
-  { id: 3, name: "Closing", type: "CTA", startTime: 0, endTime: 0, text: "Here are some additional words to make sure we comfortably exceed the minimum." },
+  {
+    id: 1,
+    name: "Hook",
+    type: "Hook",
+    startTime: 0,
+    endTime: 0,
+    text: "This is a sample script that contains enough words to pass the minimum word count validation for testing purposes.",
+  },
+  {
+    id: 2,
+    name: "Main Content",
+    type: "Architecture",
+    startTime: 0,
+    endTime: 0,
+    text: "We need at least fifty words to be within the reel format range so let us keep adding more words until we reach that threshold.",
+  },
+  {
+    id: 3,
+    name: "Closing",
+    type: "CTA",
+    startTime: 0,
+    endTime: 0,
+    text: "Here are some additional words to make sure we comfortably exceed the minimum.",
+  },
 ];
 
 describe("ScriptReviewEditor", () => {
@@ -49,7 +71,9 @@ describe("ScriptReviewEditor", () => {
   it("shows longform word range", () => {
     render(<ScriptReviewEditor {...defaultProps} format="longform" />);
 
-    expect(screen.getByText(/300–2000 recommended for longform/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/300–2000 recommended for longform/),
+    ).toBeInTheDocument();
   });
 
   it("shows validation warning when word count is below 10", () => {
@@ -63,7 +87,9 @@ describe("ScriptReviewEditor", () => {
   it("disables Approve Script button when word count is below 10", () => {
     render(<ScriptReviewEditor {...defaultProps} script="too few words" />);
 
-    expect(screen.getByRole("button", { name: /Approve Script/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Approve Script/ }),
+    ).toBeDisabled();
   });
 
   it("calls onApprove with undefined when script is not edited", () => {
@@ -100,7 +126,9 @@ describe("ScriptReviewEditor", () => {
   it("disables Approve Script button when isLoading is true", () => {
     render(<ScriptReviewEditor {...defaultProps} isLoading />);
 
-    expect(screen.getByRole("button", { name: /Approve Script/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Approve Script/ }),
+    ).toBeDisabled();
   });
 
   it("disables scene textarea when isLoading is true", () => {
@@ -168,7 +196,11 @@ describe("ScriptReviewEditor", () => {
       const initialCount = parseInt(initialWordCount.textContent!, 10);
 
       rerender(
-        <ScriptReviewEditor {...defaultProps} script={longerScript} isLoading />,
+        <ScriptReviewEditor
+          {...defaultProps}
+          script={longerScript}
+          isLoading
+        />,
       );
 
       const updatedWordCount = screen.getByText(/^\d+ words$/);
@@ -184,11 +216,19 @@ describe("ScriptReviewEditor", () => {
         initialScript + " Additional streamed content arrives here.";
 
       const { rerender } = render(
-        <ScriptReviewEditor {...defaultProps} script={initialScript} isLoading />,
+        <ScriptReviewEditor
+          {...defaultProps}
+          script={initialScript}
+          isLoading
+        />,
       );
 
       rerender(
-        <ScriptReviewEditor {...defaultProps} script={updatedScript} isLoading />,
+        <ScriptReviewEditor
+          {...defaultProps}
+          script={updatedScript}
+          isLoading
+        />,
       );
 
       const textarea = screen.getByLabelText(/Edit Scene/);
@@ -217,7 +257,10 @@ describe("ScriptReviewEditor", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /Approve Script/ }));
 
-      expect(defaultProps.onApprove).toHaveBeenCalledWith(undefined, API_SCENES);
+      expect(defaultProps.onApprove).toHaveBeenCalledWith(
+        undefined,
+        API_SCENES,
+      );
     });
 
     it("falls back to client-side parsing when scenes prop is empty array", () => {
