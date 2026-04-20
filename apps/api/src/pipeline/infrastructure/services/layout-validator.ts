@@ -124,11 +124,6 @@ export function isOutOfBounds(rect: Rect, safeZone: Rect): boolean {
   );
 }
 
-function _extractNumber(str: string): number | null {
-  const match = str.match(/-?\d+(?:\.\d+)?/);
-  return match ? parseFloat(match[0]) : null;
-}
-
 function extractStyleValue(block: string, prop: string): number | null {
   const patterns = [
     new RegExp(`${prop}\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`, "i"),

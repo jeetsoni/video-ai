@@ -25,13 +25,11 @@ const TRANSCRIPTION_SYSTEM_PROMPT = [
 
 export class AITranscriptionService implements TranscriptionService {
   private readonly config: AITranscriptionServiceConfig;
-  private readonly objectStore: ObjectStore;
 
   constructor(
-    objectStore: ObjectStore,
+    _objectStore: ObjectStore,
     config?: Partial<AITranscriptionServiceConfig>,
   ) {
-    this.objectStore = objectStore;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
