@@ -10,7 +10,8 @@ async function seedThemes(): Promise<void> {
 
   for (let i = 0; i < ANIMATION_THEMES.length; i++) {
     const theme = ANIMATION_THEMES[i]!;
-    const { id, name, description, background, surface, raised, textPrimary, textMuted, accents } = theme;
+    const { id, name, background, surface, raised, textPrimary, textMuted, accents } = theme;
+    const description = theme.description ?? "";
 
     const palette = { background, surface, raised, textPrimary, textMuted, accents };
 

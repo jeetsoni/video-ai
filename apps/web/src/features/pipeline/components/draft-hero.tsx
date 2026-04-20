@@ -226,7 +226,7 @@ export function DraftHero() {
                             {theme.name}
                           </p>
                           <p className="text-[10px] text-on-surface-variant truncate">
-                            {theme.description}
+                            {theme.description ?? theme.name}
                           </p>
                         </div>
                         {isSelected && (

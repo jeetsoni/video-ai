@@ -88,7 +88,7 @@ export interface SceneDirection {
 export interface AnimationTheme {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   background: string;
   surface: string;
   raised: string;

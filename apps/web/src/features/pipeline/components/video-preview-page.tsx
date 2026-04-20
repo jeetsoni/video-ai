@@ -14,6 +14,8 @@ import {
   FORMAT_RESOLUTIONS,
   type PipelineJobDto,
   type PipelineStage,
+  type SceneProgressInfo,
+  type SceneBoundary,
 } from "@video-ai/shared";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
@@ -22,6 +24,7 @@ import { usePreviewData } from "../hooks/use-preview-data";
 import { getStageDisplayInfo } from "../utils/stage-display-map";
 import { VideoPreviewSection } from "./video-preview-section";
 import { RemotionPreviewPlayer } from "./remotion-preview-player";
+import { ProgressiveScenePreview } from "./progressive-scene-preview";
 
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
@@ -31,6 +34,8 @@ interface VideoPreviewPageProps {
   onRefresh?: () => void;
   onExport?: () => void;
   repository: PipelineRepository;
+  sceneProgress?: Map<number, SceneProgressInfo>;
+  completedSceneCodes?: Map<number, string>;
 }
 
 const PREVIEW_STAGES: ReadonlySet<PipelineStage> = new Set([
@@ -109,6 +114,8 @@ export function VideoPreviewPage({
   onRefresh,
   onExport,
   repository,
+  sceneProgress,
+  completedSceneCodes,
 }: VideoPreviewPageProps) {
   const isPreviewEligible = PREVIEW_STAGES.has(job.stage);
 
@@ -150,7 +157,53 @@ export function VideoPreviewPage({
 
   // Determine what to render in the preview area
   function renderPreviewArea() {
-    // For stages before preview, use the existing VideoPreviewSection
+    // During code_generation, show progressive preview if we have scene progress data
+    // We can derive scene boundaries from sceneProgress even if job.scenePlan isn't loaded yet
+    if (
+      job.stage === "code_generation" &&
+      sceneProgress &&
+      sceneProgress.size > 0
+    ) {
+      // Build scene boundaries from sceneProgress if job.scenePlan is not available
+      const sceneBoundaries: SceneBoundary[] = job.scenePlan && job.scenePlan.length > 0
+        ? job.scenePlan
+        : Array.from(sceneProgress.values()).map((sp, index) => ({
+            id: sp.sceneId,
+            name: sp.sceneName,
+            type: "Bridge" as const,
+            startTime: index * 5, // Placeholder timing
+            endTime: (index + 1) * 5,
+            text: "",
+          }));
+
+      console.log("[NEW CODE] Rendering ProgressiveScenePreview with", sceneBoundaries.length, "scenes");
+      return (
+        <ProgressiveScenePreview
+          sceneBoundaries={sceneBoundaries}
+          completedSceneCodes={completedSceneCodes ?? new Map()}
+          sceneProgress={sceneProgress}
+          format={job.format}
+        />
+      );
+    }
+
+    // For direction_generation with scenePlan, also show progressive preview
+    if (
+      job.stage === "direction_generation" &&
+      job.scenePlan &&
+      job.scenePlan.length > 0
+    ) {
+      return (
+        <ProgressiveScenePreview
+          sceneBoundaries={job.scenePlan}
+          completedSceneCodes={completedSceneCodes ?? new Map()}
+          sceneProgress={sceneProgress ?? new Map()}
+          format={job.format}
+        />
+      );
+    }
+
+    // For stages before preview (but not code_generation with scene data), use the existing VideoPreviewSection
     if (!isPreviewEligible) {
       return (
         <VideoPreviewSection

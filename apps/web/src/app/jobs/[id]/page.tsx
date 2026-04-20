@@ -16,7 +16,7 @@ export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { pipelineRepository, configService } = useAppDependencies();
 
-  const { job, isLoading, error, refetch, reconnect } = usePipelineProgress({
+  const { job, isLoading, error, refetch, reconnect, sceneProgress, completedSceneCodes } = usePipelineProgress({
     repository: pipelineRepository,
     jobId: id,
     apiBaseUrl: configService.getApiBaseUrl(),
@@ -196,6 +196,8 @@ export default function JobDetailPage() {
           onRefresh={reconnect}
           onExport={handleExport}
           repository={pipelineRepository}
+          sceneProgress={sceneProgress}
+          completedSceneCodes={completedSceneCodes}
         />
       </main>
     );

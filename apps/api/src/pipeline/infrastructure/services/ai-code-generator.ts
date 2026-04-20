@@ -1,92 +1,14 @@
 import { generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type {
-  ScenePlan,
+  SceneDirection,
   AnimationTheme,
   LayoutProfile,
 } from "@video-ai/shared";
+import { getCardTinted } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
-import { FULL_PRIMITIVES } from "./remotion-primitives.js";
-
-const PRIMITIVE_NAMES = [
-  "GlassPanel",
-  "SceneEntry",
-  "Stagger",
-  "TypeWriter",
-  "CodeWindow",
-  "DataTable",
-  "FlowDiagram",
-  "BarChart",
-  "CountUp",
-  "Badge",
-  "IconBox",
-  "DrawBorder",
-  "_clamp",
-];
-
-/**
- * Strip any re-declarations of built-in primitives from AI-generated code.
- * The LLM sometimes redefines helpers that are already provided via
- * FULL_PRIMITIVES, causing "Identifier X has already been declared" at eval.
- */
-function stripDuplicatePrimitives(code: string): string {
-  let cleaned = code;
-
-  for (const name of PRIMITIVE_NAMES) {
-    // Remove: function Name(...) { ... } (top-level, brace-balanced)
-    const fnPattern = new RegExp(
-      `(?:^|\\n)function\\s+${name}\\s*\\([^)]*\\)\\s*\\{`,
-    );
-    const match = fnPattern.exec(cleaned);
-    if (match) {
-      const start = match.index + (cleaned[match.index] === "\n" ? 1 : 0);
-      let depth = 0;
-      let end = start;
-      let inBody = false;
-      for (let i = start; i < cleaned.length; i++) {
-        if (cleaned[i] === "{") {
-          depth++;
-          inBody = true;
-        } else if (cleaned[i] === "}") {
-          depth--;
-          if (inBody && depth === 0) {
-            end = i + 1;
-            break;
-          }
-        }
-      }
-      cleaned = cleaned.slice(0, start) + cleaned.slice(end);
-    }
-
-    // Remove: const Name = ... (arrow fn or expression, up to matching ; or closing brace+;)
-    const constPattern = new RegExp(
-      `(?:^|\\n)(?:const|var|let)\\s+${name}\\s*=`,
-    );
-    const constMatch = constPattern.exec(cleaned);
-    if (constMatch) {
-      const start =
-        constMatch.index + (cleaned[constMatch.index] === "\n" ? 1 : 0);
-      let depth = 0;
-      let end = start;
-      for (let i = start; i < cleaned.length; i++) {
-        if (cleaned[i] === "{" || cleaned[i] === "(") depth++;
-        else if (cleaned[i] === "}" || cleaned[i] === ")") depth--;
-        else if (cleaned[i] === ";" && depth <= 0) {
-          end = i + 1;
-          break;
-        }
-        if (i === cleaned.length - 1) {
-          end = cleaned.length;
-        }
-      }
-      cleaned = cleaned.slice(0, start) + cleaned.slice(end);
-    }
-  }
-
-  return cleaned;
-}
 
 export interface AICodeGeneratorConfig {
   model: string;
@@ -96,207 +18,187 @@ export interface AICodeGeneratorConfig {
 
 const DEFAULT_CONFIG: AICodeGeneratorConfig = {
   model: "gemini-3.1-pro-preview",
-  temperature: 0.4,
+  temperature: 0.3,
   maxRetries: 2,
 };
 
-function buildSlotPixelTable(layoutProfile: LayoutProfile): string {
-  const slotEntries = Object.values(layoutProfile.slots);
-  if (slotEntries.length === 0) return "";
-
-  const lines = ["## Slot-to-Pixel Coordinate Mapping", ""];
-  lines.push(
-    "Each beat has a `slot` field. Use this table to position content within the correct pixel region.",
-  );
-  lines.push("");
-  lines.push(
-    "| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |",
-  );
-  lines.push(
-    "|---------|-------|----------|-----------|------------|-------------|",
-  );
-  for (const slot of slotEntries) {
-    lines.push(
-      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`,
-    );
-  }
-  lines.push("");
-  lines.push("Slot bounds are relative to the safe zone origin.");
-  return lines.join("\n");
-}
-
-function buildCodeSystemPrompt(
-  theme: AnimationTheme,
-  layoutProfile: LayoutProfile,
-): string {
+function buildDesignSystemSection(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+  const cards = getCardTinted(theme);
   const { canvas, safeZone } = layoutProfile;
   const safeZoneBottom = safeZone.top + safeZone.height;
 
-  return `You are a world-class Remotion motion graphics engineer. You receive a ScenePlan JSON and produce a single React component that renders RICH, PROFESSIONAL animated motion graphics for educational short-form video on ANY topic.
+  return `## Layout — FILL THE SAFE ZONE (critical)
+
+Canvas: ${canvas.width}x${canvas.height}. Safe zone: CANVAS_TOP=${safeZone.top}, CANVAS_H=${safeZone.height} (y=${safeZone.top} to y=${safeZoneBottom}).
+
+- Wrap all content: position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H
+- Content MUST spread across the full ${safeZone.height}px height — not clustered at the top
+- Use large elements: hero visuals 500-700px tall, supporting content below
+- Width: elements should span 70-100% of the ${safeZone.width}px usable width
+
+## Design System
+
+Colors:
+- Background: ${theme.background}
+- Surface: ${theme.surface}
+- Raised: ${theme.raised}
+- Text Primary: ${theme.textPrimary}
+- Text Muted: ${theme.textMuted}
+- Accents:
+  - hookFear (Red): ${theme.accents.hookFear} — errors, mistakes, failures, negatives
+  - wrongPath (Amber): ${theme.accents.wrongPath} — warnings, analogies, real-world concepts
+  - techCode (Sky Blue): ${theme.accents.techCode} — tech terms, code, system components
+  - revelation (Green): ${theme.accents.revelation} — solutions, success, positive outcomes
+  - cta (Yellow): ${theme.accents.cta} — CTA, power statements, revelations
+  - violet: ${theme.accents.violet} — architecture, orchestration, system-level
+
+Card tinted backgrounds (must be visibly distinct from ${theme.background} background):
+- CARD_SKY: ${cards.sky}, CARD_RED: ${cards.red}, CARD_GREEN: ${cards.green}
+- CARD_AMBER: ${cards.amber}, CARD_VIOLET: ${cards.violet}, CARD_YELLOW: ${cards.yellow}
+
+Typography (mobile-first — always large, ADAPTIVE to content density):
+Count the number of distinct visual blocks (cards, panels, code boxes, diagrams) in the scene.
+- 1-2 blocks → use LARGE sizes (hero titles 96-120, headlines 68-80)
+- 3-4 blocks → use MEDIUM sizes (hero titles 72-88, headlines 56-64, body 32-38)
+- 5+ blocks → use COMPACT sizes (hero titles 56-68, headlines 44-52, body 30-34)
+- MINIMUM fontSize: 28 — never go smaller
+- Monospace for code/tech: fontFamily 'monospace'
+
+CRITICAL: Before writing any layout, calculate total height budget:
+- Sum up all block heights + gaps. If total > CANVAS_H (${safeZone.height}), reduce block heights or font sizes until it fits.`;
+}
+
+function buildCodeSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+  return `You are a world-class Remotion motion graphics engineer. You receive a single scene's animation direction and produce a React component that renders RICH, PROFESSIONAL animated motion graphics — the quality of a senior designer at a top tech company, combined with the clarity of a master teacher.
+
+## ABSOLUTE RULES (violating these is a critical bug)
+- NEVER use textOverflow:'ellipsis' or whiteSpace:'nowrap' on ANY title, heading, or headline text. Titles must ALWAYS be fully visible. If a title is too long, reduce its fontSize or let it wrap to 2 lines — never truncate it with "...".
+- NEVER use <img> tags or external URLs for logos/icons — they will 404 or be blocked by CORS. Draw logos as inline <svg> elements with <path> data in JSX.
 
 ## Available Globals (do NOT import)
 - React (useState, useEffect, useMemo, useCallback)
 - AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing
+- Audio, staticFile (for SFX sounds)
 
-## Optional Helper Primitives (IN SCOPE — use when they fit, but feel free to build custom visuals)
+${buildDesignSystemSection(theme, layoutProfile)}
 
-These components are pre-defined and available. Use them when they genuinely match what the scene direction describes. If the direction calls for something more specific (a custom diagram, a unique UI, a visual metaphor), build it from scratch with divs, SVGs, and inline styles — that's preferred over forcing content into a generic primitive.
+## Visual Quality Rules
+1. Background: "${theme.background}" — cards must be visibly lighter (${theme.surface}, ${theme.raised}, or tinted variants)
+2. Text: ${theme.textPrimary} primary, ${theme.textMuted} muted — always high contrast against card bg
+3. Card borders: 1px–1.5px solid with color at 0.2–0.35 opacity — thin, consistent stroke weight
+4. NO box-shadow, NO drop-shadow anywhere — depth comes from tinted backgrounds and borders only
+5. NO gradients on text, backgrounds, or icons — flat solid fills only
+6. Icon boxes: 60-72px, borderRadius:14-16
+7. Use SVG for diagrams, flow charts, scatter plots — NOT placeholder shapes
+8. Realistic content: real error messages, real code, real data — no lorem ipsum
+9. NO glowing, NO 3D, NO neon, NO exaggerated shapes — Stripe/Linear/Notion enterprise aesthetic
+10. Smooth spring entries: spring({ frame, fps, config: { damping:14, stiffness:180 } })
+11. Idle animation: Math.sin(frame * 0.04) * 4 for subtle float
+12. Visual structure: scene headline title in the upper zone (~top 200px), primary visualization center, supporting labels below
+13. HEIGHT BUDGET: Before coding, list every block with its height. Sum must be ≤ CANVAS_H (${layoutProfile.safeZone.height}) including gaps. If it exceeds, shrink the largest blocks first.
+14. LOGOS AND ICONS: NEVER use <img> tags or external URLs — draw logos as inline SVG <svg> elements with <path> data directly in JSX. For well-known companies, reproduce their logo as a simplified SVG path. A simple but visible icon is always better than a broken image.
 
-- GlassPanel({ children, glow, padding, borderRadius, style }) — container with subtle bg and border
-- SceneEntry({ children, frame, duration }) — scene entry fade: scale 0.92→1 + opacity 0→1
-- Stagger({ children, frame, delayPerItem, startDelay }) — staggers children entry with opacity + translateY
-- TypeWriter({ text, frame, duration, fontSize, color, fontFamily, style }) — text types itself character by character
-- CodeWindow({ code, title, frame, typingDuration, accentColor, style }) — terminal window with dots and optional typing
-- DataTable({ headers, rows, frame, delayPerRow, startDelay, accentColor, style }) — table with row-by-row reveal
-- FlowDiagram({ nodes, frame, startDelay, nodeGap, accentColor, direction, style }) — animated flow diagram
-- BarChart({ bars, frame, startDelay, delayPerBar, maxHeight, barWidth, gap, style }) — animated bar chart
-- CountUp({ target, frame, duration, fontSize, color, prefix, suffix, decimals, style }) — animated number counter
-- Badge({ label, color, fontSize, style }) — accent badge/tag
-- IconBox({ icon, size, color, style }) — icon container with tinted bg
-- DrawBorder({ width, height, frame, duration, color, strokeWidth, borderRadius, style }) — SVG border that draws itself (width/height must be numeric px)
+## Defensive Layout Rules (prevent accidental overflow — NOT intentional animations)
+These rules apply to STATIC layout only. Animated elements (using interpolate/spring on position/size) are exempt.
 
-WHEN TO USE PRIMITIVES vs CUSTOM:
-- Direction says "bar chart comparing X vs Y" → use BarChart
-- Direction says "flow diagram: Input → Process → Output" → use FlowDiagram
-- Direction says "terminal showing npm install" → use CodeWindow
-- Direction says "WhatsApp-style chat with message bubbles" → BUILD IT CUSTOM with divs
-- Direction says "timeline of historical events" → BUILD IT CUSTOM with SVG/divs
-- Direction says "molecule diagram" → BUILD IT CUSTOM with SVG
-- Direction says "split-screen comparison" → BUILD IT CUSTOM with flexbox layout
-
-The rule: if a primitive matches the visualization 1:1, use it. If you'd have to shoehorn the content into a primitive, build it from scratch instead.
-
-## Layout — FILL THE SAFE ZONE (critical)
-
-Canvas: ${canvas.width}x${canvas.height}. Safe zone: CANVAS_TOP=${safeZone.top}, CANVAS_H=${safeZone.height} (y=${safeZone.top} to y=${safeZoneBottom}).
-- Wrap all content: position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H
-- Content MUST spread across the full ${safeZone.height}px height — not clustered at the top
-- Width: elements should span 70-100% of the ${safeZone.width}px usable width
-
-${buildSlotPixelTable(layoutProfile)}
-
-## Layout Rules
-- Each beat's content MUST be positioned within its assigned slot bounds
-- Use the slot-to-pixel mapping table above to determine exact positioning for each beat
-
-## Typography (mobile-first — always large, ADAPTIVE to content density)
-- 1-2 blocks: hero titles 96-120, headlines 68-80
-- 3-4 blocks: hero titles 72-88, headlines 56-64, body 32-38
-- 5+ blocks: hero titles 56-68, headlines 44-52, body 30-34
-- MINIMUM fontSize: 28 — never go smaller
-- Monospace for code/tech: fontFamily 'monospace'
-
-## Visual Style — Clean Enterprise Aesthetic
-
-Background: "${theme.background}"
-Text: ${theme.textPrimary} primary, ${theme.textMuted} muted
-
-- Cards must be visibly lighter than background (use ${theme.surface}, ${theme.raised}, or tinted variants)
-- Thin 1px–1.5px solid borders with color at 0.2–0.35 opacity — consistent stroke weight
-- NO box-shadow, NO drop-shadow, NO glow — borders and tinted backgrounds define depth
-- NO gradients on text, backgrounds, or icons — flat solid fills only
-- NO glowing effects, NO 3D, NO neon, NO cartoon elements
-- Maximum 3-4 colors per visual — palette restraint is professional
-- Stripe / Linear / Notion enterprise aesthetic — LARGE and BOLD for mobile
-- Use SVG for diagrams, charts, flow charts — NOT placeholder shapes
-- Content must be SPECIFIC to the topic — real terms, real numbers, real labels — no lorem ipsum
-- NEVER use <img> tags or external URLs — draw icons as inline SVG or use emoji characters
-
-## Defensive Layout Rules
-- overflow:'hidden' on fixed-size containers
-- flexbox + gap for static siblings
-- boxSizing:'border-box' on elements with padding + fixed size
-- flexShrink:1 and minHeight:0 for vertical card stacks
-- Content must start from the TOP of the safe zone — never leave the top empty
-- Single main visual → center VERTICALLY with justifyContent:'center'
-- Multiple elements → distribute with justifyContent:'space-between' or 'space-evenly'
-- ALWAYS set the scene wrapper to height:CANVAS_H — never let it collapse
+- ALWAYS add overflow:'hidden' to every card/container that has a fixed width or height and is NOT itself animating its size
+- EVERY text element inside a fixed-height container MUST have overflow protection:
+  - HERO TITLES and HEADLINES: NEVER use textOverflow:'ellipsis' — reduce fontSize until text fits on 1-2 lines, or allow wrapping with overflow:'hidden' and a line clamp of 2-3 lines
+  - Single-line LABELS and SMALL TEXT (not titles): whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'
+  - Multi-line body text → overflow:'hidden', display:'-webkit-box', WebkitLineClamp:N, WebkitBoxOrient:'vertical'
+- For sibling elements that are BOTH statically positioned, use flexbox (display:'flex', gap:N) instead of position:'absolute'
+- ALWAYS add boxSizing:'border-box' to any element with both padding and a fixed size
+- PREFER flexbox with flexShrink:1 and minHeight:0 for stacking cards vertically
+- NEVER mix CSS shorthand and longhand for the same property on the same element:
+  - textDecoration + textDecorationColor → use textDecoration shorthand only
+  - border + borderColor → use border shorthand or all longhands, never mix
+  - padding + paddingTop → use padding shorthand only
 
 ## Rules
-1. function Main({ scenePlan }) — receives the full ScenePlan JSON
-2. Use useCurrentFrame() and useVideoConfig() for timing
-3. Use <Sequence from={frameNumber} durationInFrames={duration}> to time scenes and beats
-4. Use interpolate() with extrapolateLeft:'clamp', extrapolateRight:'clamp'
-5. Inline styles only — no CSS imports, no Tailwind
-6. Do NOT use any imports — everything is in scope
-7. Do NOT use <Audio>, <Video>, <Img>, or any media tags
-8. Keep code under 600 lines — write DRY, compact code with reusable helpers
-9. NO code comments — zero comments
-10. Extract repeated styles AND animation helpers into shared const/functions at top
-11. Add scene entry animation: scale 0.92->1 + opacity 0->1 over 12-15 frames per scene
-12. Smooth spring entries: spring({ frame, fps, config: { damping:14, stiffness:180 } })
-13. Subtle idle animations: Math.sin(frame * 0.04) * 3 for gentle floating on key elements
-14. NEVER redefine the helper primitives listed above (GlassPanel, SceneEntry, Stagger, TypeWriter, CodeWindow, DataTable, FlowDiagram, BarChart, CountUp, Badge, IconBox, DrawBorder, _clamp) — they are already declared in scope. Redefining them will cause a SyntaxError.
+1. function Main({ scene }) — frame 0 = scene start
+2. beat.frameRange is ABSOLUTE — subtract scene.startFrame to get relative frame
+3. Inline styles only — no CSS imports, no Tailwind
+4. Keep code under 300 lines — write DRY, compact code
+5. Return ONLY the code — no markdown fences, no explanation
+6. ALWAYS add a global scene entry fade: compute \`const sceneEnterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\` and apply \`opacity: sceneEnterOpacity\` to the outermost content div.
+7. NO code comments — zero comments
+8. Extract repeated style objects into shared const variables at the top of Main
+9. Extract repeated interpolate/spring patterns into helper functions
+10. Use short variable names for internal helpers
+11. For SVG icons, use the simplest recognizable path
+12. Combine adjacent elements that share the same animation timing into a single wrapper div
+13. If multiple cards share the same structure, use a .map() over a data array
 
 ## Component Structure
-function Main({ scenePlan }) {
+function Main({ scene }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const CANVAS_TOP = ${safeZone.top};
-  const CANVAS_H = ${safeZone.height};
+  const CANVAS_TOP = ${layoutProfile.safeZone.top};
+  const CANVAS_H = ${layoutProfile.safeZone.height};
+
+  const sceneEnterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
-    <AbsoluteFill style={{ backgroundColor:"${theme.background}" }}>
-      {scenePlan.scenes.map((scene) => {
-        const sf = frame - scene.startFrame;
-        return (
-          <Sequence key={scene.id} from={scene.startFrame} durationInFrames={scene.durationFrames}>
-            <div style={{ position:"absolute", top:CANVAS_TOP, left:${safeZone.left}, right:${safeZone.left}, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box" }}>
-              {/* Build the actual visualization described in animationDirection.beats */}
-            </div>
-          </Sequence>
-        );
-      })}
+    <AbsoluteFill style={{ backgroundColor: "${theme.background}" }}>
+      <div style={{ position:"absolute", top:CANVAS_TOP, left:${layoutProfile.safeZone.left}, right:${layoutProfile.safeZone.left}, height:CANVAS_H, display:"flex", flexDirection:"column", boxSizing:"border-box", opacity: sceneEnterOpacity }}>
+        {/* FILL THIS SPACE — spread content across full ${layoutProfile.safeZone.height}px height */}
+      </div>
     </AbsoluteFill>
   );
 }
 
 ## Beat Interpretation
 For each beat in a scene:
-- Read the visual field to decide WHAT to render — if it describes a standard chart/table/flow, use the matching primitive; if it describes something unique, build it custom
+- Read the visual field to decide WHAT to render — build the actual visualization described (diagrams, charts, UIs, visual metaphors)
 - Read the motion field for timing and animation specs
 - Read the typography field for text styling and accent colors
-- Use the beat's frameRange for timing within the scene
-- Use the beat's slot field for pixel coordinates from the slot mapping table
+- Use the beat's frameRange for timing within the scene (subtract scene.startFrame for relative frames)
 
 ## Output Format
 Return ONLY the component code. No markdown fences, no explanation, no imports.
-Start directly with: function Main({ scenePlan }) {`;
+Start directly with: function Main({ scene }) {`;
 }
 
-function buildCodePrompt(scenePlan: ScenePlan): string {
-  return `Generate a Remotion React component for this scene plan. Create professional, clean motion graphics with:
-- Clean card-based layouts with tinted backgrounds and thin borders
-- Smooth spring entry animations per scene (scale 0.92->1 + opacity fade)
-- Staggered element entries (8-12 frame gaps between siblings)
-- Subtle idle animations on key elements (gentle floating via Math.sin)
-- Build the ACTUAL visualization described in each beat — diagrams, charts, UIs, visual metaphors — not generic cards with emoji
+function buildCodePrompt(scene: SceneDirection): string {
+  return `Generate a Remotion component for this single scene. The component receives the scene object as a prop called "scene".
 
 IMPORTANT:
-- Start with: function Main({ scenePlan }) {
-- Use only the globals in scope (React, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing)
-- Pre-built primitives (GlassPanel, CodeWindow, DataTable, FlowDiagram, BarChart, etc.) are also in scope — use them when they fit, build custom when they don't
-- Return ONLY the code, no markdown fences
-- Extract reusable helpers at the top for DRY code
+- frame 0 = start of this scene (not the whole video)
+- beat.frameRange values are ABSOLUTE — subtract scene.startFrame to get scene-relative frames
+- Start with: function Main({ scene }) {
+- Return ONLY code
+- Build the ACTUAL visualization described in each beat — diagrams, charts, UIs, visual metaphors — not generic cards with emoji
 
-Scene Plan JSON:
-${JSON.stringify(scenePlan, null, 1)}`;
+Scene JSON:
+${JSON.stringify(scene, null, 1)}`;
 }
 
-const MAIN_EXPORT_PATTERN =
-  /export\s+default\s+(?:function\s+)?Main|export\s*\{\s*Main\s+as\s+default\s*\}|function\s+Main\s*\(/;
-
-function hasMainComponent(code: string): boolean {
-  return MAIN_EXPORT_PATTERN.test(code);
+function stripModuleStatements(code: string): string {
+  return code
+    // Remove import statements (handles multiple on same line and multiline)
+    .replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g, "")
+    // Remove simple import side-effect statements like: import "module";
+    .replace(/import\s+["'][^"']+["'];?/g, "")
+    // Remove export default
+    .replace(/export\s+default\s+/g, "")
+    // Remove named exports
+    .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
+    // Remove destructuring from React that tries to get Remotion globals
+    .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
+    .trim();
 }
 
-function cleanCodeOutput(raw: string): string {
-  let cleaned = raw.trim();
-  const fenceMatch = cleaned.match(
-    /```(?:tsx?|jsx?|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/,
-  );
-  if (fenceMatch) cleaned = fenceMatch[1]!.trim();
-  return cleaned;
+function extractCode(text: string): string {
+  const fenceMatch = text.match(/```(?:tsx|jsx|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/);
+  let code = fenceMatch ? fenceMatch[1]!.trim() : text.trim();
+
+  // Strip import/export statements (AI sometimes adds them despite instructions)
+  code = stripModuleStatements(code);
+
+  if (code.startsWith("function Main")) return code;
+  const funcStart = code.indexOf("function Main");
+  if (funcStart !== -1) return code.slice(funcStart);
+  return code;
 }
 
 export class AICodeGenerator implements CodeGenerator {
@@ -306,8 +208,8 @@ export class AICodeGenerator implements CodeGenerator {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
-  async generateCode(params: {
-    scenePlan: ScenePlan;
+  async generateSceneCode(params: {
+    scene: SceneDirection;
     theme: AnimationTheme;
     layoutProfile: LayoutProfile;
   }): Promise<Result<string, PipelineError>> {
@@ -315,17 +217,14 @@ export class AICodeGenerator implements CodeGenerator {
       apiKey: process.env["GEMINI_API_KEY"] ?? "",
     });
 
-    const systemPrompt = buildCodeSystemPrompt(
-      params.theme,
-      params.layoutProfile,
-    );
-    const prompt = buildCodePrompt(params.scenePlan);
+    const systemPrompt = buildCodeSystemPrompt(params.theme, params.layoutProfile);
+    const prompt = buildCodePrompt(params.scene);
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {
         const retryHint =
           attempt > 0
-            ? `\n\nPREVIOUS ATTEMPT FAILED: The code did not contain a "Main" function. You MUST start with: function Main({ scenePlan }) {`
+            ? `\n\nPREVIOUS ATTEMPT FAILED: The code did not contain a "Main" function. You MUST start with: function Main({ scene }) {`
             : "";
 
         const { text } = await generateText({
@@ -333,15 +232,17 @@ export class AICodeGenerator implements CodeGenerator {
           system: systemPrompt,
           prompt: prompt + retryHint,
           temperature: this.config.temperature,
+          providerOptions: {
+            google: { thinkingConfig: { thinkingBudget: 8192 } },
+          },
         });
 
         if (!text || text.trim().length === 0) continue;
 
-        const code = cleanCodeOutput(text);
+        const code = extractCode(text);
 
-        if (hasMainComponent(code)) {
-          const deduped = stripDuplicatePrimitives(code);
-          return Result.ok(FULL_PRIMITIVES + "\n" + deduped);
+        if (code.includes("Main")) {
+          return Result.ok(code);
         }
       } catch (error) {
         const message =
@@ -352,7 +253,7 @@ export class AICodeGenerator implements CodeGenerator {
         if (attempt === this.config.maxRetries) {
           return Result.fail(
             PipelineError.codeGenerationFailed(
-              `Code generation failed after ${this.config.maxRetries + 1} attempts: ${message}`,
+              `Code generation failed for scene ${params.scene.id} after ${this.config.maxRetries + 1} attempts: ${message}`,
             ),
           );
         }
@@ -361,7 +262,7 @@ export class AICodeGenerator implements CodeGenerator {
 
     return Result.fail(
       PipelineError.codeGenerationFailed(
-        `Generated code does not contain a "Main" component after ${this.config.maxRetries + 1} attempts`,
+        `Generated code for scene ${params.scene.id} does not contain a "Main" component after ${this.config.maxRetries + 1} attempts`,
       ),
     );
   }

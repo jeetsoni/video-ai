@@ -7,6 +7,8 @@ import {
   interpolate,
   spring,
   Easing,
+  Audio,
+  staticFile,
 } from "remotion";
 import { transform } from "sucrase";
 import type { ScenePlan } from "@video-ai/shared";
@@ -29,6 +31,8 @@ const ALLOWED_GLOBALS: Record<string, unknown> = {
   interpolate,
   spring,
   Easing,
+  Audio,
+  staticFile,
 };
 
 const PARAM_NAMES = Object.keys(ALLOWED_GLOBALS);
@@ -47,10 +51,32 @@ function transpileJSX(code: string): string {
   return result.code;
 }
 
+/**
+ * Strip import/export statements from AI-generated code.
+ * new Function() doesn't support ES module syntax.
+ */
+function stripModuleStatements(code: string): string {
+  return code
+    // Remove import statements (handles multiple on same line and multiline)
+    .replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g, "")
+    // Remove simple import side-effect statements like: import "module";
+    .replace(/import\s+["'][^"']+["'];?/g, "")
+    // Remove export default
+    .replace(/export\s+default\s+/g, "")
+    // Remove named exports
+    .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
+    // Remove destructuring from React that tries to get Remotion globals
+    .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
+    .trim();
+}
+
 export function evaluateComponentCode(code: string): EvaluationResult {
   try {
+    // Strip any import/export statements the AI may have included
+    const cleanedCode = stripModuleStatements(code);
+
     // Transpile JSX to React.createElement calls so new Function() can parse it
-    const transpiledCode = transpileJSX(code);
+    const transpiledCode = transpileJSX(cleanedCode);
 
     const wrappedBody = `${transpiledCode}\nreturn typeof Main === 'function' ? Main : undefined;`;
 

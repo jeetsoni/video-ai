@@ -3,9 +3,8 @@ import type { Job } from "bullmq";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
-import type { LayoutValidator } from "@/pipeline/application/interfaces/layout-validator.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
-import type { WordTimestamp, SceneBoundary, SceneDirection, ValidationResult } from "@video-ai/shared";
+import type { WordTimestamp, SceneBoundary, SceneDirection } from "@video-ai/shared";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
@@ -100,7 +99,6 @@ function createPipelineJobAtCodeGenerationStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
   const job = PipelineJob.create({ id, topic: "Test topic", browserId: "test-browser-id", format, themeId });
-  // Advance through all prior stages
   job.setScript("Generated script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }]);
   job.transitionTo("script_review");
   job.setApprovedScript("Approved script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script content" }]);
@@ -118,22 +116,14 @@ function createPipelineJobAtCodeGenerationStage(id: string): PipelineJob {
 
 describe("CodeGenerationWorker", () => {
   let worker: CodeGenerationWorker;
-  let mockCodeGenerator: { generateCode: AnyMockFn };
+  let mockCodeGenerator: { generateSceneCode: AnyMockFn };
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockObjectStore: { upload: AnyMockFn; getSignedUrl: AnyMockFn };
-  let mockLayoutValidator: { validate: AnyMockFn };
   let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
-
-  const validValidationResult: ValidationResult = {
-    valid: true,
-    violations: [],
-    boundingBoxes: [],
-    summary: "All elements are within bounds and no overlaps detected.",
-  };
 
   beforeEach(() => {
     mockCodeGenerator = {
-      generateCode: jest.fn() as AnyMockFn,
+      generateSceneCode: jest.fn() as AnyMockFn,
     };
     mockRepository = {
       save: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
@@ -145,9 +135,6 @@ describe("CodeGenerationWorker", () => {
       upload: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok("code/job-1.tsx")),
       getSignedUrl: jest.fn() as AnyMockFn,
     };
-    mockLayoutValidator = {
-      validate: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok(validValidationResult)),
-    };
     mockEventPublisher = {
       publish: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
       buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
@@ -157,42 +144,42 @@ describe("CodeGenerationWorker", () => {
       mockCodeGenerator as unknown as CodeGenerator,
       mockRepository as unknown as PipelineJobRepository,
       mockObjectStore as unknown as ObjectStore,
-      mockLayoutValidator as unknown as LayoutValidator,
       mockEventPublisher as unknown as StreamEventPublisher,
     );
   });
 
-  it("should generate code, store in object store, set generated code + code path, transition to preview, and save", async () => {
+  it("should generate code per scene in parallel, compose, store, and transition to preview", async () => {
     const pipelineJob = createPipelineJobAtCodeGenerationStage("job-1");
     mockRepository.findById.mockResolvedValue(pipelineJob);
 
-    const generatedCode = 'export default function Main() { return <div>Hello</div>; }';
-    mockCodeGenerator.generateCode.mockResolvedValue(Result.ok(generatedCode));
+    const sceneCode = 'function Main({ scene }) { return <div>Hello</div>; }';
+    mockCodeGenerator.generateSceneCode.mockResolvedValue(Result.ok(sceneCode));
 
     await worker.process(createMockJob("job-1"));
 
-    expect(mockCodeGenerator.generateCode).toHaveBeenCalledWith(
+    expect(mockCodeGenerator.generateSceneCode).toHaveBeenCalledTimes(2);
+    expect(mockCodeGenerator.generateSceneCode).toHaveBeenCalledWith(
       expect.objectContaining({
-        scenePlan: expect.objectContaining({
-          title: "Test topic",
-          totalDuration: 3.0,
-          fps: 30,
-          totalFrames: Math.round(3.0 * 30),
-          scenes: sampleDirections,
-        }),
+        scene: sampleDirections[0],
+        theme: expect.objectContaining({ id: "studio" }),
+        layoutProfile: expect.objectContaining({ id: "faceless" }),
+      }),
+    );
+    expect(mockCodeGenerator.generateSceneCode).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scene: sampleDirections[1],
         theme: expect.objectContaining({ id: "studio" }),
         layoutProfile: expect.objectContaining({ id: "faceless" }),
       }),
     );
 
-    expect(mockObjectStore.upload).toHaveBeenCalledWith({
-      key: "code/job-1.tsx",
-      data: Buffer.from(generatedCode),
-      contentType: "text/typescript",
-    });
+    expect(mockObjectStore.upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "code/job-1.tsx",
+        contentType: "text/typescript",
+      }),
+    );
 
-    expect(pipelineJob.generatedCode).toBe(generatedCode);
-    expect(pipelineJob.codePath).toBe("code/job-1.tsx");
     expect(pipelineJob.stage.value).toBe("preview");
     expect(pipelineJob.status.value).toBe("completed");
     expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
@@ -204,15 +191,15 @@ describe("CodeGenerationWorker", () => {
     await expect(worker.process(createMockJob("missing-id"))).rejects.toThrow(
       "Pipeline job not found: missing-id",
     );
-    expect(mockCodeGenerator.generateCode).not.toHaveBeenCalled();
+    expect(mockCodeGenerator.generateSceneCode).not.toHaveBeenCalled();
   });
 
-  it("should throw when code generation fails", async () => {
+  it("should throw when code generation fails for a scene", async () => {
     const pipelineJob = createPipelineJobAtCodeGenerationStage("job-2");
     mockRepository.findById.mockResolvedValue(pipelineJob);
 
     const error = PipelineError.codeGenerationFailed("LLM timeout");
-    mockCodeGenerator.generateCode.mockResolvedValue(Result.fail(error));
+    mockCodeGenerator.generateSceneCode.mockResolvedValue(Result.fail(error));
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
     expect(mockObjectStore.upload).not.toHaveBeenCalled();
@@ -224,7 +211,6 @@ describe("CodeGenerationWorker", () => {
     const format = VideoFormat.create("short").getValue();
     const themeId = AnimationThemeId.create("studio").getValue();
     const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", browserId: "test-browser-id", format, themeId });
-    // Advance to code_generation without setting scene directions
     pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");
     pipelineJob.setApprovedScript("Approved script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Approved script" }]);
@@ -235,7 +221,6 @@ describe("CodeGenerationWorker", () => {
     pipelineJob.transitionTo("timestamp_mapping");
     pipelineJob.setScenePlan(sampleScenePlan);
     pipelineJob.transitionTo("direction_generation");
-    // Skip setSceneDirections
     pipelineJob.transitionTo("code_generation");
 
     mockRepository.findById.mockResolvedValue(pipelineJob);
@@ -243,15 +228,15 @@ describe("CodeGenerationWorker", () => {
     await expect(worker.process(createMockJob("job-3"))).rejects.toThrow(
       "Pipeline job job-3 has no scene directions",
     );
-    expect(mockCodeGenerator.generateCode).not.toHaveBeenCalled();
+    expect(mockCodeGenerator.generateSceneCode).not.toHaveBeenCalled();
   });
 
   it("should mark job failed and throw when object store upload fails", async () => {
     const pipelineJob = createPipelineJobAtCodeGenerationStage("job-4");
     mockRepository.findById.mockResolvedValue(pipelineJob);
 
-    const generatedCode = 'export default function Main() { return <div>Hello</div>; }';
-    mockCodeGenerator.generateCode.mockResolvedValue(Result.ok(generatedCode));
+    const sceneCode = 'function Main({ scene }) { return <div>Hello</div>; }';
+    mockCodeGenerator.generateSceneCode.mockResolvedValue(Result.ok(sceneCode));
 
     const uploadError = PipelineError.codeGenerationFailed("Upload failed: storage unavailable");
     mockObjectStore.upload.mockResolvedValue(Result.fail(uploadError));

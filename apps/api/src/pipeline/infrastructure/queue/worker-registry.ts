@@ -15,7 +15,6 @@ import { AITranscriptionService } from "@/pipeline/infrastructure/services/ai-tr
 import { TextTimestampMapper } from "@/pipeline/infrastructure/services/text-timestamp-mapper.js";
 import { AIDirectionGenerator } from "@/pipeline/infrastructure/services/ai-direction-generator.js";
 import { AICodeGenerator } from "@/pipeline/infrastructure/services/ai-code-generator.js";
-import { BoundingBoxValidator } from "@/pipeline/infrastructure/services/layout-validator.js";
 import { RemotionVideoRenderer } from "@/pipeline/infrastructure/services/remotion-video-renderer.js";
 
 // Workers
@@ -64,8 +63,7 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService, eventPublisher);
   const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService, eventPublisher);
   const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService, eventPublisher);
-  const layoutValidator = new BoundingBoxValidator();
-  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, layoutValidator, eventPublisher);
+  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, eventPublisher);
   const videoRenderingWorker = new VideoRenderingWorker(videoRenderer, jobRepository, eventPublisher);
 
   // Stage name → worker process handler mapping

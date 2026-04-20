@@ -69,7 +69,7 @@ export function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
           >
             <CardHeader>
               <CardTitle className="text-base">{theme.name}</CardTitle>
-              <CardDescription>{theme.description}</CardDescription>
+              <CardDescription>{theme.description ?? theme.name}</CardDescription>
             </CardHeader>
             <CardContent>
               <AccentSwatches theme={theme} />

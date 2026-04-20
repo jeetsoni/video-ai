@@ -58,6 +58,7 @@ export type {
 export {
   ANIMATION_THEMES,
   DEFAULT_THEME_ID,
+  getCardTinted,
 } from "./themes/animation-themes.js";
 
 export type { FeaturedVoice } from "./voices/voice-registry.js";
@@ -96,6 +97,7 @@ export {
 export type {
   ProgressEvent,
   ProgressEventData,
+  SceneProgressInfo,
 } from "./types/pipeline-progress.types.js";
 
 export { isTerminalStatus } from "./types/pipeline-progress.types.js";

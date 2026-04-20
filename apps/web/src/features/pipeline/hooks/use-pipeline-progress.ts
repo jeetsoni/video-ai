@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PipelineJobDto, ProgressEvent } from "@video-ai/shared";
+import type { PipelineJobDto, ProgressEvent, SceneProgressInfo } from "@video-ai/shared";
 import { isTerminalStatus } from "@video-ai/shared";
 import type { PipelineRepository } from "../interfaces/pipeline-repository";
 import { SSEClient } from "@/shared/services/sse-client";
@@ -27,6 +27,10 @@ export interface UsePipelineProgressResult {
   refetch: () => Promise<void>;
   /** Close existing SSE, refetch, and open new SSE if not terminal. */
   reconnect: () => void;
+  /** Per-scene code generation progress — maps sceneId to its progress info */
+  sceneProgress: Map<number, SceneProgressInfo>;
+  /** All completed scene codes so far (for progressive preview) */
+  completedSceneCodes: Map<number, string>;
 }
 
 function parseProgressEvent(data: string): ProgressEvent {
@@ -42,6 +46,8 @@ export function usePipelineProgress({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [generation, setGeneration] = useState(0);
+  const [sceneProgress, setSceneProgress] = useState<Map<number, SceneProgressInfo>>(new Map());
+  const [completedSceneCodes, setCompletedSceneCodes] = useState<Map<number, string>>(new Map());
 
   const sseClientRef = useRef<SSEClient<ProgressEvent> | null>(null);
   const mountedRef = useRef(true);
@@ -107,6 +113,23 @@ export function usePipelineProgress({
         for await (const event of client.connect()) {
           if (cancelled) return;
 
+          // Track per-scene progress during code generation
+          if (event.data.sceneProgress) {
+            const sp = event.data.sceneProgress;
+            setSceneProgress((prev) => {
+              const next = new Map(prev);
+              next.set(sp.sceneId, sp);
+              return next;
+            });
+            if (sp.status === "completed" && sp.code) {
+              setCompletedSceneCodes((prev) => {
+                const next = new Map(prev);
+                next.set(sp.sceneId, sp.code!);
+                return next;
+              });
+            }
+          }
+
           // Merge progress fields into existing job state
           setJob((prev) => {
             if (!prev) return prev;
@@ -147,5 +170,5 @@ export function usePipelineProgress({
     };
   }, [fetchJob, jobId, apiBaseUrl, closeSSE, generation]);
 
-  return { job, isLoading, error, refetch, reconnect };
+  return { job, isLoading, error, refetch, reconnect, sceneProgress, completedSceneCodes };
 }

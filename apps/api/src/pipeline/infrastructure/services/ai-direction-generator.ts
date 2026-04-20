@@ -8,6 +8,7 @@ import type {
   AnimationTheme,
   LayoutProfile,
 } from "@video-ai/shared";
+import { getCardTinted } from "@video-ai/shared";
 import type { DirectionGenerator } from "@/pipeline/application/interfaces/direction-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -25,6 +26,7 @@ const DEFAULT_CONFIG: AIDirectionGeneratorConfig = {
 const FPS = 30;
 
 function buildDesignSystem(theme: AnimationTheme): string {
+  const cards = getCardTinted(theme);
   return `## Design System
 
 Colors:
@@ -40,6 +42,10 @@ Colors:
   - revelation (Green): ${theme.accents.revelation} — solutions, success, positive outcomes
   - cta (Yellow): ${theme.accents.cta} — CTA, power statements, revelations
   - violet: ${theme.accents.violet} — architecture, orchestration, system-level
+
+Card tinted backgrounds (must be visibly distinct from ${theme.background} background):
+- CARD_SKY: ${cards.sky}, CARD_RED: ${cards.red}, CARD_GREEN: ${cards.green}
+- CARD_AMBER: ${cards.amber}, CARD_VIOLET: ${cards.violet}, CARD_YELLOW: ${cards.yellow}
 
 Typography (mobile canvas = 1080px wide — text must be LARGE to be readable):
 - Hero titles: 88-120px, fontWeight 900, letterSpacing: -2
@@ -100,7 +106,7 @@ Each scene gets 2-4 beats. Each beat must have:
 1. What visualization this represents — name the THING (flow diagram, bar chart, timeline, tree diagram, dashboard, etc.)
 2. What appears: every element with SPECIFIC content relevant to the topic (real labels, real numbers, real terms — not placeholders)
 3. How it looks: exact colors from design system, sizes, border styles, backgrounds
-4. Where it sits: spatial position within the slot
+4. Where it sits: spatial position within the safe zone
 5. What changes: state transitions, reveals, highlights
 6. How it connects to speech: which visual event at which spoken word
 7. Continuity: what carries over from previous beat, what fades out
@@ -122,11 +128,20 @@ BAD visual (just a labeled card — NEVER DO THIS):
 - Exit: opacity fade over 8 frames
 - Idle: Math.sin(frame*0.05)*3 for floating
 
+### sfx field:
+Available local SFX files:
+- tech_blip.wav — card/element appears, transitions
+- notification_ping.wav — important reveal, key word lands
+- error_buzz.wav — error state, mistake, failure
+- success_chime.wav — positive reveal, completion
+
+Format: "filename at Xs volume:V playbackRate:R (reason)"
+Use SFX generously — every visual event should have a matching sound.
+
 ## Attention Engineering
 - Motion every 0.7-1.2 seconds
 - Micro-payoff every 3-5 seconds
 - Scale/direction change every 2-3 seconds
-- Every visual event should feel purposeful and timed to the narration
 
 ## Anti-Card-Laziness Validation
 Before finalizing, check EVERY beat:
@@ -134,25 +149,6 @@ Before finalizing, check EVERY beat:
 - Does every concept have a real visual (diagrams, charts, timelines, UIs, visual metaphors)?
 - Is all content specific to the topic (real terms, real numbers, real labels)?
 - Would a viewer understand the concept with audio muted? If not, visuals are too abstract.`;
-
-function buildSlotVocabulary(layoutProfile: LayoutProfile): string {
-  const slotEntries = Object.values(layoutProfile.slots);
-  if (slotEntries.length === 0) return "";
-
-  const lines = ["## Available Spatial Slots", ""];
-  lines.push("Each beat MUST be assigned to one of these slots. Beats assigned to different slots MUST NOT produce overlapping visuals.");
-  lines.push("");
-  lines.push("| Slot ID | Label | Top (px) | Left (px) | Width (px) | Height (px) |");
-  lines.push("|---------|-------|----------|-----------|------------|-------------|");
-  for (const slot of slotEntries) {
-    lines.push(
-      `| ${slot.id} | ${slot.label} | ${slot.bounds.top} | ${slot.bounds.left} | ${slot.bounds.width} | ${slot.bounds.height} |`
-    );
-  }
-  lines.push("");
-  lines.push("Slot bounds are relative to the safe zone origin.");
-  return lines.join("\n");
-}
 
 function buildDirectionSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
   const { canvas, safeZone } = layoutProfile;
@@ -163,9 +159,37 @@ function buildDirectionSystemPrompt(theme: AnimationTheme, layoutProfile: Layout
 ## CRITICAL LAYOUT CONSTRAINTS
 
 Canvas: ${canvas.width}x${canvas.height}. Safe zone: top=${safeZone.top} to y=${safeZoneBottom} (${safeZone.height}px tall, ${safeZone.width}px wide after ${safeZone.left}px padding each side).
-Content must spread across the FULL ${safeZone.height}px usable height — not clustered in the top 200px.
 
-${buildSlotVocabulary(layoutProfile)}
+### FILL THE SAFE ZONE — This is mandatory
+- Content must spread across the FULL ${safeZone.height}px usable height — not clustered in the top 200px
+- Use large, breathing layouts: hero elements 600-800px tall, supporting elements below
+- Every beat should describe where elements sit across the vertical space: top third, middle, bottom third
+- Empty space = wasted screen = bad teaching — fill it with meaningful visuals
+
+### Text sizes (mobile-first — must be large)
+- Hero titles: 88-120px, fontWeight 900
+- Section headlines: 64-80px, fontWeight 800
+- Subheadings / labels: 44-52px, fontWeight 700
+- Body / descriptions: 36-42px, fontWeight 500
+- Monospace (code, data, terminals): 30-38px
+- MINIMUM font size: 30px — anything smaller is unreadable on mobile
+
+## THE #1 RULE: VISUALIZE THE THING ITSELF
+
+When the speaker talks about a concept, you BUILD THE ACTUAL THING on screen — not a card that describes it.
+- Chat conversation → build actual chat UI with message bubbles, timestamps, typing indicator
+- API request → build terminal/Postman-style UI with method badge, URL, JSON response
+- Error/bug → build actual terminal with red stack trace, file paths, line numbers
+- Code execution → build mini IDE with syntax-highlighted code, line numbers, output panel
+- Database → build SQL query with syntax highlighting → table result with rows/columns
+- Pipeline/flow → build full flow diagram with nodes, animated arrows, data particles
+- Search → build search bar with query typing, results with scores
+- Dashboard → build actual stat cards, mini charts, percentage changes
+- Statistics → build animated bar chart or pie chart with real numbers
+- Timeline → build horizontal timeline with era markers, event nodes
+- Comparison → build split-screen with actual visualizations side by side
+
+If your visual description could be a bullet point on a PowerPoint slide, it's NOT visual enough. Every beat must describe a REAL UI or TECHNICAL VISUALIZATION with realistic content.
 
 ${buildDesignSystem(theme)}
 
@@ -196,7 +220,7 @@ Respond with ONLY valid JSON for this single scene:
       "visual": "detailed description",
       "typography": "accent color assignments",
       "motion": "spring/interpolation specs",
-      "slot": "slot id from available slots"
+      "sfx": ["filename.wav at time (reason)"]
     }]
   }
 }`;
@@ -216,6 +240,9 @@ function buildDirectionPrompt(
       `Mood: ${previousDirection.animationDirection.mood}`,
       `Color accent: ${previousDirection.animationDirection.colorAccent}`,
       `Layout: ${previousDirection.animationDirection.layout}`,
+      `Last beat visual: "${previousDirection.animationDirection.beats.at(-1)?.visual ?? ""}"`,
+      "",
+      "Use this to ensure visual continuity — you may contrast, evolve, or build upon it, but avoid repeating the exact same layout or visual element.",
       ""
     );
   }
@@ -243,34 +270,6 @@ function buildDirectionPrompt(
   );
 
   return lines.join("\n");
-}
-
-function autoCorrectSlotAssignments(beats: SceneBeat[], layoutProfile: LayoutProfile): void {
-  const slotIds = Object.keys(layoutProfile.slots);
-  if (slotIds.length === 0) return;
-
-  const firstSlotId = slotIds[0]!;
-  const lastSlotId = slotIds[slotIds.length - 1]!;
-  const centerSlotId = layoutProfile.slots["center"]
-    ? "center"
-    : slotIds[Math.floor(slotIds.length / 2)]!;
-
-  for (let i = 0; i < beats.length; i++) {
-    const beat = beats[i]!;
-    if (!beat.slot || !slotIds.includes(beat.slot)) {
-      const originalSlot = beat.slot;
-      if (i === 0) {
-        beat.slot = firstSlotId;
-      } else if (i === beats.length - 1) {
-        beat.slot = lastSlotId;
-      } else {
-        beat.slot = centerSlotId;
-      }
-      console.warn(
-        `Auto-corrected invalid slot "${originalSlot ?? "(missing)"}" to "${beat.slot}" for beat "${beat.id}"`
-      );
-    }
-  }
 }
 
 export class AIDirectionGenerator implements DirectionGenerator {
@@ -316,7 +315,6 @@ export class AIDirectionGenerator implements DirectionGenerator {
         );
       }
 
-      // Auto-correct IDs and times to match the boundary
       const startFrame = Math.round(params.scene.startTime * FPS);
       const endFrame = Math.round(params.scene.endTime * FPS);
 
@@ -331,9 +329,6 @@ export class AIDirectionGenerator implements DirectionGenerator {
           parsed.beats[i]!.frameRange[0] = Math.round(parsed.beats[i]!.timeRange[0] * FPS);
         }
       }
-
-      // Auto-correct invalid slot assignments
-      autoCorrectSlotAssignments(parsed.beats, params.layoutProfile);
 
       const direction: SceneDirection = {
         id: params.scene.id,
