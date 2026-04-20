@@ -216,7 +216,8 @@ describe("CodeGenerationWorker", () => {
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
     expect(mockObjectStore.upload).not.toHaveBeenCalled();
-    expect(mockRepository.save).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 
   it("should throw when scene directions are missing", async () => {

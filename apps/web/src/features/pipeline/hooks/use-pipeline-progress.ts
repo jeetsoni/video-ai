@@ -131,6 +131,9 @@ export function usePipelineProgress({
         if (cancelled) return;
         if (mountedRef.current) {
           setError(err instanceof Error ? err : new Error(String(err)));
+          // SSE connection dropped — refetch to get the latest state
+          // (the job may have failed or completed while disconnected)
+          await fetchJob();
         }
       }
     }

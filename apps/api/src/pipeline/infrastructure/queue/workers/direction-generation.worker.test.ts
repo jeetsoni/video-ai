@@ -200,7 +200,8 @@ describe("DirectionGenerationWorker", () => {
     );
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
-    expect(mockRepository.save).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 
   it("should throw when scene plan is missing", async () => {

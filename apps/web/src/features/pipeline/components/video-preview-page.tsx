@@ -26,6 +26,7 @@ import { RemotionPreviewPlayer } from "./remotion-preview-player";
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
   onRetry: () => void;
+  onRetryJob?: () => void;
   pollingError?: Error | null;
   onRefresh?: () => void;
   onExport?: () => void;
@@ -103,6 +104,7 @@ function RenderingProgress() {
 export function VideoPreviewPage({
   job,
   onRetry,
+  onRetryJob,
   pollingError,
   onRefresh,
   onExport,
@@ -156,7 +158,7 @@ export function VideoPreviewPage({
           videoUrl={job.videoUrl}
           format={job.format}
           errorMessage={job.errorMessage}
-          onRetry={onRetry}
+          onRetry={onRetryJob ?? onRetry}
         />
       );
     }
@@ -277,10 +279,12 @@ export function VideoPreviewPage({
             </div>
             <div>
               <p className="text-sm font-semibold text-on-surface">
-                {stageInfo.label}
+                {job.status === "failed" ? `${stageInfo.label} — Failed` : stageInfo.label}
               </p>
               <p className="text-xs text-on-surface-variant">
-                {stageInfo.description}
+                {job.status === "failed"
+                  ? (job.errorMessage ?? "An error occurred during processing")
+                  : stageInfo.description}
               </p>
             </div>
           </div>
@@ -296,7 +300,11 @@ export function VideoPreviewPage({
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                job.stage === "done" ? "bg-stage-complete" : "gradient-primary",
+                job.status === "failed"
+                  ? "bg-stage-failed"
+                  : job.stage === "done"
+                    ? "bg-stage-complete"
+                    : "gradient-primary",
               )}
               style={{ width: `${job.progressPercent}%` }}
             />
@@ -396,6 +404,20 @@ export function VideoPreviewPage({
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Retry button for failed or stuck non-preview jobs */}
+          {!isPreviewEligible && (job.status === "failed" || job.status === "processing") && onRetryJob && (
+            <Button
+              variant="secondary"
+              className="w-full gap-2"
+              onClick={() => {
+                onRetryJob();
+              }}
+            >
+              <RefreshCw className="size-4" />
+              Retry
+            </Button>
           )}
 
           {/* Status messages */}

@@ -193,7 +193,8 @@ describe("VideoRenderingWorker", () => {
     mockVideoRenderer.render.mockResolvedValue(Result.fail(error));
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
-    expect(mockRepository.save).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 
   it("should throw when generated code is missing", async () => {

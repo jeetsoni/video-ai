@@ -121,7 +121,8 @@ describe("TTSGenerationWorker", () => {
     );
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
-    expect(mockRepository.save).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 
   it("should throw when approved script is missing", async () => {
@@ -140,6 +141,7 @@ describe("TTSGenerationWorker", () => {
     await expect(worker.process(createMockJob("job-3"))).rejects.toThrow(
       "Pipeline job job-3 has no approved script",
     );
-    expect(mockTTSService.generateSpeech).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 });

@@ -266,6 +266,16 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
+  /**
+   * Resets a failed job back to processing so it can be retried
+   * from its current stage. Only valid when status is "failed".
+   */
+  clearFailure(): void {
+    this.props.status = PipelineStatus.processing();
+    this.props.error = null;
+    this.props.updatedAt = new Date();
+  }
+
   setScript(
     script: string,
     scenes: SceneBoundary[],

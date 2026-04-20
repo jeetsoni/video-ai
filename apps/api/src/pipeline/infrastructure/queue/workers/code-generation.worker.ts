@@ -30,21 +30,33 @@ export class CodeGenerationWorker {
 
     const sceneDirections = pipelineJob.sceneDirections;
     if (!sceneDirections) {
+      pipelineJob.markFailed("code_generation_failed", `Pipeline job ${jobId} has no scene directions`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Pipeline job ${jobId} has no scene directions`);
       throw new Error(`Pipeline job ${jobId} has no scene directions`);
     }
 
     const transcript = pipelineJob.transcript;
     if (!transcript) {
+      pipelineJob.markFailed("code_generation_failed", `Pipeline job ${jobId} has no transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Pipeline job ${jobId} has no transcript`);
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
     const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
     if (!theme) {
+      pipelineJob.markFailed("code_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
       throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
     }
 
     const lastWord = transcript[transcript.length - 1];
     if (!lastWord) {
+      pipelineJob.markFailed("code_generation_failed", `Pipeline job ${jobId} has an empty transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Pipeline job ${jobId} has an empty transcript`);
       throw new Error(`Pipeline job ${jobId} has an empty transcript`);
     }
 
@@ -77,6 +89,9 @@ export class CodeGenerationWorker {
         overlapFeedback,
       });
       if (result.isFailure) {
+        pipelineJob.markFailed("code_generation_failed", result.getError().message);
+        await this.jobRepository.save(pipelineJob);
+        await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", result.getError().message);
         throw result.getError();
       }
       code = result.getValue();

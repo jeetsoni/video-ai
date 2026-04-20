@@ -25,11 +25,17 @@ export class TimestampMappingWorker {
 
     const approvedScenes = pipelineJob.approvedScenes;
     if (!approvedScenes) {
+      pipelineJob.markFailed("timestamp_mapping_failed", `Pipeline job ${jobId} has no approved scenes`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "timestamp_mapping_failed", `Pipeline job ${jobId} has no approved scenes`);
       throw new Error(`Pipeline job ${jobId} has no approved scenes`);
     }
 
     const transcript = pipelineJob.transcript;
     if (!transcript) {
+      pipelineJob.markFailed("timestamp_mapping_failed", `Pipeline job ${jobId} has no transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "timestamp_mapping_failed", `Pipeline job ${jobId} has no transcript`);
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
@@ -38,6 +44,7 @@ export class TimestampMappingWorker {
     if (result.isFailure) {
       pipelineJob.markFailed("timestamp_mapping_failed", result.getError().message);
       await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "timestamp_mapping_failed", result.getError().message);
       throw result.getError();
     }
 

@@ -8,6 +8,7 @@ import type { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/l
 import type { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import type { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
 import type { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
+import type { RetryJobUseCase } from "@/pipeline/application/use-cases/retry-job.use-case.js";
 import type { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import type { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
@@ -29,6 +30,7 @@ export class PipelineController {
     private readonly approveScriptUseCase: ApproveScriptUseCase,
     private readonly regenerateScriptUseCase: RegenerateScriptUseCase,
     private readonly regenerateCodeUseCase: RegenerateCodeUseCase,
+    private readonly retryJobUseCase: RetryJobUseCase,
     private readonly getThemesFn: () => Promise<ThemeDto[]>,
     private readonly getPreviewDataUseCase: GetPreviewDataUseCase,
     private readonly exportVideoUseCase: ExportVideoUseCase,
@@ -171,6 +173,24 @@ export class PipelineController {
     try {
       const id = req.params.id as string;
       const result = await this.regenerateCodeUseCase.execute({ jobId: id });
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      res.ok({ status: "ok" });
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async retryJob(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.retryJobUseCase.execute({ jobId: id });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;

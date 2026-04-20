@@ -83,6 +83,11 @@ export default function JobDetailPage() {
     reconnect();
   }, [pipelineRepository, id, reconnect]);
 
+  const handleRetryJob = useCallback(async () => {
+    await pipelineRepository.retryJob(id);
+    reconnect();
+  }, [pipelineRepository, id, reconnect]);
+
   const handleExport = useCallback(async () => {
     await pipelineRepository.exportVideo(id);
     reconnect();
@@ -106,8 +111,8 @@ export default function JobDetailPage() {
     );
   }
 
-  // Streaming error: show error message with retry button
-  if (streamingStatus === "error") {
+  // Streaming error: show error message with retry button (only for script_generation stage)
+  if (streamingStatus === "error" && job.stage === "script_generation") {
     return (
       <main className="flex h-[calc(100vh-4rem)] items-center justify-center p-10">
         <div className="w-full max-w-md rounded-xl bg-destructive/10 p-8 text-center">
@@ -186,6 +191,7 @@ export default function JobDetailPage() {
         <VideoPreviewPage
           job={job}
           onRetry={handleRegenerateScript}
+          onRetryJob={handleRetryJob}
           pollingError={error}
           onRefresh={reconnect}
           onExport={handleExport}
@@ -229,6 +235,13 @@ export default function JobDetailPage() {
           {job.errorMessage && (
             <p className="mt-1 text-sm text-destructive/80">{job.errorMessage}</p>
           )}
+          <Button
+            className="mt-4 gap-2"
+            onClick={handleRetryJob}
+          >
+            <RefreshCw className="size-4" />
+            Retry
+          </Button>
         </section>
       )}
     </main>

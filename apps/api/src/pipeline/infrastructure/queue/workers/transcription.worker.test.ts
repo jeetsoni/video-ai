@@ -112,7 +112,8 @@ describe("TranscriptionWorker", () => {
     );
 
     await expect(worker.process(createMockJob("job-2"))).rejects.toThrow(error);
-    expect(mockRepository.save).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 
   it("should throw when audio path is missing", async () => {
@@ -132,6 +133,7 @@ describe("TranscriptionWorker", () => {
     await expect(worker.process(createMockJob("job-3"))).rejects.toThrow(
       "Pipeline job job-3 has no audio path",
     );
-    expect(mockTranscriptionService.transcribe).not.toHaveBeenCalled();
+    expect(pipelineJob.status.value).toBe("failed");
+    expect(mockRepository.save).toHaveBeenCalledWith(pipelineJob);
   });
 });

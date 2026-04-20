@@ -27,16 +27,25 @@ export class DirectionGenerationWorker {
 
     const scenePlan = pipelineJob.scenePlan;
     if (!scenePlan) {
+      pipelineJob.markFailed("direction_generation_failed", `Pipeline job ${jobId} has no scene plan`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "direction_generation_failed", `Pipeline job ${jobId} has no scene plan`);
       throw new Error(`Pipeline job ${jobId} has no scene plan`);
     }
 
     const transcript = pipelineJob.transcript;
     if (!transcript) {
+      pipelineJob.markFailed("direction_generation_failed", `Pipeline job ${jobId} has no transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "direction_generation_failed", `Pipeline job ${jobId} has no transcript`);
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
     const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
     if (!theme) {
+      pipelineJob.markFailed("direction_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "direction_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
       throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
     }
 
@@ -59,6 +68,9 @@ export class DirectionGenerationWorker {
       });
 
       if (result.isFailure) {
+        pipelineJob.markFailed("direction_generation_failed", result.getError().message);
+        await this.jobRepository.save(pipelineJob);
+        await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "direction_generation_failed", result.getError().message);
         throw result.getError();
       }
 

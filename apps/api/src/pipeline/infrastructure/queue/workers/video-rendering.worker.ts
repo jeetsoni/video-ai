@@ -24,31 +24,49 @@ export class VideoRenderingWorker {
 
     const code = pipelineJob.generatedCode;
     if (!code) {
+      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no generated code`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no generated code`);
       throw new Error(`Pipeline job ${jobId} has no generated code`);
     }
 
     const audioPath = pipelineJob.audioPath;
     if (!audioPath) {
+      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no audio path`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no audio path`);
       throw new Error(`Pipeline job ${jobId} has no audio path`);
     }
 
     const sceneDirections = pipelineJob.sceneDirections;
     if (!sceneDirections) {
+      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no scene directions`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no scene directions`);
       throw new Error(`Pipeline job ${jobId} has no scene directions`);
     }
 
     const transcript = pipelineJob.transcript;
     if (!transcript) {
+      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no transcript`);
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
     const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
     if (!theme) {
+      pipelineJob.markFailed("rendering_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
       throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
     }
 
     const lastWord = transcript[transcript.length - 1];
     if (!lastWord) {
+      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has an empty transcript`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has an empty transcript`);
       throw new Error(`Pipeline job ${jobId} has an empty transcript`);
     }
 
@@ -76,6 +94,9 @@ export class VideoRenderingWorker {
     });
 
     if (result.isFailure) {
+      pipelineJob.markFailed("rendering_failed", result.getError().message);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", result.getError().message);
       throw result.getError();
     }
 

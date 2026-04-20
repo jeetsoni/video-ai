@@ -25,17 +25,26 @@ export class TranscriptionWorker {
 
     const audioPath = pipelineJob.audioPath;
     if (!audioPath) {
+      pipelineJob.markFailed("transcription_failed", `Pipeline job ${jobId} has no audio path`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "transcription_failed", `Pipeline job ${jobId} has no audio path`);
       throw new Error(`Pipeline job ${jobId} has no audio path`);
     }
 
     const scriptText = pipelineJob.approvedScript ?? pipelineJob.generatedScript;
     if (!scriptText) {
+      pipelineJob.markFailed("transcription_failed", `Pipeline job ${jobId} has no script text`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "transcription_failed", `Pipeline job ${jobId} has no script text`);
       throw new Error(`Pipeline job ${jobId} has no script text`);
     }
 
     const result = await this.transcriptionService.transcribe({ audioPath, scriptText });
 
     if (result.isFailure) {
+      pipelineJob.markFailed("transcription_failed", result.getError().message);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "transcription_failed", result.getError().message);
       throw result.getError();
     }
 

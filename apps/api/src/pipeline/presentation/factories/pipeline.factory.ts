@@ -11,6 +11,7 @@ import { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-p
 import { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
 import { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
+import { RetryJobUseCase } from "@/pipeline/application/use-cases/retry-job.use-case.js";
 import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
@@ -66,6 +67,10 @@ export function createPipelineModule(deps: {
     repository,
     queueService,
   );
+  const retryJobUseCase = new RetryJobUseCase(
+    repository,
+    queueService,
+  );
   const getPreviewDataUseCase = new GetPreviewDataUseCase(
     repository,
     deps.objectStore,
@@ -88,6 +93,7 @@ export function createPipelineModule(deps: {
     approveScriptUseCase,
     regenerateScriptUseCase,
     regenerateCodeUseCase,
+    retryJobUseCase,
     getThemesFn,
     getPreviewDataUseCase,
     exportVideoUseCase,

@@ -27,6 +27,9 @@ export class TTSGenerationWorker {
 
     const approvedScript = pipelineJob.approvedScript;
     if (!approvedScript) {
+      pipelineJob.markFailed("tts_generation_failed", `Pipeline job ${jobId} has no approved script`);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "tts_generation_failed", `Pipeline job ${jobId} has no approved script`);
       throw new Error(`Pipeline job ${jobId} has no approved script`);
     }
 
@@ -41,6 +44,9 @@ export class TTSGenerationWorker {
     });
 
     if (result.isFailure) {
+      pipelineJob.markFailed("tts_generation_failed", result.getError().message);
+      await this.jobRepository.save(pipelineJob);
+      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "tts_generation_failed", result.getError().message);
       throw result.getError();
     }
 

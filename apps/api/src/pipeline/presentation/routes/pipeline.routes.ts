@@ -58,6 +58,15 @@ export function createPipelineRouter(
     },
   );
 
+  router.post(
+    "/jobs/:id/retry",
+    async (req: Request, res: Response) => {
+      const httpReq = HttpRequest.fromExpress(req);
+      const httpRes = HttpResponse.fromExpress(res);
+      await controller.retryJob(httpReq, httpRes);
+    },
+  );
+
   router.get("/jobs/:id/stream", async (req: Request, res: Response) => {
     await streamController.streamScriptGeneration(req, res);
   });
