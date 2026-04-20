@@ -3,7 +3,7 @@ WORKDIR /app
 
 # ── Install dependencies ──
 FROM base AS deps
-COPY package.json package-lock.json turbo.json ./
+COPY package.json package-lock.json turbo.json tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json packages/shared/tsconfig.json ./packages/shared/
 
@@ -17,9 +17,9 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY packages/shared ./packages/shared
 COPY apps/web ./apps/web
-COPY tsconfig.base.json ./
 
-RUN npx turbo build --filter=@video-ai/web
+# Build shared package first, then web
+RUN npx turbo build --filter=@video-ai/shared && npx turbo build --filter=@video-ai/web
 
 # ── Production ──
 FROM base AS runner
