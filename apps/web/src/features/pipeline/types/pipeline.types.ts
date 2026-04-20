@@ -1,3 +1,5 @@
+import type { VideoFormat, ScenePlan, PipelineJobDto } from "@video-ai/shared";
+
 export type {
   VideoFormat,
   PipelineStatus,
@@ -22,7 +24,7 @@ export interface CreateJobResponse {
 
 /** Response shape from GET /api/pipeline/jobs */
 export interface ListJobsResponse {
-  jobs: import("@video-ai/shared").PipelineJobDto[];
+  jobs: PipelineJobDto[];
   total: number;
   page: number;
   limit: number;
