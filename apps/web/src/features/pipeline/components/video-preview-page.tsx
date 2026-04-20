@@ -83,11 +83,12 @@ function PreviewError({
   isAutofixing?: boolean;
   autofixExplanation?: string | null;
 }) {
-  const isRuntimeError = error.includes("is not defined") || 
+  const isRuntimeError =
+    error.includes("is not defined") ||
     error.includes("ReferenceError") ||
     error.includes("TypeError") ||
     error.includes("Cannot read");
-  
+
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl bg-stage-failed/20 p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-xl bg-stage-failed/20">
@@ -106,10 +107,10 @@ function PreviewError({
       </div>
       <div className="flex gap-2">
         {isRuntimeError && onAutofix && (
-          <Button 
-            variant="default" 
-            size="sm" 
-            className="gap-2 bg-emerald-600 hover:bg-emerald-700" 
+          <Button
+            variant="default"
+            size="sm"
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700"
             onClick={onAutofix}
             disabled={isAutofixing}
           >
@@ -121,7 +122,12 @@ function PreviewError({
             {isAutofixing ? "Fixing..." : "Autofix"}
           </Button>
         )}
-        <Button variant="secondary" size="sm" className="gap-2" onClick={onRetry}>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="gap-2"
+          onClick={onRetry}
+        >
           <RefreshCw className="size-3.5" />
           {isRuntimeError ? "Regenerate" : "Retry"}
         </Button>
@@ -178,7 +184,9 @@ export function VideoPreviewPage({
 
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isAutofixing, setIsAutofixing] = useState(false);
-  const [autofixExplanation, setAutofixExplanation] = useState<string | null>(null);
+  const [autofixExplanation, setAutofixExplanation] = useState<string | null>(
+    null,
+  );
 
   const handleRegenerateCode = useCallback(async () => {
     setIsRegenerating(true);
@@ -195,20 +203,23 @@ export function VideoPreviewPage({
 
   const handleAutofixCode = useCallback(async () => {
     if (!previewError) return;
-    
+
     setIsAutofixing(true);
     setAutofixExplanation(null);
-    
+
     // Parse error type from the error message
     let errorType = "Runtime Error";
-    if (previewError.includes("ReferenceError") || previewError.includes("is not defined")) {
+    if (
+      previewError.includes("ReferenceError") ||
+      previewError.includes("is not defined")
+    ) {
       errorType = "ReferenceError";
     } else if (previewError.includes("TypeError")) {
       errorType = "TypeError";
     } else if (previewError.includes("SyntaxError")) {
       errorType = "SyntaxError";
     }
-    
+
     try {
       const result = await repository.autofixCode({
         jobId: job.id,
@@ -227,26 +238,29 @@ export function VideoPreviewPage({
   }, [job.id, previewError, repository, refetch]);
 
   // Handler for autofix from the player (receives error details directly)
-  const handleAutofixForPlayer = useCallback(async (errorMessage: string, errorType: string) => {
-    setIsAutofixing(true);
-    setAutofixExplanation(null);
-    
-    try {
-      const result = await repository.autofixCode({
-        jobId: job.id,
-        errorMessage,
-        errorType,
-      });
-      setAutofixExplanation(result.explanation);
-      // Refetch to get the updated code
-      await refetch();
-    } catch (err) {
-      console.error("Autofix failed:", err);
-      // If autofix fails, user can still use regenerate
-    } finally {
-      setIsAutofixing(false);
-    }
-  }, [job.id, repository, refetch]);
+  const handleAutofixForPlayer = useCallback(
+    async (errorMessage: string, errorType: string) => {
+      setIsAutofixing(true);
+      setAutofixExplanation(null);
+
+      try {
+        const result = await repository.autofixCode({
+          jobId: job.id,
+          errorMessage,
+          errorType,
+        });
+        setAutofixExplanation(result.explanation);
+        // Refetch to get the updated code
+        await refetch();
+      } catch (err) {
+        console.error("Autofix failed:", err);
+        // If autofix fails, user can still use regenerate
+      } finally {
+        setIsAutofixing(false);
+      }
+    },
+    [job.id, repository, refetch],
+  );
 
   // Determine what to render in the preview area
   function renderPreviewArea() {
@@ -258,18 +272,23 @@ export function VideoPreviewPage({
       sceneProgress.size > 0
     ) {
       // Build scene boundaries from sceneProgress if job.scenePlan is not available
-      const sceneBoundaries: SceneBoundary[] = job.scenePlan && job.scenePlan.length > 0
-        ? job.scenePlan
-        : Array.from(sceneProgress.values()).map((sp, index) => ({
-            id: sp.sceneId,
-            name: sp.sceneName,
-            type: "Bridge" as const,
-            startTime: index * 5, // Placeholder timing
-            endTime: (index + 1) * 5,
-            text: "",
-          }));
+      const sceneBoundaries: SceneBoundary[] =
+        job.scenePlan && job.scenePlan.length > 0
+          ? job.scenePlan
+          : Array.from(sceneProgress.values()).map((sp, index) => ({
+              id: sp.sceneId,
+              name: sp.sceneName,
+              type: "Bridge" as const,
+              startTime: index * 5, // Placeholder timing
+              endTime: (index + 1) * 5,
+              text: "",
+            }));
 
-      console.log("[NEW CODE] Rendering ProgressiveScenePreview with", sceneBoundaries.length, "scenes");
+      console.log(
+        "[NEW CODE] Rendering ProgressiveScenePreview with",
+        sceneBoundaries.length,
+        "scenes",
+      );
       return (
         <ProgressiveScenePreview
           sceneBoundaries={sceneBoundaries}
@@ -296,7 +315,30 @@ export function VideoPreviewPage({
       );
     }
 
-    // For stages before preview (but not code_generation with scene data), use the existing VideoPreviewSection
+    // During direction_generation or code_generation but before scene data arrives,
+    // show the generating loader so users always see feedback.
+    // Use h-full instead of aspect ratio so the loader fills the flex container
+    // and stays visible on desktop where the parent has overflow-hidden.
+    if (
+      job.stage === "direction_generation" ||
+      job.stage === "code_generation"
+    ) {
+      return (
+        <div className="w-full h-full min-h-[300px] rounded-2xl bg-surface-container-high flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-center p-8">
+            <Loader2 className="size-6 animate-spin text-stage-active" />
+            <p className="text-sm text-on-surface-variant">
+              Generating scene animations…
+            </p>
+            <p className="text-xs text-on-surface-variant/60">
+              Preview will appear as each scene completes
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // For stages before preview (but not code_generation/direction_generation), use the existing VideoPreviewSection
     if (!isPreviewEligible) {
       return (
         <VideoPreviewSection
@@ -319,14 +361,18 @@ export function VideoPreviewPage({
       const isSyntaxOrEvalError =
         previewError.startsWith("SyntaxError") ||
         previewError.includes("does not define a Main");
-      const isRuntimeError = 
+      const isRuntimeError =
         previewError.includes("is not defined") ||
         previewError.includes("ReferenceError") ||
         previewError.includes("TypeError");
       return (
         <PreviewError
           error={previewError}
-          onRetry={isSyntaxOrEvalError || isRuntimeError ? handleRegenerateCode : refetch}
+          onRetry={
+            isSyntaxOrEvalError || isRuntimeError
+              ? handleRegenerateCode
+              : refetch
+          }
           onAutofix={isRuntimeError ? handleAutofixCode : undefined}
           isAutofixing={isAutofixing}
           autofixExplanation={autofixExplanation}
@@ -435,7 +481,9 @@ export function VideoPreviewPage({
             </div>
             <div>
               <p className="text-sm font-semibold text-on-surface">
-                {job.status === "failed" ? `${stageInfo.label} — Failed` : stageInfo.label}
+                {job.status === "failed"
+                  ? `${stageInfo.label} — Failed`
+                  : stageInfo.label}
               </p>
               <p className="text-xs text-on-surface-variant">
                 {job.status === "failed"
@@ -563,18 +611,20 @@ export function VideoPreviewPage({
           )}
 
           {/* Retry button for failed or stuck non-preview jobs */}
-          {!isPreviewEligible && (job.status === "failed" || job.status === "processing") && onRetryJob && (
-            <Button
-              variant="secondary"
-              className="w-full gap-2"
-              onClick={() => {
-                onRetryJob();
-              }}
-            >
-              <RefreshCw className="size-4" />
-              Retry
-            </Button>
-          )}
+          {!isPreviewEligible &&
+            (job.status === "failed" || job.status === "processing") &&
+            onRetryJob && (
+              <Button
+                variant="secondary"
+                className="w-full gap-2"
+                onClick={() => {
+                  onRetryJob();
+                }}
+              >
+                <RefreshCw className="size-4" />
+                Retry
+              </Button>
+            )}
 
           {/* Status messages */}
           {isPreviewEligible && previewData?.audioError && (

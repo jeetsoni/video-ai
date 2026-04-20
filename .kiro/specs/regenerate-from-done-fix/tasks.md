@@ -1,0 +1,73 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** — Regeneration From Done Stage Blocked by Terminal Status Guard
+  - **CRITICAL**: This test MUST FAIL on unfixed code — failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior — it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate `transitionTo("direction_generation")` fails when the job is at `done` stage with `completed` status
+  - **Scoped PBT Approach**: Scope the property to the concrete failing case: stage=`done`, status=`completed`, target=`direction_generation`
+  - Reconstitute a `PipelineJob` at `done` stage with `completed` status using `PipelineJob.reconstitute()`
+  - Call `job.transitionTo("direction_generation")` and assert `result.isSuccess` is `true` (expected behavior from design)
+  - Assert `job.stage.value === "direction_generation"`, `job.status.value === "processing"`, `job.progressPercent === 65`
+  - Use fast-check to generate arbitrary valid props (e.g., varying topic, browserId, voiceId) while holding stage=`done` and status=`completed` constant, verifying the transition succeeds for all such jobs
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS with counterexample showing `Result.fail` with message `Cannot transition from terminal status "completed"` — this confirms the bug exists
+  - Document counterexamples found: `transitionTo("direction_generation")` returns `Result.fail` because the terminal guard only exempts `preview`, not `done`
+  - Mark task complete when test is written, run, and failure is documented
+  - Test file: `video-ai/apps/api/src/pipeline/__tests__/regenerate-from-done.exploration.test.ts`
+  - _Requirements: 1.1, 1.2, 2.1, 2.2_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** — Non-Done Terminal Transitions and Existing Behavior Unchanged
+  - **IMPORTANT**: Follow observation-first methodology
+  - **Step 1 — Observe on unfixed code**:
+    - Observe: `preview`/`completed` → `transitionTo("direction_generation")` succeeds (existing regeneration path)
+    - Observe: terminal status at non-exempted stages (e.g., `code_generation`/`failed`, `tts_generation`/`failed`) blocks transitions with `Cannot transition from terminal status` error
+    - Observe: non-terminal status transitions work normally across all stages (e.g., `script_generation`/`pending` → `script_review`)
+    - Observe: invalid target stages from `done` are rejected by the stage transition map (e.g., `done` → `rendering` fails with `Cannot transition from`)
+  - **Step 2 — Write property-based tests capturing observed behavior**:
+    - Property: for `preview` stage with `completed` status, `transitionTo("direction_generation")` succeeds — stage becomes `direction_generation`, status becomes `processing`, progress becomes `65`
+    - Property: for all stages NOT in {`preview`, `done`} with terminal status (`completed` or `failed`), `transitionTo()` to any target returns `Result.fail` with `INVALID_TRANSITION` containing "terminal status"
+    - Property: for all stages with non-terminal status (`pending`, `processing`, `awaiting_script_review`), valid transitions succeed and invalid transitions are rejected by the stage transition map — not by the terminal guard
+    - Property: for `done` stage, `transitionTo()` to any target NOT equal to `direction_generation` returns `Result.fail` (rejected by stage transition map validation)
+  - Verify tests PASS on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - Test file: `video-ai/apps/api/src/pipeline/__tests__/regenerate-from-done.preservation.test.ts`
+  - _Requirements: 3.1, 3.2, 3.3, 3.4_
+
+- [x] 3. Fix for regeneration from done stage blocked by terminal status guard
+  - [x] 3.1 Implement the fix in `transitionTo()` method
+    - In `video-ai/apps/api/src/pipeline/domain/entities/pipeline-job.ts`, extend the terminal status guard to also exempt the `done` stage
+    - Add `const isDoneStage = this.props.stage.value === "done";` after the existing `isPreviewStage` declaration
+    - Change the guard condition from `if (this.props.status.isTerminal() && !isPreviewStage)` to `if (this.props.status.isTerminal() && !isPreviewStage && !isDoneStage)`
+    - No other files need changes — `VALID_TRANSITIONS` already allows `done → direction_generation` and `RegenerateCodeUseCase` already accepts `done`
+    - _Bug_Condition: isBugCondition(input) where input.stage = "done" AND input.status.isTerminal() AND input.targetStage = "direction_generation"_
+    - _Expected_Behavior: transitionTo returns Result.ok, stage = "direction_generation", status = "processing", progressPercent = 65_
+    - _Preservation: preview exemption unchanged; terminal blocking for non-preview/non-done stages unchanged; stage transition map validation unchanged_
+    - _Requirements: 1.1, 1.2, 2.1, 2.2, 3.1, 3.2, 3.3, 3.4_
+
+  - [x] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** — Regeneration From Done Stage Succeeds
+    - **IMPORTANT**: Re-run the SAME test from task 1 — do NOT write a new test
+    - The test from task 1 encodes the expected behavior: `transitionTo("direction_generation")` succeeds when stage is `done` with `completed` status
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2_
+
+  - [x] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** — Non-Done Terminal Transitions and Existing Behavior Unchanged
+    - **IMPORTANT**: Re-run the SAME tests from task 2 — do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all preservation tests still pass after fix (no regressions introduced)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4_
+
+- [x] 4. Checkpoint — Ensure all tests pass
+  - Run the full test suite for the pipeline domain to confirm no regressions
+  - Verify bug condition exploration test passes (Property 1)
+  - Verify preservation property tests pass (Property 2)
+  - Verify existing `pipeline-job.test.ts` tests still pass
+  - Ensure all tests pass, ask the user if questions arise

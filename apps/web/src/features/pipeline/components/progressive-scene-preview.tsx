@@ -237,7 +237,7 @@ export function ProgressiveScenePreview({
   }, [component, scenePlan]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 h-full">
       {/* Scene progress indicators */}
       <SceneProgressIndicator
         scenes={sceneBoundaries}
@@ -272,12 +272,7 @@ export function ProgressiveScenePreview({
           />
         </div>
       ) : (
-        <div
-          className={cn(
-            "w-full rounded-2xl bg-surface-container-high flex items-center justify-center",
-            ASPECT_CLASSES[format] ?? "aspect-video",
-          )}
-        >
+        <div className="w-full flex-1 min-h-[250px] rounded-2xl bg-surface-container-high flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-center p-8">
             <Loader2 className="size-6 animate-spin text-stage-active" />
             <p className="text-sm text-on-surface-variant">

@@ -214,7 +214,8 @@ export class PipelineJob {
     targetStageValue: PipelineStageType,
   ): Result<void, ValidationError> {
     const isPreviewStage = this.props.stage.value === "preview";
-    if (this.props.status.isTerminal() && !isPreviewStage) {
+    const isDoneStage = this.props.stage.value === "done";
+    if (this.props.status.isTerminal() && !isPreviewStage && !isDoneStage) {
       return Result.fail(
         new ValidationError(
           `Cannot transition from terminal status "${this.props.status.value}"`,
@@ -312,10 +313,7 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
-  updateVoice(
-    voiceId: string,
-    voiceSettings?: VoiceSettings | null,
-  ): void {
+  updateVoice(voiceId: string, voiceSettings?: VoiceSettings | null): void {
     this.props.voiceId = voiceId;
     if (voiceSettings !== undefined) {
       this.props.voiceSettings = voiceSettings;
