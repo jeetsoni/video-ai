@@ -1,4 +1,3 @@
-import { jest } from "@jest/globals";
 import type { ElevenLabs } from "@elevenlabs/elevenlabs-js";
 import { FEATURED_VOICE_IDS, FEATURED_VOICES } from "@video-ai/shared";
 import {

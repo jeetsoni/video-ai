@@ -397,7 +397,7 @@ describe("Preservation: Non-Code-Generation and Continuous-Connection Behavior U
        * progress events remain ephemeral pub/sub only.
        */
       await fc.assert(
-        fc.asyncProperty(allStageArb, allStatusArb, async (stage, status) => {
+        fc.asyncProperty(allStageArb, allStatusArb, async (_stage, _status) => {
           // Reset mocks for each property run
           mockEventPublisher.publish.mockClear();
           mockEventPublisher.buffer.mockClear();

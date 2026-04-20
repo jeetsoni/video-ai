@@ -39,10 +39,10 @@ FROM deps AS build
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
-RUN npx turbo build --filter=@video-ai/api
-
-# Generate Prisma client
+# Generate Prisma client BEFORE build (tsc needs the types)
 RUN cd apps/api && npx prisma generate
+
+RUN npx turbo build --filter=@video-ai/api
 
 # ── Production ──
 FROM base AS runner

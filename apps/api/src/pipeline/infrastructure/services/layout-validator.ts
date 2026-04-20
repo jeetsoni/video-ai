@@ -63,7 +63,7 @@ export function computeOverlapRegion(a: Rect, b: Rect): Rect {
 export function classifyOverlapSeverity(
   overlapArea: number,
   rectA: Rect,
-  rectB: Rect
+  rectB: Rect,
 ): "warning" | "error" {
   const areaA = rectA.width * rectA.height;
   const areaB = rectB.width * rectB.height;
@@ -75,7 +75,10 @@ export function classifyOverlapSeverity(
   return ratio < 0.1 ? "warning" : "error";
 }
 
-export function applyTransforms(initial: Rect, transforms: AnimationTransform[]): Rect {
+export function applyTransforms(
+  initial: Rect,
+  transforms: AnimationTransform[],
+): Rect {
   let top = initial.top;
   let left = initial.left;
   let width = initial.width;
@@ -121,7 +124,7 @@ export function isOutOfBounds(rect: Rect, safeZone: Rect): boolean {
   );
 }
 
-function extractNumber(str: string): number | null {
+function _extractNumber(str: string): number | null {
   const match = str.match(/-?\d+(?:\.\d+)?/);
   return match ? parseFloat(match[0]) : null;
 }
@@ -146,19 +149,37 @@ function extractInterpolateTransforms(block: string): AnimationTransform[] {
 
   let match: RegExpExecArray | null;
   while ((match = interpolateRegex.exec(block)) !== null) {
-    const startFrame = parseFloat(match[1]);
-    const endFrame = parseFloat(match[2]);
-    const fromValue = parseFloat(match[3]);
-    const toValue = parseFloat(match[4]);
+    const m1 = match[1];
+    const m2 = match[2];
+    const m3 = match[3];
+    const m4 = match[4];
+    if (!m1 || !m2 || !m3 || !m4) continue;
 
-    const contextBefore = block.slice(Math.max(0, match.index - 120), match.index);
+    const startFrame = parseFloat(m1);
+    const endFrame = parseFloat(m2);
+    const fromValue = parseFloat(m3);
+    const toValue = parseFloat(m4);
+
+    const contextBefore = block.slice(
+      Math.max(0, match.index - 120),
+      match.index,
+    );
 
     let property = "translateY";
-    if (/translateX\s*[:(]\s*$/.test(contextBefore) || /translateX\s*\(\s*$/.test(contextBefore)) {
+    if (
+      /translateX\s*[:(]\s*$/.test(contextBefore) ||
+      /translateX\s*\(\s*$/.test(contextBefore)
+    ) {
       property = "translateX";
-    } else if (/translateY\s*[:(]\s*$/.test(contextBefore) || /translateY\s*\(\s*$/.test(contextBefore)) {
+    } else if (
+      /translateY\s*[:(]\s*$/.test(contextBefore) ||
+      /translateY\s*\(\s*$/.test(contextBefore)
+    ) {
       property = "translateY";
-    } else if (/scale\s*[:(]\s*$/.test(contextBefore) || /scale\s*\(\s*$/.test(contextBefore)) {
+    } else if (
+      /scale\s*[:(]\s*$/.test(contextBefore) ||
+      /scale\s*\(\s*$/.test(contextBefore)
+    ) {
       property = "scale";
     } else if (/opacity\s*[:(]?\s*$/.test(contextBefore)) {
       property = "opacity";
@@ -186,6 +207,7 @@ function extractSpringTransforms(block: string): AnimationTransform[] {
   let match: RegExpExecArray | null;
   while ((match = springContextRegex.exec(block)) !== null) {
     const property = match[1];
+    if (!property) continue;
     transforms.push({
       property,
       from: 0,
@@ -197,7 +219,9 @@ function extractSpringTransforms(block: string): AnimationTransform[] {
   return transforms;
 }
 
-function parseSequenceBlocks(code: string): Array<{ from: number; duration: number; content: string }> {
+function parseSequenceBlocks(
+  code: string,
+): Array<{ from: number; duration: number; content: string }> {
   const blocks: Array<{ from: number; duration: number; content: string }> = [];
 
   const sequenceRegex =
@@ -208,19 +232,25 @@ function parseSequenceBlocks(code: string): Array<{ from: number; duration: numb
 
   let match: RegExpExecArray | null;
   while ((match = sequenceRegex.exec(code)) !== null) {
-    const from = parseFloat(match[1]);
-    const duration = parseFloat(match[2]);
+    const m1 = match[1];
+    const m2 = match[2];
+    if (!m1 || !m2) continue;
+    const from = parseFloat(m1);
+    const duration = parseFloat(m2);
     const startIdx = match.index + match[0].length;
     const endIdx = findClosingTag(code, startIdx, "Sequence");
     blocks.push({ from, duration, content: code.slice(startIdx, endIdx) });
   }
 
   while ((match = altSequenceRegex.exec(code)) !== null) {
-    const duration = parseFloat(match[1]);
-    const from = parseFloat(match[2]);
+    const m1 = match[1];
+    const m2 = match[2];
+    if (!m1 || !m2) continue;
+    const duration = parseFloat(m1);
+    const from = parseFloat(m2);
     const startIdx = match.index + match[0].length;
     const alreadyFound = blocks.some(
-      (b) => b.from === from && b.duration === duration
+      (b) => b.from === from && b.duration === duration,
     );
     if (!alreadyFound) {
       const endIdx = findClosingTag(code, startIdx, "Sequence");
@@ -231,7 +261,11 @@ function parseSequenceBlocks(code: string): Array<{ from: number; duration: numb
   return blocks;
 }
 
-function findClosingTag(code: string, startIdx: number, tagName: string): number {
+function findClosingTag(
+  code: string,
+  startIdx: number,
+  tagName: string,
+): number {
   let depth = 1;
   let i = startIdx;
   const openPattern = new RegExp(`<${tagName}[\\s>]`);
@@ -251,21 +285,27 @@ function findClosingTag(code: string, startIdx: number, tagName: string): number
     const minIdx = Math.min(openIdx, closeIdx, selfCloseIdx);
     if (minIdx === Infinity) break;
 
-    if (minIdx === closeIdx) {
+    if (minIdx === closeIdx && closeMatch) {
       depth--;
       i += closeIdx + `</${tagName}>`.length;
-    } else if (minIdx === selfCloseIdx) {
-      i += selfCloseIdx + (selfCloseMatch?.[0]?.length ?? 1);
-    } else {
+    } else if (minIdx === selfCloseIdx && selfCloseMatch) {
+      i += selfCloseIdx + selfCloseMatch[0].length;
+    } else if (openMatch) {
       depth++;
-      i += openIdx + (openMatch?.[0]?.length ?? 1);
+      i += openIdx + openMatch[0].length;
+    } else {
+      break;
     }
   }
 
   return i;
 }
 
-function extractStyledElements(block: string, sequenceFrom: number, sequenceDuration: number): ParsedElement[] {
+function extractStyledElements(
+  block: string,
+  sequenceFrom: number,
+  sequenceDuration: number,
+): ParsedElement[] {
   const elements: ParsedElement[] = [];
 
   const styleRegex =
@@ -276,6 +316,7 @@ function extractStyledElements(block: string, sequenceFrom: number, sequenceDura
 
   while ((match = styleRegex.exec(block)) !== null) {
     const styleBlock = match[1];
+    if (!styleBlock) continue;
 
     const top = extractStyleValue(styleBlock, "top");
     const left = extractStyleValue(styleBlock, "left");
@@ -285,7 +326,7 @@ function extractStyledElements(block: string, sequenceFrom: number, sequenceDura
     if (top !== null && left !== null && width !== null && height !== null) {
       const contextAround = block.slice(
         Math.max(0, match.index - 200),
-        Math.min(block.length, match.index + match[0].length + 500)
+        Math.min(block.length, match.index + match[0].length + 500),
       );
 
       const interpolateTransforms = extractInterpolateTransforms(contextAround);
@@ -319,8 +360,8 @@ function buildBoundingBoxes(elements: ParsedElement[]): BoundingBox[] {
 }
 
 function detectOverlaps(
-  boundingBoxes: BoundingBox[],
-  sequenceGroups: Map<number, BoundingBox[]>
+  _boundingBoxes: BoundingBox[],
+  sequenceGroups: Map<number, BoundingBox[]>,
 ): OverlapViolation[] {
   const violations: OverlapViolation[] = [];
 
@@ -329,12 +370,17 @@ function detectOverlaps(
       for (let j = i + 1; j < group.length; j++) {
         const a = group[i];
         const b = group[j];
+        if (!a || !b) continue;
 
         if (rectanglesOverlap(a.animated, b.animated)) {
           const overlapArea = computeOverlapArea(a.animated, b.animated);
           if (overlapArea > 0) {
             const overlapRegion = computeOverlapRegion(a.animated, b.animated);
-            const severity = classifyOverlapSeverity(overlapArea, a.animated, b.animated);
+            const severity = classifyOverlapSeverity(
+              overlapArea,
+              a.animated,
+              b.animated,
+            );
 
             violations.push({
               elementA: a.elementId,
@@ -354,7 +400,7 @@ function detectOverlaps(
 
 function detectOutOfBounds(
   boundingBoxes: BoundingBox[],
-  safeZone: Rect
+  safeZone: Rect,
 ): OverlapViolation[] {
   const violations: OverlapViolation[] = [];
 
@@ -364,11 +410,11 @@ function detectOutOfBounds(
       const clampedLeft = Math.max(box.animated.left, safeZone.left);
       const clampedBottom = Math.min(
         box.animated.top + box.animated.height,
-        safeZone.top + safeZone.height
+        safeZone.top + safeZone.height,
       );
       const clampedRight = Math.min(
         box.animated.left + box.animated.width,
-        safeZone.left + safeZone.width
+        safeZone.left + safeZone.width,
       );
 
       violations.push({
@@ -396,20 +442,24 @@ function buildSummary(violations: OverlapViolation[]): string {
 
   const errors = violations.filter((v) => v.severity === "error");
   const warnings = violations.filter((v) => v.severity === "warning");
-  const oobViolations = violations.filter((v) => v.elementB === "safe-zone-boundary");
-  const overlapViolations = violations.filter((v) => v.elementB !== "safe-zone-boundary");
+  const oobViolations = violations.filter(
+    (v) => v.elementB === "safe-zone-boundary",
+  );
+  const overlapViolations = violations.filter(
+    (v) => v.elementB !== "safe-zone-boundary",
+  );
 
   const parts: string[] = [];
 
   if (overlapViolations.length > 0) {
     parts.push(
-      `${overlapViolations.length} overlap violation(s) detected between sibling elements.`
+      `${overlapViolations.length} overlap violation(s) detected between sibling elements.`,
     );
   }
 
   if (oobViolations.length > 0) {
     parts.push(
-      `${oobViolations.length} element(s) positioned outside the safe zone.`
+      `${oobViolations.length} element(s) positioned outside the safe zone.`,
     );
   }
 
@@ -423,13 +473,9 @@ function buildSummary(violations: OverlapViolation[]): string {
 
   for (const v of violations) {
     if (v.elementB === "safe-zone-boundary") {
-      parts.push(
-        `- ${v.elementA} extends outside the safe zone.`
-      );
+      parts.push(`- ${v.elementA} extends outside the safe zone.`);
     } else {
-      parts.push(
-        `- ${v.elementA} and ${v.elementB} overlap (${v.severity}).`
-      );
+      parts.push(`- ${v.elementA} and ${v.elementB} overlap (${v.severity}).`);
     }
   }
 
@@ -450,7 +496,11 @@ export class BoundingBoxValidator implements LayoutValidator {
 
       const allElements: ParsedElement[] = [];
       for (const block of sequenceBlocks) {
-        const elements = extractStyledElements(block.content, block.from, block.duration);
+        const elements = extractStyledElements(
+          block.content,
+          block.from,
+          block.duration,
+        );
         allElements.push(...elements);
       }
 
@@ -470,6 +520,7 @@ export class BoundingBoxValidator implements LayoutValidator {
       for (let i = 0; i < allElements.length; i++) {
         const el = allElements[i];
         const box = boundingBoxes[i];
+        if (!el || !box) continue;
         const group = sequenceGroups.get(el.sequenceFrom) ?? [];
         group.push(box);
         sequenceGroups.set(el.sequenceFrom, group);
@@ -493,7 +544,9 @@ export class BoundingBoxValidator implements LayoutValidator {
       const message =
         error instanceof Error ? error.message : "Unknown validation error";
       return Result.fail(
-        PipelineError.codeGenerationFailed(`Layout validation failed: ${message}`)
+        PipelineError.codeGenerationFailed(
+          `Layout validation failed: ${message}`,
+        ),
       );
     }
   }
