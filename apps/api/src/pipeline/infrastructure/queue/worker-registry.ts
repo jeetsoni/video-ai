@@ -1,4 +1,4 @@
-import { Worker, type ConnectionOptions, type Job } from "bullmq";
+import { Worker, type Job } from "bullmq";
 import { Redis } from "ioredis";
 import type { PrismaClient } from "@prisma/client";
 import type { Queue } from "bullmq";
@@ -30,7 +30,7 @@ export interface WorkerRegistryConfig {
   prisma: PrismaClient;
   queue: Queue;
   objectStore: ObjectStore;
-  connection: ConnectionOptions;
+  connection: string;
   elevenLabsApiKey: string;
   elevenLabsVoiceId: string;
 }
@@ -57,11 +57,8 @@ export function createWorkerRegistry(
 
   // Service adapters
   const streamingScriptGenerator = new AIStreamingScriptGenerator();
-  const redisClient = new Redis({
-    host: (connection as { host?: string }).host ?? "localhost",
-    port: (connection as { port?: number }).port ?? 6379,
-    password: (connection as { password?: string }).password,
-  });
+  // Use the Redis URL string directly - ioredis parses it correctly including password
+  const redisClient = new Redis(connection);
   const eventPublisher = new RedisStreamEventPublisher(redisClient);
   const ttsService = new ElevenLabsTTSService(
     { apiKey: elevenLabsApiKey },
@@ -131,6 +128,7 @@ export function createWorkerRegistry(
   };
 
   // Single BullMQ Worker that dispatches based on job name (stage)
+  // Use type cast for connection - BullMQ accepts URL strings but types don't reflect this
   const bullWorker = new Worker(
     PIPELINE_QUEUE_NAME,
     async (job: Job<{ jobId: string }>) => {
@@ -146,7 +144,7 @@ export function createWorkerRegistry(
         `[worker] Completed stage: ${job.name} for job: ${job.data.jobId}`,
       );
     },
-    { connection },
+    { connection: connection as unknown as import("bullmq").ConnectionOptions },
   );
 
   bullWorker.on("failed", (job, err) => {

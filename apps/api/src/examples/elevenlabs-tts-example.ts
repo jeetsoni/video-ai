@@ -6,6 +6,7 @@
 import "dotenv/config";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
 import { createWriteStream } from "node:fs";
+import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 const client = new ElevenLabsClient({
@@ -24,7 +25,11 @@ async function main() {
   );
 
   const outputPath = "output.mp3";
-  await pipeline(audioStream, createWriteStream(outputPath));
+  // Convert web ReadableStream to Node.js Readable stream
+  const nodeStream = Readable.fromWeb(
+    audioStream as import("stream/web").ReadableStream,
+  );
+  await pipeline(nodeStream, createWriteStream(outputPath));
 
   console.log(`Audio saved to ${outputPath}`);
 }

@@ -10,7 +10,7 @@ export function createApp(deps?: {
   prisma: PrismaClient;
   queue: Queue;
   objectStore: ObjectStore;
-  redisConnection: { host: string; port: number };
+  redisConnection: string;
   elevenlabsApiKey: string;
 }): express.Express {
   const app = express();

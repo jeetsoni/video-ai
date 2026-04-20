@@ -24,25 +24,9 @@ async function main() {
     `[redis] Connecting to: ${redisUrlStr.replace(/:[^:@]+@/, ":***@")}`,
   );
 
-  const redisUrl = new URL(redisUrlStr);
-  const redisConnection: {
-    host: string;
-    port: number;
-    password?: string;
-    username?: string;
-  } = {
-    host: redisUrl.hostname,
-    port: Number(redisUrl.port) || 6379,
-  };
-
-  // Railway Redis requires authentication (URL format: redis://default:PASSWORD@host:port)
-  if (redisUrl.password) {
-    redisConnection.password = decodeURIComponent(redisUrl.password);
-    console.log(`[redis] Using password authentication`);
-  }
-  if (redisUrl.username && redisUrl.username !== "default") {
-    redisConnection.username = redisUrl.username;
-  }
+  // Pass the full URL string - BullMQ and ioredis both support this
+  // This ensures password and all other options are correctly parsed
+  const redisConnection = redisUrlStr;
 
   // --- MinIO config ---
   const minioEndpoint = process.env["MINIO_ENDPOINT"] ?? "localhost";

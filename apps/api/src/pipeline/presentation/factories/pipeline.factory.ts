@@ -36,7 +36,7 @@ export function createPipelineModule(deps: {
   prisma: PrismaClient;
   queue: Queue;
   objectStore: ObjectStore;
-  redisConnection: { host: string; port: number };
+  redisConnection: string;
   elevenlabsApiKey: string;
 }): Router {
   // 1. Infrastructure
@@ -103,10 +103,8 @@ export function createPipelineModule(deps: {
   );
 
   // 6. Streaming SSE infrastructure
-  const redisClient = new Redis({
-    host: deps.redisConnection.host,
-    port: deps.redisConnection.port,
-  });
+  // Use URL string directly - ioredis parses it including password
+  const redisClient = new Redis(deps.redisConnection);
   const streamEventBuffer = new RedisStreamEventBuffer(redisClient);
   const streamEventSubscriber = new RedisStreamEventSubscriber(redisClient);
   const sseResponseHelper = new ExpressSSEResponseHelper();
@@ -120,10 +118,7 @@ export function createPipelineModule(deps: {
   );
 
   // 8. Progress SSE infrastructure
-  const progressRedisClient = new Redis({
-    host: deps.redisConnection.host,
-    port: deps.redisConnection.port,
-  });
+  const progressRedisClient = new Redis(deps.redisConnection);
   const progressEventSubscriber = new RedisStreamEventSubscriber(
     progressRedisClient,
   );
