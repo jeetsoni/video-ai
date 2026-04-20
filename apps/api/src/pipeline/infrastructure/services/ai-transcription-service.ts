@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { WordTimestamp } from "@video-ai/shared";
 import type { TranscriptionService } from "@/pipeline/application/interfaces/transcription-service.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
@@ -11,7 +11,7 @@ export interface AITranscriptionServiceConfig {
 }
 
 const DEFAULT_CONFIG: AITranscriptionServiceConfig = {
-  model: "gpt-4o-mini",
+  model: "gemini-3-flash-preview",
 };
 
 const TRANSCRIPTION_SYSTEM_PROMPT = [
@@ -27,7 +27,10 @@ export class AITranscriptionService implements TranscriptionService {
   private readonly config: AITranscriptionServiceConfig;
   private readonly objectStore: ObjectStore;
 
-  constructor(objectStore: ObjectStore, config?: Partial<AITranscriptionServiceConfig>) {
+  constructor(
+    objectStore: ObjectStore,
+    config?: Partial<AITranscriptionServiceConfig>,
+  ) {
     this.objectStore = objectStore;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -37,8 +40,12 @@ export class AITranscriptionService implements TranscriptionService {
     scriptText: string;
   }): Promise<Result<WordTimestamp[], PipelineError>> {
     try {
+      const google = createGoogleGenerativeAI({
+        apiKey: process.env["GEMINI_API_KEY"] ?? "",
+      });
+
       const { text } = await generateText({
-        model: openai(this.config.model),
+        model: google(this.config.model),
         system: TRANSCRIPTION_SYSTEM_PROMPT,
         prompt: `Generate word-level timestamps for the following narration script. Assume a natural speaking pace of about 2.5 words per second:\n\n${params.scriptText}`,
         temperature: 0,
@@ -46,20 +53,26 @@ export class AITranscriptionService implements TranscriptionService {
 
       if (!text || text.trim().length === 0) {
         return Result.fail(
-          PipelineError.transcriptionFailed("Transcription returned empty output")
+          PipelineError.transcriptionFailed(
+            "Transcription returned empty output",
+          ),
         );
       }
 
       const timestamps = parseTimestamps(text);
       if (!timestamps) {
         return Result.fail(
-          PipelineError.transcriptionFailed("Failed to parse transcription output as WordTimestamp[]")
+          PipelineError.transcriptionFailed(
+            "Failed to parse transcription output as WordTimestamp[]",
+          ),
         );
       }
 
       if (timestamps.length === 0) {
         return Result.fail(
-          PipelineError.transcriptionFailed("Transcription produced zero words")
+          PipelineError.transcriptionFailed(
+            "Transcription produced zero words",
+          ),
         );
       }
 
@@ -68,7 +81,7 @@ export class AITranscriptionService implements TranscriptionService {
       const message =
         error instanceof Error ? error.message : "Unknown transcription error";
       return Result.fail(
-        PipelineError.transcriptionFailed(`Transcription failed: ${message}`)
+        PipelineError.transcriptionFailed(`Transcription failed: ${message}`),
       );
     }
   }
@@ -77,7 +90,10 @@ export class AITranscriptionService implements TranscriptionService {
 function parseTimestamps(raw: string): WordTimestamp[] | null {
   try {
     // Strip markdown code fences if present
-    const cleaned = raw.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
+    const cleaned = raw
+      .replace(/```(?:json)?\s*/g, "")
+      .replace(/```\s*/g, "")
+      .trim();
     const parsed = JSON.parse(cleaned);
 
     if (!Array.isArray(parsed)) return null;

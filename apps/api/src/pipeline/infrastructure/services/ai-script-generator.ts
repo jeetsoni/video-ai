@@ -1,15 +1,29 @@
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { VideoFormat, SceneBoundary } from "@video-ai/shared";
-import { FORMAT_WORD_RANGES, structuredScriptResponseSchema } from "@video-ai/shared";
-import type { ScriptGenerator, ScriptGenerationResult } from "@/pipeline/application/interfaces/script-generator.js";
+import {
+  FORMAT_WORD_RANGES,
+  structuredScriptResponseSchema,
+} from "@video-ai/shared";
+import type {
+  ScriptGenerator,
+  ScriptGenerationResult,
+} from "@/pipeline/application/interfaces/script-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 
 interface SceneBlock {
   id: number;
   name: string;
-  type: "Hook" | "Analogy" | "Bridge" | "Architecture" | "Spotlight" | "Comparison" | "Power" | "CTA";
+  type:
+    | "Hook"
+    | "Analogy"
+    | "Bridge"
+    | "Architecture"
+    | "Spotlight"
+    | "Comparison"
+    | "Power"
+    | "CTA";
   text: string;
 }
 
@@ -24,12 +38,19 @@ export interface AIScriptGeneratorConfig {
 }
 
 const DEFAULT_CONFIG: AIScriptGeneratorConfig = {
-  model: "gpt-4o",
+  model: "gemini-3-flash-preview",
   temperature: 0.7,
 };
 
 const VALID_SCENE_TYPES = new Set([
-  "Hook", "Analogy", "Bridge", "Architecture", "Spotlight", "Comparison", "Power", "CTA",
+  "Hook",
+  "Analogy",
+  "Bridge",
+  "Architecture",
+  "Spotlight",
+  "Comparison",
+  "Power",
+  "CTA",
 ]);
 
 function getSceneCountRange(format: VideoFormat): { min: number; max: number } {
@@ -55,8 +76,8 @@ function buildSystemPrompt(
     "  - name: a short descriptive name for the scene",
     "  - type: one of Hook, Analogy, Bridge, Architecture, Spotlight, Comparison, Power, CTA",
     "  - text: the spoken narration text for that scene",
-    "- The FIRST scene MUST have type \"Hook\".",
-    "- The LAST scene MUST have type \"CTA\".",
+    '- The FIRST scene MUST have type "Hook".',
+    '- The LAST scene MUST have type "CTA".',
     "- The full script field must equal the concatenation of all scene text fields joined by a single space.",
     "- Use clear, conversational language suitable for voiceover narration.",
     "- Do NOT include stage directions, scene markers, or formatting in the text — output only the spoken narration text.",
@@ -83,8 +104,12 @@ export class AIScriptGenerator implements ScriptGenerator {
     const sceneRange = getSceneCountRange(params.format);
 
     try {
+      const google = createGoogleGenerativeAI({
+        apiKey: process.env["GEMINI_API_KEY"] ?? "",
+      });
+
       const { object } = await generateObject({
-        model: openai(this.config.model),
+        model: google(this.config.model),
         schema: structuredScriptResponseSchema,
         system: buildSystemPrompt(wordRange, sceneRange),
         prompt: params.topic,
@@ -95,7 +120,9 @@ export class AIScriptGenerator implements ScriptGenerator {
 
       if (!script || script.trim().length === 0) {
         return Result.fail(
-          PipelineError.scriptGenerationFailed("LLM returned empty script output")
+          PipelineError.scriptGenerationFailed(
+            "LLM returned empty script output",
+          ),
         );
       }
 
@@ -103,8 +130,8 @@ export class AIScriptGenerator implements ScriptGenerator {
       if (sceneBlocks.length < 2 || sceneBlocks.length > 15) {
         return Result.fail(
           PipelineError.scriptGenerationFailed(
-            `Invalid scene count: ${sceneBlocks.length}. Expected between 2 and 15.`
-          )
+            `Invalid scene count: ${sceneBlocks.length}. Expected between 2 and 15.`,
+          ),
         );
       }
 
@@ -113,8 +140,8 @@ export class AIScriptGenerator implements ScriptGenerator {
         if (!VALID_SCENE_TYPES.has(scene.type)) {
           return Result.fail(
             PipelineError.scriptGenerationFailed(
-              `Invalid scene type: "${scene.type}" in scene ${scene.id}`
-            )
+              `Invalid scene type: "${scene.type}" in scene ${scene.id}`,
+            ),
           );
         }
       }
@@ -139,9 +166,13 @@ export class AIScriptGenerator implements ScriptGenerator {
       return Result.ok({ script: canonicalScript, scenes });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unknown script generation error";
+        error instanceof Error
+          ? error.message
+          : "Unknown script generation error";
       return Result.fail(
-        PipelineError.scriptGenerationFailed(`Script generation failed: ${message}`)
+        PipelineError.scriptGenerationFailed(
+          `Script generation failed: ${message}`,
+        ),
       );
     }
   }

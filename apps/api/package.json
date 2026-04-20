@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",
-    "@ai-sdk/openai": "^3.0.53",
     "@aws-sdk/client-s3": "^3.1031.0",
     "@aws-sdk/s3-request-presigner": "^3.1031.0",
     "@elevenlabs/elevenlabs-js": "^2.43.0",

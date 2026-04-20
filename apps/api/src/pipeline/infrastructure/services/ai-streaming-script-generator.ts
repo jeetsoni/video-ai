@@ -1,11 +1,9 @@
 import { streamObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import type { VideoFormat, SceneBoundary } from "@video-ai/shared";
 import { FORMAT_WORD_RANGES, sceneBlockSchema } from "@video-ai/shared";
-import type {
-  StreamingScriptGenerator,
-} from "@/pipeline/application/interfaces/streaming-script-generator.js";
+import type { StreamingScriptGenerator } from "@/pipeline/application/interfaces/streaming-script-generator.js";
 import type { ScriptGenerationResult } from "@/pipeline/application/interfaces/script-generator.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
@@ -31,13 +29,19 @@ export interface AIStreamingScriptGeneratorConfig {
 }
 
 const DEFAULT_CONFIG: AIStreamingScriptGeneratorConfig = {
-  model: "gpt-4o",
+  model: "gemini-3-flash-preview",
   temperature: 0.7,
 };
 
 const VALID_SCENE_TYPES = new Set([
-  "Hook", "Analogy", "Bridge", "Architecture",
-  "Spotlight", "Comparison", "Power", "CTA",
+  "Hook",
+  "Analogy",
+  "Bridge",
+  "Architecture",
+  "Spotlight",
+  "Comparison",
+  "Power",
+  "CTA",
 ]);
 
 function getSceneCountRange(format: VideoFormat): { min: number; max: number } {
@@ -69,8 +73,8 @@ function buildSystemPrompt(
     "  - name: a short descriptive name for the scene",
     "  - type: one of Hook, Analogy, Bridge, Architecture, Spotlight, Comparison, Power, CTA",
     "  - text: the spoken narration text for that scene",
-    "- The FIRST scene MUST have type \"Hook\".",
-    "- The LAST scene MUST have type \"CTA\".",
+    '- The FIRST scene MUST have type "Hook".',
+    '- The LAST scene MUST have type "CTA".',
     "- Use clear, conversational language suitable for voiceover narration.",
     "- Do NOT include stage directions, scene markers, or formatting in the text — output only the spoken narration text.",
     "- Do NOT include any markdown formatting.",
@@ -81,7 +85,9 @@ function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function isCompleteScene(scene: Partial<SceneBlock> | undefined): scene is SceneBlock {
+function isCompleteScene(
+  scene: Partial<SceneBlock> | undefined,
+): scene is SceneBlock {
   if (!scene) return false;
   return (
     typeof scene.id === "number" &&
@@ -113,8 +119,12 @@ export class AIStreamingScriptGenerator implements StreamingScriptGenerator {
     const sceneRange = getSceneCountRange(params.format);
 
     try {
+      const google = createGoogleGenerativeAI({
+        apiKey: process.env["GEMINI_API_KEY"] ?? "",
+      });
+
       const { partialObjectStream, object: objectPromise } = streamObject({
-        model: openai(this.config.model),
+        model: google(this.config.model),
         schema: streamingScriptSchema,
         system: buildSystemPrompt(wordRange, sceneRange),
         prompt: params.topic,
@@ -208,12 +218,17 @@ export class AIStreamingScriptGenerator implements StreamingScriptGenerator {
         sceneBlocks.map((s: SceneBlock) => s.text).join(" "),
       );
 
-      const result: ScriptGenerationResult = { script: canonicalScript, scenes };
+      const result: ScriptGenerationResult = {
+        script: canonicalScript,
+        scenes,
+      };
       params.onDone(result);
       return Result.ok(result);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unknown script generation error";
+        error instanceof Error
+          ? error.message
+          : "Unknown script generation error";
       const pipelineError = PipelineError.scriptGenerationFailed(
         `Script generation failed: ${message}`,
       );
