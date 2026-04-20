@@ -26,31 +26,61 @@ export class CodeGenerationWorker {
 
     const sceneDirections = pipelineJob.sceneDirections;
     if (!sceneDirections) {
-      pipelineJob.markFailed("code_generation_failed", `Pipeline job ${jobId} has no scene directions`);
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        `Pipeline job ${jobId} has no scene directions`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Pipeline job ${jobId} has no scene directions`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "code_generation_failed",
+        `Pipeline job ${jobId} has no scene directions`,
+      );
       throw new Error(`Pipeline job ${jobId} has no scene directions`);
     }
 
-    const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
+    const theme = ANIMATION_THEMES.find(
+      (t) => t.id === pipelineJob.themeId.value,
+    );
     if (!theme) {
-      pipelineJob.markFailed("code_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
-      throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "code_generation_failed",
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
+      throw new Error(
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
     }
 
     const layoutProfile = getLayoutProfile("faceless");
 
     // Generate code for all scenes in parallel, emitting progress as each completes
-    const sceneCodes: (string | null)[] = new Array(sceneDirections.length).fill(null);
+    const sceneCodes: (string | null)[] = new Array(
+      sceneDirections.length,
+    ).fill(null);
 
     const results = await Promise.allSettled(
       sceneDirections.map(async (scene, index) => {
         // Emit "generating" event for this scene
         await this.publishSceneProgress(jobId, scene, "generating");
 
-        const result = await this.codeGenerator.generateSceneCode({ scene, theme, layoutProfile });
+        const result = await this.codeGenerator.generateSceneCode({
+          scene,
+          theme,
+          layoutProfile,
+        });
 
         if (result.isFailure) {
           await this.publishSceneProgress(jobId, scene, "failed");
@@ -64,7 +94,7 @@ export class CodeGenerationWorker {
         await this.publishSceneProgress(jobId, scene, "completed", code);
 
         return code;
-      })
+      }),
     );
 
     // Check for failures
@@ -73,17 +103,29 @@ export class CodeGenerationWorker {
       const result = results[i]!;
       if (result.status === "rejected") {
         const reason = result.reason;
-        const errorMsg = reason instanceof Error ? reason.message : String(reason);
+        const errorMsg =
+          reason instanceof Error ? reason.message : String(reason);
         pipelineJob.markFailed("code_generation_failed", errorMsg);
         await this.jobRepository.save(pipelineJob);
-        await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", errorMsg);
+        await this.publishProgressEvent(
+          jobId,
+          pipelineJob.stage.value,
+          "failed",
+          pipelineJob.progressPercent,
+          "code_generation_failed",
+          errorMsg,
+        );
         throw reason;
       }
       finalCodes.push(result.value);
     }
 
     // Compose the final component that renders all scenes
-    const composedCode = composeSceneComponents(finalCodes, sceneDirections, theme);
+    const composedCode = composeSceneComponents(
+      finalCodes,
+      sceneDirections,
+      theme,
+    );
 
     const uploadResult = await this.objectStore.upload({
       key: `code/${jobId}.tsx`,
@@ -92,9 +134,19 @@ export class CodeGenerationWorker {
     });
 
     if (uploadResult.isFailure) {
-      pipelineJob.markFailed("code_generation_failed", uploadResult.getError().message);
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        uploadResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", uploadResult.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "code_generation_failed",
+        uploadResult.getError().message,
+      );
       throw uploadResult.getError();
     }
 
@@ -102,22 +154,51 @@ export class CodeGenerationWorker {
 
     const setCodeResult = pipelineJob.setGeneratedCode(composedCode, codePath);
     if (setCodeResult.isFailure) {
-      pipelineJob.markFailed("code_generation_failed", setCodeResult.getError().message);
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        setCodeResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", setCodeResult.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "code_generation_failed",
+        setCodeResult.getError().message,
+      );
       throw setCodeResult.getError();
     }
 
     const transitionResult = pipelineJob.transitionTo("preview");
     if (transitionResult.isFailure) {
-      pipelineJob.markFailed("code_generation_failed", transitionResult.getError().message);
+      pipelineJob.markFailed(
+        "code_generation_failed",
+        transitionResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "code_generation_failed", transitionResult.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "code_generation_failed",
+        transitionResult.getError().message,
+      );
       throw transitionResult.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
-    await this.publishProgressEvent(jobId, pipelineJob.stage.value, pipelineJob.status.value, pipelineJob.progressPercent);
+    await this.eventPublisher.markComplete(
+      `stream:buffer:scene-progress:${jobId}`,
+      3600,
+    );
+    await this.publishProgressEvent(
+      jobId,
+      pipelineJob.stage.value,
+      pipelineJob.status.value,
+      pipelineJob.progressPercent,
+    );
   }
 
   private async publishSceneProgress(
@@ -142,6 +223,9 @@ export class CodeGenerationWorker {
       },
     };
     await this.eventPublisher.publish(`stream:progress:${jobId}`, { ...event });
+    await this.eventPublisher.buffer(`stream:buffer:scene-progress:${jobId}`, {
+      ...event,
+    });
   }
 
   private async publishProgressEvent(
@@ -172,18 +256,23 @@ export class CodeGenerationWorker {
  * The code evaluator uses new Function() which doesn't support ES modules.
  */
 function stripModuleStatements(code: string): string {
-  return code
-    // Remove import statements (handles multiple on same line and multiline)
-    .replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g, "")
-    // Remove simple import side-effect statements like: import "module";
-    .replace(/import\s+["'][^"']+["'];?/g, "")
-    // Remove export default
-    .replace(/export\s+default\s+/g, "")
-    // Remove named exports
-    .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
-    // Remove destructuring from React that tries to get Remotion globals
-    .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
-    .trim();
+  return (
+    code
+      // Remove import statements (handles multiple on same line and multiline)
+      .replace(
+        /import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g,
+        "",
+      )
+      // Remove simple import side-effect statements like: import "module";
+      .replace(/import\s+["'][^"']+["'];?/g, "")
+      // Remove export default
+      .replace(/export\s+default\s+/g, "")
+      // Remove named exports
+      .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
+      // Remove destructuring from React that tries to get Remotion globals
+      .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
+      .trim()
+  );
 }
 
 /**
@@ -199,16 +288,21 @@ function composeSceneComponents(
   // We rename them to Scene1, Scene2, etc. and compose them.
   const renamedScenes = sceneCodes.map((code, i) => {
     const cleaned = stripModuleStatements(code);
-    return cleaned.replace(/function\s+Main\s*\(\s*\{\s*scene\s*\}\s*\)/, `function Scene${i + 1}({ scene })`);
+    return cleaned.replace(
+      /function\s+Main\s*\(\s*\{\s*scene\s*\}\s*\)/,
+      `function Scene${i + 1}({ scene })`,
+    );
   });
 
   const sceneImports = renamedScenes.join("\n\n");
 
-  const sceneRenderers = scenes.map((scene, i) => {
-    return `      <Sequence key={${scene.id}} from={${scene.startFrame}} durationInFrames={${scene.durationFrames}}>
+  const sceneRenderers = scenes
+    .map((scene, i) => {
+      return `      <Sequence key={${scene.id}} from={${scene.startFrame}} durationInFrames={${scene.durationFrames}}>
         <Scene${i + 1} scene={scenePlan.scenes[${i}]} />
       </Sequence>`;
-  }).join("\n");
+    })
+    .join("\n");
 
   return `${sceneImports}
 

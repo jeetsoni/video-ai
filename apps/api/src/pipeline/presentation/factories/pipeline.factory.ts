@@ -70,14 +70,8 @@ export function createPipelineModule(deps: {
     queueService,
   );
   const codeAutoFixer = new AICodeAutoFixer();
-  const autofixCodeUseCase = new AutofixCodeUseCase(
-    repository,
-    codeAutoFixer,
-  );
-  const retryJobUseCase = new RetryJobUseCase(
-    repository,
-    queueService,
-  );
+  const autofixCodeUseCase = new AutofixCodeUseCase(repository, codeAutoFixer);
+  const retryJobUseCase = new RetryJobUseCase(repository, queueService);
   const getPreviewDataUseCase = new GetPreviewDataUseCase(
     repository,
     deps.objectStore,
@@ -139,6 +133,7 @@ export function createPipelineModule(deps: {
     progressEventSubscriber,
     sseResponseHelper,
     repository,
+    streamEventBuffer,
   );
 
   // 10. Voice preview

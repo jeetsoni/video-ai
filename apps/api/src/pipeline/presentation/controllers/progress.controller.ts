@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type {
   StreamEventSubscriber,
+  StreamEventBuffer,
   SSEResponseHelper,
 } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
@@ -17,21 +18,25 @@ export class ProgressController {
     private readonly subscriber: StreamEventSubscriber,
     private readonly sseHelper: SSEResponseHelper,
     private readonly jobRepository: PipelineJobRepository,
+    private readonly buffer: StreamEventBuffer,
   ) {}
 
   async streamProgress(req: Request, res: Response): Promise<void> {
     const id = req.params.id as string;
 
     if (!id || !UUID_REGEX.test(id)) {
-      res
-        .status(400)
-        .json({ error: "INVALID_INPUT", message: "Job ID must be a valid UUID" });
+      res.status(400).json({
+        error: "INVALID_INPUT",
+        message: "Job ID must be a valid UUID",
+      });
       return;
     }
 
     const job = await this.jobRepository.findById(id);
     if (!job) {
-      res.status(404).json({ error: "NOT_FOUND", message: `Job ${id} not found` });
+      res
+        .status(404)
+        .json({ error: "NOT_FOUND", message: `Job ${id} not found` });
       return;
     }
 
@@ -54,6 +59,20 @@ export class ProgressController {
     if (isTerminalStatus(job.status.value)) {
       res.end();
       return;
+    }
+
+    // Replay buffered scene progress events on reconnect during code_generation
+    if (job.stage.value === "code_generation") {
+      const bufferKey = `stream:buffer:scene-progress:${id}`;
+      const bufferedEvents = await this.buffer.getAll(bufferKey);
+
+      for (const raw of bufferedEvents) {
+        const parsed = JSON.parse(raw);
+        this.sseHelper.sendEvent(res, {
+          type: "progress",
+          data: parsed,
+        });
+      }
     }
 
     const channel = `stream:progress:${id}`;
