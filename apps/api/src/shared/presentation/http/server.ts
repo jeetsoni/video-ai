@@ -22,10 +22,14 @@ async function main() {
   const redisUrl = new URL(
     process.env["REDIS_URL"] ?? "redis://localhost:6379",
   );
-  const redisConnection = {
+  const redisConnection: { host: string; port: number; password?: string } = {
     host: redisUrl.hostname,
     port: Number(redisUrl.port) || 6379,
   };
+  // Railway Redis requires authentication
+  if (redisUrl.password) {
+    redisConnection.password = redisUrl.password;
+  }
 
   // --- MinIO config ---
   const minioEndpoint = process.env["MINIO_ENDPOINT"] ?? "localhost";
