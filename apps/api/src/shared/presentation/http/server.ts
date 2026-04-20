@@ -19,16 +19,29 @@ async function main() {
   const port = process.env["API_PORT"] ?? 4000;
 
   // --- Redis connection ---
-  const redisUrl = new URL(
-    process.env["REDIS_URL"] ?? "redis://localhost:6379",
+  const redisUrlStr = process.env["REDIS_URL"] ?? "redis://localhost:6379";
+  console.log(
+    `[redis] Connecting to: ${redisUrlStr.replace(/:[^:@]+@/, ":***@")}`,
   );
-  const redisConnection: { host: string; port: number; password?: string } = {
+
+  const redisUrl = new URL(redisUrlStr);
+  const redisConnection: {
+    host: string;
+    port: number;
+    password?: string;
+    username?: string;
+  } = {
     host: redisUrl.hostname,
     port: Number(redisUrl.port) || 6379,
   };
-  // Railway Redis requires authentication
+
+  // Railway Redis requires authentication (URL format: redis://default:PASSWORD@host:port)
   if (redisUrl.password) {
-    redisConnection.password = redisUrl.password;
+    redisConnection.password = decodeURIComponent(redisUrl.password);
+    console.log(`[redis] Using password authentication`);
+  }
+  if (redisUrl.username && redisUrl.username !== "default") {
+    redisConnection.username = redisUrl.username;
   }
 
   // --- MinIO config ---
