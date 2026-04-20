@@ -99,3 +99,14 @@ export type {
 } from "./types/pipeline-progress.types.js";
 
 export { isTerminalStatus } from "./types/pipeline-progress.types.js";
+
+export type { SfxProfile, SfxAssetDefinition } from "./sfx/sfx-library.js";
+
+export {
+  SCENE_SFX_MAP,
+  SFX_AMBIENT_ASSETS,
+  SFX_TRANSITION_ASSETS,
+  SFX_UTILITY_ASSETS,
+  ALL_SFX_ASSETS,
+  ALL_SFX_FILENAMES,
+} from "./sfx/sfx-library.js";

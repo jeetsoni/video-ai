@@ -95,7 +95,7 @@ export interface AICodeGeneratorConfig {
 }
 
 const DEFAULT_CONFIG: AICodeGeneratorConfig = {
-  model: "gemini-3-flash-preview",
+  model: "gemini-3.1-pro-preview",
   temperature: 0.4,
   maxRetries: 2,
 };
