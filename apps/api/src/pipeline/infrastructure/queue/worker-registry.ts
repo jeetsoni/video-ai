@@ -128,7 +128,10 @@ export function createWorkerRegistry(
   };
 
   // Single BullMQ Worker that dispatches based on job name (stage)
-  // Use type cast for connection - BullMQ accepts URL strings but types don't reflect this
+  // BullMQ requires an ioredis instance - create one from the URL string
+  const workerRedisClient = new Redis(connection, {
+    maxRetriesPerRequest: null,
+  });
   const bullWorker = new Worker(
     PIPELINE_QUEUE_NAME,
     async (job: Job<{ jobId: string }>) => {
@@ -144,7 +147,7 @@ export function createWorkerRegistry(
         `[worker] Completed stage: ${job.name} for job: ${job.data.jobId}`,
       );
     },
-    { connection: connection as unknown as import("bullmq").ConnectionOptions },
+    { connection: workerRedisClient },
   );
 
   bullWorker.on("failed", (job, err) => {
@@ -161,6 +164,7 @@ export function createWorkerRegistry(
   return {
     async close(): Promise<void> {
       await bullWorker.close();
+      await workerRedisClient.quit();
       await redisClient.quit();
     },
   };

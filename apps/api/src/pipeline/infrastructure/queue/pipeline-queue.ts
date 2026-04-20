@@ -1,4 +1,5 @@
 import { Queue } from "bullmq";
+import { Redis } from "ioredis";
 import type { PipelineStage } from "@video-ai/shared";
 
 export const PIPELINE_QUEUE_NAME = "pipeline";
@@ -45,8 +46,11 @@ export function isProcessingStage(
   return !NON_PROCESSING_STAGES.has(stage);
 }
 
-export function createPipelineQueue(connection: string): Queue {
+export function createPipelineQueue(connectionUrl: string): Queue {
+  // BullMQ requires an ioredis instance or connection options object
+  // Create ioredis client from URL string - it parses password correctly
+  const redisClient = new Redis(connectionUrl, { maxRetriesPerRequest: null });
   return new Queue(PIPELINE_QUEUE_NAME, {
-    connection: connection as unknown as import("bullmq").ConnectionOptions,
+    connection: redisClient,
   });
 }
