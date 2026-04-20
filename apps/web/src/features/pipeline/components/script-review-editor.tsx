@@ -8,20 +8,32 @@ import {
   Clock,
   BarChart3,
   Gauge,
+  Volume2,
+  Square,
+  Loader2,
 } from "lucide-react";
-import type { VideoFormat, SceneBoundary } from "@video-ai/shared";
-import { FORMAT_WORD_RANGES } from "@video-ai/shared";
+import type { VideoFormat, SceneBoundary, VoiceEntry, VoiceSettings } from "@video-ai/shared";
+import { FORMAT_WORD_RANGES, DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
+import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
+import { VoiceSelector } from "./voice-selector";
+import { VoiceSettingsControls } from "./voice-settings-controls";
+import { useVoiceSettingsPreview } from "../hooks/use-voice-settings-preview";
 
 interface ScriptReviewEditorProps {
   script: string;
   format: VideoFormat;
-  onApprove: (editedScript?: string, scenes?: SceneBoundary[]) => void;
+  onApprove: (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => void;
   onRegenerate: () => void;
   isLoading?: boolean;
   topic?: string;
   scenes?: SceneBoundary[];
+  /** Voice data for the compact voice panel */
+  voices?: VoiceEntry[];
+  voicesLoading?: boolean;
+  initialVoiceId?: string;
+  initialVoiceSettings?: VoiceSettings;
 }
 
 function countWords(text: string): number {
@@ -276,15 +288,69 @@ function MetricItem({
         <Icon className="size-3" />
         {label}
       </p>
-      <p className="text-xl font-bold tracking-tight text-on-surface">
+      <p className="text-lg font-bold tracking-tight text-on-surface">
         {value}
       </p>
     </div>
   );
 }
 
-/* ─── Insights Sidebar (no suggestion card) ─── */
-function InsightsSidebar({
+/* ─── Narration Panel ─── */
+function NarrationPanel({
+  voices,
+  voicesLoading,
+  voiceId,
+  voiceSettings,
+  onVoiceChange,
+  onSettingsChange,
+}: {
+  voices: VoiceEntry[];
+  voicesLoading: boolean;
+  voiceId: string;
+  voiceSettings: VoiceSettings;
+  onVoiceChange: (id: string) => void;
+  onSettingsChange: (settings: VoiceSettings) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+        Narration
+      </h2>
+
+      {/* Voice selector — constrained height */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/80">
+          Voice
+        </label>
+        <div className="**:[[role=listbox]]:max-h-36">
+          <VoiceSelector
+            voices={voices}
+            selectedVoiceId={voiceId}
+            onSelect={onVoiceChange}
+            isLoading={voicesLoading}
+          />
+        </div>
+      </div>
+
+      {/* Voice settings — compact mode */}
+      <div className="space-y-1.5">
+        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/80">
+          Tuning
+        </label>
+        <VoiceSettingsControls
+          value={voiceSettings}
+          onChange={onSettingsChange}
+          voiceId={voiceId}
+          compact
+          showPreview={false}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Insights Panel ─── */
+function InsightsPanel({
   wordCount,
   scenes,
   format,
@@ -310,60 +376,58 @@ function InsightsSidebar({
   });
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col gap-8 border-l border-outline-variant bg-surface-container-low p-8">
-      <div className="space-y-6">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
-          Insights
-        </h2>
+    <div className="space-y-5">
+      <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+        Insights
+      </h2>
 
-        <div className="space-y-4">
-          <MetricItem icon={Clock} label="Duration" value={duration} />
-          <MetricItem icon={BarChart3} label="Tone" value={tone} />
-          <MetricItem icon={Gauge} label="Complexity" value={complexity} />
-          <div className="group cursor-default">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-              Word Count
-            </p>
-            <p
-              className={cn(
-                "text-xl font-bold tracking-tight",
-                wordCount < range.min || wordCount > range.max
-                  ? "text-destructive"
-                  : "text-on-surface",
-              )}
-            >
-              {wordCount}{" "}
-              <span className="text-sm font-normal text-on-surface-variant">
-                / {range.min}–{range.max}
-              </span>
-            </p>
+      <div className="space-y-4">
+        <MetricItem icon={Clock} label="Duration" value={duration} />
+        <MetricItem icon={BarChart3} label="Tone" value={tone} />
+        <MetricItem icon={Gauge} label="Complexity" value={complexity} />
+        <div className="group cursor-default">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
+            Word Count
+          </p>
+          <p
+            className={cn(
+              "text-lg font-bold tracking-tight",
+              wordCount < range.min || wordCount > range.max
+                ? "text-destructive"
+                : "text-on-surface",
+            )}
+          >
+            {wordCount}{" "}
+            <span className="text-sm font-normal text-on-surface-variant">
+              / {range.min}–{range.max}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {sceneDensity.length > 1 && (
+        <div className="space-y-3 pt-4">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+            Density
+          </h3>
+          <div className="space-y-3">
+            {sceneDensity.map((s) => (
+              <DensityBar
+                key={s.label}
+                label={
+                  s.label
+                    .replace(/^Scene\s*\d+\s*[:\-–—•]\s*/i, "")
+                    .trim() || s.label
+                }
+                value={s.words}
+                maxValue={totalWords}
+                duration={s.duration}
+              />
+            ))}
           </div>
         </div>
-
-        {sceneDensity.length > 1 && (
-          <div className="space-y-4 pt-8">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
-              Density
-            </h3>
-            <div className="space-y-4">
-              {sceneDensity.map((s) => (
-                <DensityBar
-                  key={s.label}
-                  label={
-                    s.label
-                      .replace(/^Scene\s*\d+\s*[:\-–—•]\s*/i, "")
-                      .trim() || s.label
-                  }
-                  value={s.words}
-                  maxValue={totalWords}
-                  duration={s.duration}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </aside>
+      )}
+    </div>
   );
 }
 
@@ -378,10 +442,62 @@ export function ScriptReviewEditor({
   isLoading = false,
   topic,
   scenes: apiScenes,
+  voices = [],
+  voicesLoading = false,
+  initialVoiceId,
+  initialVoiceSettings,
 }: ScriptReviewEditorProps) {
   const [editedScript, setEditedScript] = useState(script);
   /** Track edited scene bodies when using API scenes */
   const [editedSceneBodies, setEditedSceneBodies] = useState<Map<number, string>>(new Map());
+  const [voiceId, setVoiceId] = useState(initialVoiceId ?? "");
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(
+    initialVoiceSettings ?? DEFAULT_VOICE_SETTINGS,
+  );
+
+  // Voice preview hook — uses actual script text
+  const { pipelineRepository } = useAppDependencies();
+  const {
+    isLoading: previewLoading,
+    isPlaying: previewPlaying,
+    error: previewError,
+    cooldownRemaining,
+    requestPreview,
+    stopPlayback,
+  } = useVoiceSettingsPreview(pipelineRepository);
+
+  /** Extract the first sentence from the script for preview */
+  const previewText = useMemo(() => {
+    const text = editedScript.trim();
+    if (!text) return undefined;
+    // Match first sentence ending with . ! or ? (up to 300 chars)
+    const match = text.match(/^.+?[.!?](?:\s|$)/s);
+    const sentence = match ? match[0].trim() : text.slice(0, 150);
+    return sentence.slice(0, 300);
+  }, [editedScript]);
+
+  const handlePreviewClick = useCallback(() => {
+    if (previewPlaying) {
+      stopPlayback();
+    } else {
+      requestPreview({ voiceId: voiceId || undefined, voiceSettings, text: previewText });
+    }
+  }, [previewPlaying, stopPlayback, requestPreview, voiceId, voiceSettings, previewText]);
+
+  const previewDisabled = previewLoading || cooldownRemaining > 0;
+
+  // Default to the first available voice when the initial voice
+  // doesn't exist in the fetched voice list.
+  useEffect(() => {
+    if (voices.length > 0 && voiceId) {
+      const ids = new Set(voices.map((v) => v.voiceId));
+      if (!ids.has(voiceId)) {
+        setVoiceId(voices[0]!.voiceId);
+      }
+    } else if (voices.length > 0 && !voiceId) {
+      setVoiceId(voices[0]!.voiceId);
+    }
+  }, [voices]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync editedScript with the script prop when it changes (e.g. during streaming).
   // useState only captures the initial value, so without this effect the editor
@@ -461,16 +577,16 @@ export function ScriptReviewEditor({
             }))
             .filter((s) => s.text.trim().length > 0)
         : undefined;
-      onApprove(scriptToSend, reconstructedScenes);
+      onApprove(scriptToSend, reconstructedScenes, voiceId || undefined, voiceSettings);
     } else {
-      onApprove(scriptToSend);
+      onApprove(scriptToSend, undefined, voiceId || undefined, voiceSettings);
     }
-  }, [onApprove, isEdited, editedScript, apiScenes, editedSceneBodies]);
+  }, [onApprove, isEdited, editedScript, apiScenes, editedSceneBodies, voiceId, voiceSettings]);
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="mb-10 flex items-end justify-between">
+      <div className="mb-6 flex items-end justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded bg-secondary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-secondary">
@@ -510,12 +626,63 @@ export function ScriptReviewEditor({
         </div>
       </div>
 
-      {/* Editor + Sidebar */}
-      <div className="flex flex-1 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low shadow-ambient-lg">
-        {/* Editor Canvas — inline editable */}
-        <div className="flex flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto bg-surface-container-low">
-            <div className="mx-auto max-w-2xl space-y-10 p-16">
+      {/* 3-column Layout: Editor | Narration | Insights */}
+      <div className="flex flex-1 gap-6 overflow-hidden">
+        {/* Left: Script Editor (50%) */}
+        <div className="flex w-1/2 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low shadow-ambient-lg">
+          {/* Editor toolbar */}
+          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-high/30 px-6 py-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+              Script
+            </span>
+            <div className="flex items-center gap-2">
+              {previewError && (
+                <span className="text-[10px] text-destructive">{previewError}</span>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={(previewDisabled && !previewPlaying) || !previewText}
+                onClick={handlePreviewClick}
+                className="gap-1.5 text-xs h-7 px-3"
+                aria-label={
+                  previewPlaying
+                    ? "Stop preview"
+                    : previewLoading
+                      ? "Generating preview"
+                      : cooldownRemaining > 0
+                        ? `Wait ${cooldownRemaining} seconds`
+                        : "Preview narration"
+                }
+              >
+                {previewLoading && (
+                  <>
+                    <Loader2 className="size-3 animate-spin" />
+                    <span>Generating…</span>
+                  </>
+                )}
+                {previewPlaying && (
+                  <>
+                    <Square className="size-3" />
+                    <span>Stop</span>
+                  </>
+                )}
+                {!previewLoading && !previewPlaying && cooldownRemaining > 0 && (
+                  <span>Wait {cooldownRemaining}s</span>
+                )}
+                {!previewLoading && !previewPlaying && cooldownRemaining === 0 && (
+                  <>
+                    <Volume2 className="size-3" />
+                    <span>Preview</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-10 px-10 py-10">
               {scenes.map((scene, i) => (
                 <EditableSceneBlock
                   key={i}
@@ -529,7 +696,7 @@ export function ScriptReviewEditor({
             </div>
           </div>
 
-          {/* Word count status bar — pinned below the scroll area */}
+          {/* Word count status bar */}
           <div className="border-t border-outline-variant bg-surface-container-high/30 px-8 py-3">
             <div className="flex items-center justify-between text-xs">
               <span
@@ -571,12 +738,26 @@ export function ScriptReviewEditor({
           </div>
         </div>
 
-        {/* Insights Sidebar */}
-        <InsightsSidebar
-          wordCount={wordCount}
-          scenes={scenes}
-          format={format}
-        />
+        {/* Middle: Narration (25%) */}
+        <div className="flex w-1/4 flex-col overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-low p-5 shadow-ambient-lg">
+          <NarrationPanel
+            voices={voices}
+            voicesLoading={voicesLoading}
+            voiceId={voiceId}
+            voiceSettings={voiceSettings}
+            onVoiceChange={setVoiceId}
+            onSettingsChange={setVoiceSettings}
+          />
+        </div>
+
+        {/* Right: Insights (25%) */}
+        <div className="flex w-1/4 flex-col overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-low p-6 shadow-ambient-lg">
+          <InsightsPanel
+            wordCount={wordCount}
+            scenes={scenes}
+            format={format}
+          />
+        </div>
       </div>
     </div>
   );

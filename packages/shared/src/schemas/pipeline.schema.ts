@@ -35,6 +35,8 @@ export const sceneBlockSchema = z.object({
 export const approveScriptSchema = z.object({
   script: z.string().optional(),
   scenes: z.array(sceneBlockSchema).optional(),
+  voiceId: z.string().min(1).optional(),
+  voiceSettings: voiceSettingsSchema.optional(),
   action: z.literal("approve"),
 });
 
@@ -79,4 +81,5 @@ export const structuredScriptResponseSchema = z.object({
 export const voicePreviewSchema = z.object({
   voiceId: z.string().optional(),
   voiceSettings: voiceSettingsSchema,
+  text: z.string().min(1).max(500).optional(),
 });

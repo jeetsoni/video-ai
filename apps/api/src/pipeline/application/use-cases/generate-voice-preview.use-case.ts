@@ -8,16 +8,17 @@ export const SAMPLE_TEXT =
   "Here is a preview of how your voice settings will sound in the final video.";
 
 export class GenerateVoicePreviewUseCase
-  implements UseCase<{ voiceId?: string; voiceSettings: VoiceSettings }, Result<Buffer, PipelineError>>
+  implements UseCase<{ voiceId?: string; voiceSettings: VoiceSettings; text?: string }, Result<Buffer, PipelineError>>
 {
   constructor(private readonly ttsService: TTSService) {}
 
   async execute(request: {
     voiceId?: string;
     voiceSettings: VoiceSettings;
+    text?: string;
   }): Promise<Result<Buffer, PipelineError>> {
     return this.ttsService.generatePreview({
-      text: SAMPLE_TEXT,
+      text: request.text || SAMPLE_TEXT,
       voiceId: request.voiceId ?? "",
       voiceSettings: request.voiceSettings,
     });

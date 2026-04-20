@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect } from "react";
-import type { SceneBoundary } from "@video-ai/shared";
+import { useCallback, useEffect, useState } from "react";
+import type { SceneBoundary, VoiceEntry, VoiceSettings } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { usePipelineProgress } from "@/features/pipeline/hooks/use-pipeline-progress";
 import { useStreamingScript } from "@/features/pipeline/hooks/use-streaming-script";
@@ -22,6 +22,28 @@ export default function JobDetailPage() {
     apiBaseUrl: configService.getApiBaseUrl(),
   });
 
+  // Fetch available voices for the script review page
+  const [voices, setVoices] = useState<VoiceEntry[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    pipelineRepository
+      .listVoices()
+      .then((res) => {
+        if (!cancelled) setVoices(res.voices);
+      })
+      .catch(() => {
+        // Voice list fetch failed — VoiceSelector handles empty state
+      })
+      .finally(() => {
+        if (!cancelled) setVoicesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pipelineRepository]);
+
   // Always call the streaming hook (React rules of hooks — no conditional calls).
   // The hook internally checks job stage and skips SSE when the job is already complete.
   const {
@@ -35,8 +57,14 @@ export default function JobDetailPage() {
   });
 
   const handleApproveScript = useCallback(
-    async (editedScript?: string, scenes?: SceneBoundary[]) => {
-      await pipelineRepository.approveScript({ jobId: id, script: editedScript, scenes });
+    async (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => {
+      await pipelineRepository.approveScript({
+        jobId: id,
+        script: editedScript,
+        scenes,
+        voiceId,
+        voiceSettings,
+      });
       reconnect();
     },
     [pipelineRepository, id, reconnect],
@@ -138,6 +166,10 @@ export default function JobDetailPage() {
           onApprove={handleApproveScript}
           onRegenerate={handleRegenerateScript}
           isLoading={isStreaming}
+          voices={voices}
+          voicesLoading={voicesLoading}
+          initialVoiceId={job.voiceId}
+          initialVoiceSettings={job.voiceSettings}
         />
       </main>
     );

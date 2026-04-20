@@ -44,10 +44,10 @@ function VoiceCard({
         }
       }}
       className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-3 cursor-pointer transition-all",
+        "flex items-center gap-3 rounded-xl px-3 py-3 cursor-pointer transition-all border-2",
         isSelected
-          ? "bg-primary/10 shadow-[0_0_0_2px_rgba(167,165,255,0.4)]"
-          : "hover:bg-surface-container-high",
+          ? "bg-primary/10 border-primary/40"
+          : "border-transparent hover:bg-surface-container-high",
       )}
     >
       <div className="flex-1 min-w-0">

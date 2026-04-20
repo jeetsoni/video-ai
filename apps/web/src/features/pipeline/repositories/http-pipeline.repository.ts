@@ -47,6 +47,8 @@ export class HttpPipelineRepository implements PipelineRepository {
         action: "approve" as const,
         script: params.script,
         ...(params.scenes && { scenes: params.scenes }),
+        ...(params.voiceId && { voiceId: params.voiceId }),
+        ...(params.voiceSettings && { voiceSettings: params.voiceSettings }),
       },
     });
   }
@@ -100,6 +102,7 @@ export class HttpPipelineRepository implements PipelineRepository {
   async previewVoice(params: {
     voiceId?: string;
     voiceSettings: VoiceSettings;
+    text?: string;
   }): Promise<Blob> {
     const apiBase = this.configService?.getApiBaseUrl() ?? "";
     const response = await fetch(`${apiBase}${BASE}/voice-preview`, {

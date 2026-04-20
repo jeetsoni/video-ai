@@ -25,6 +25,8 @@ export interface ApproveScriptParams {
   jobId: string;
   script?: string;
   scenes?: SceneBoundary[];
+  voiceId?: string;
+  voiceSettings?: VoiceSettings;
 }
 
 export interface PipelineRepository {
@@ -41,5 +43,6 @@ export interface PipelineRepository {
   previewVoice(params: {
     voiceId?: string;
     voiceSettings: VoiceSettings;
+    text?: string;
   }): Promise<Blob>;
 }

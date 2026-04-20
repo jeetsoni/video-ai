@@ -17,6 +17,7 @@ export class VoicePreviewController {
     const result = await this.generateVoicePreviewUseCase.execute({
       voiceId: parsed.data.voiceId,
       voiceSettings: parsed.data.voiceSettings,
+      text: parsed.data.text,
     });
 
     if (result.isFailure) {

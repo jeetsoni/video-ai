@@ -1,17 +1,20 @@
 "use client";
 
-import { Volume2, Square, Loader2 } from "lucide-react";
+import { Volume2, Square, Loader2, Info } from "lucide-react";
 import type { VoiceSettings } from "@video-ai/shared";
 import { VOICE_SETTINGS_RANGES } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { useVoiceSettingsPreview } from "../hooks/use-voice-settings-preview";
 import { Button } from "@/shared/components/ui/button";
+import { cn } from "@/shared/lib/utils";
 
 interface VoiceSettingsControlsProps {
   value: VoiceSettings;
   onChange: (settings: VoiceSettings) => void;
   voiceId?: string;
   showPreview?: boolean;
+  /** Hides descriptions and tightens spacing for constrained layouts */
+  compact?: boolean;
 }
 
 const SLIDER_CONFIG: {
@@ -50,6 +53,7 @@ export function VoiceSettingsControls({
   onChange,
   voiceId,
   showPreview = true,
+  compact = false,
 }: VoiceSettingsControlsProps) {
   const { pipelineRepository } = useAppDependencies();
   const {
@@ -76,21 +80,40 @@ export function VoiceSettingsControls({
   const isDisabled = isLoading || cooldownRemaining > 0;
 
   return (
-    <div className="space-y-4">
+    <div className={compact ? "space-y-2.5" : "space-y-4"}>
       {SLIDER_CONFIG.map(({ key, label, description }) => {
         const range = VOICE_SETTINGS_RANGES[key];
         const currentValue = value[key];
 
         return (
-          <div key={key} className="space-y-1.5">
+          <div key={key} className={compact ? "space-y-0.5" : "space-y-1.5"}>
             <div className="flex items-center justify-between">
-              <label
-                htmlFor={`voice-setting-${key}`}
-                className="text-sm font-medium text-on-surface"
-              >
-                {label}
-              </label>
-              <span className="text-sm tabular-nums text-on-surface-variant">
+              <span className="flex items-center gap-1">
+                <label
+                  htmlFor={`voice-setting-${key}`}
+                  className={cn(
+                    "font-medium text-on-surface",
+                    compact ? "text-xs" : "text-sm",
+                  )}
+                >
+                  {label}
+                </label>
+                {compact && (
+                  <span className="group/tip relative">
+                    <Info className="size-3 text-on-surface-variant/50 cursor-help" />
+                    <span
+                      role="tooltip"
+                      className="pointer-events-none absolute bottom-full left-0 z-50 mb-1.5 whitespace-normal rounded-lg bg-surface-container-highest px-3 py-2 text-[11px] leading-snug text-on-surface shadow-lg opacity-0 transition-opacity group-hover/tip:opacity-100 w-48"
+                    >
+                      {description}
+                    </span>
+                  </span>
+                )}
+              </span>
+              <span className={cn(
+                "tabular-nums text-on-surface-variant",
+                compact ? "text-xs" : "text-sm",
+              )}>
                 {currentValue.toFixed(2)}
               </span>
             </div>
@@ -108,7 +131,9 @@ export function VoiceSettingsControls({
               aria-valuenow={currentValue}
               className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-container-high accent-primary"
             />
-            <p className="text-xs text-on-surface-variant">{description}</p>
+            {!compact && (
+              <p className="text-xs text-on-surface-variant">{description}</p>
+            )}
           </div>
         );
       })}

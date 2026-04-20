@@ -14,6 +14,7 @@ export interface UseVoiceSettingsPreviewResult {
   requestPreview: (params: {
     voiceId?: string;
     voiceSettings: VoiceSettings;
+    text?: string;
   }) => void;
   stopPlayback: () => void;
 }
@@ -90,7 +91,7 @@ export function useVoiceSettingsPreview(
   }, []);
 
   const requestPreview = useCallback(
-    (params: { voiceId?: string; voiceSettings: VoiceSettings }) => {
+    (params: { voiceId?: string; voiceSettings: VoiceSettings; text?: string }) => {
       // Stop current playback if playing
       stopPlayback();
 
@@ -109,6 +110,7 @@ export function useVoiceSettingsPreview(
         .previewVoice({
           voiceId: params.voiceId,
           voiceSettings: params.voiceSettings,
+          text: params.text,
         })
         .then((blob: Blob) => {
           if (controller.signal.aborted) return;

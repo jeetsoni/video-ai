@@ -1,5 +1,5 @@
 import { FORMAT_WORD_RANGES } from "@video-ai/shared";
-import type { SceneBoundary } from "@video-ai/shared";
+import type { SceneBoundary, VoiceSettings } from "@video-ai/shared";
 import type { UseCase } from "@/shared/domain/use-case.js";
 import { Result } from "@/shared/domain/result.js";
 import { ValidationError } from "@/shared/domain/errors/validation.error.js";
@@ -10,6 +10,8 @@ interface ApproveScriptRequest {
   jobId: string;
   editedScript?: string;
   scenes?: SceneBoundary[];
+  voiceId?: string;
+  voiceSettings?: VoiceSettings;
 }
 
 export class ApproveScriptUseCase
@@ -69,6 +71,11 @@ export class ApproveScriptUseCase
     }
 
     const scenesToApprove = request.scenes ?? job.generatedScenes ?? [];
+
+    // Update voice selection if the user changed it on the script review page
+    if (request.voiceId) {
+      job.updateVoice(request.voiceId, request.voiceSettings);
+    }
 
     const setResult = job.setApprovedScript(scriptToApprove, scenesToApprove);
     if (setResult.isFailure) {

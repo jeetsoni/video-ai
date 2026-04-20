@@ -302,6 +302,17 @@ export class PipelineJob {
     return Result.ok(undefined);
   }
 
+  updateVoice(
+    voiceId: string,
+    voiceSettings?: VoiceSettings | null,
+  ): void {
+    this.props.voiceId = voiceId;
+    if (voiceSettings !== undefined) {
+      this.props.voiceSettings = voiceSettings;
+    }
+    this.props.updatedAt = new Date();
+  }
+
   setAudioPath(audioPath: string): Result<void, ValidationError> {
     if (this.props.stage.value !== "tts_generation") {
       return Result.fail(

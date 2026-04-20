@@ -207,6 +207,8 @@ describe("PipelineController", () => {
         jobId: "job-1",
         editedScript: "edited script text here",
         scenes: undefined,
+        voiceId: undefined,
+        voiceSettings: undefined,
       });
       expect(res.ok).toHaveBeenCalledWith({ status: "ok" });
     });

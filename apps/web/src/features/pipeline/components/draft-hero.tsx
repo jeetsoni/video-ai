@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -10,18 +10,14 @@ import {
   Check,
   Palette,
 } from "lucide-react";
-import type { VideoFormat, AnimationTheme, VoiceEntry, VoiceSettings } from "@video-ai/shared";
+import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
 import {
   ANIMATION_THEMES,
   DEFAULT_THEME_ID,
-  DEFAULT_VOICE_ID,
-  DEFAULT_VOICE_SETTINGS,
 } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { VoiceSelector } from "./voice-selector";
-import { VoiceSettingsControls } from "./voice-settings-controls";
 
 type AspectOption = {
   format: VideoFormat;
@@ -64,38 +60,7 @@ export function DraftHero() {
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE_ID);
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(DEFAULT_VOICE_SETTINGS);
-  const [voices, setVoices] = useState<VoiceEntry[]>([]);
-  const [voicesLoading, setVoicesLoading] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    pipelineRepository
-      .listVoices()
-      .then((res) => {
-        if (cancelled) return;
-        setVoices(res.voices);
-        // Default to the first available voice when the hardcoded default
-        // doesn't exist in the user's ElevenLabs account.
-        if (res.voices.length > 0) {
-          const ids = new Set(res.voices.map((v) => v.voiceId));
-          if (!ids.has(voiceId)) {
-            setVoiceId(res.voices[0]!.voiceId);
-          }
-        }
-      })
-      .catch(() => {
-        // Fallback handled by VoiceSelector via static registry
-      })
-      .finally(() => {
-        if (!cancelled) setVoicesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [pipelineRepository]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -128,8 +93,6 @@ export function DraftHero() {
         topic: trimmed,
         format,
         themeId,
-        voiceId,
-        voiceSettings,
       });
       router.push(`/jobs/${res.jobId}`);
     } finally {
@@ -139,8 +102,6 @@ export function DraftHero() {
     topic,
     format,
     themeId,
-    voiceId,
-    voiceSettings,
     isSubmitting,
     pipelineRepository,
     router,
@@ -279,22 +240,6 @@ export function DraftHero() {
             )}
           </div>
         </div>
-
-        {/* Voice selector */}
-        <div className="mt-2">
-          <label className="text-xs font-medium text-on-surface-variant mb-2 block">
-            Narrator Voice
-          </label>
-          <VoiceSelector
-            voices={voices}
-            selectedVoiceId={voiceId}
-            onSelect={setVoiceId}
-            isLoading={voicesLoading}
-          />
-        </div>
-
-        {/* Voice settings controls */}
-        <VoiceSettingsControls value={voiceSettings} onChange={setVoiceSettings} voiceId={voiceId} />
       </div>
     </section>
   );

@@ -132,6 +132,8 @@ export class PipelineController {
         jobId: id,
         editedScript: parsed.data.script,
         scenes,
+        voiceId: parsed.data.voiceId,
+        voiceSettings: parsed.data.voiceSettings,
       });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
