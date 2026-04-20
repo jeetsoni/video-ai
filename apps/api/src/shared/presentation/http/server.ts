@@ -1,14 +1,19 @@
 import { config } from "dotenv";
 import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { createPipelineQueue } from "@/pipeline/infrastructure/queue/pipeline-queue.js";
 import { MinioObjectStore } from "@/pipeline/infrastructure/services/minio-object-store.js";
 import { createWorkerRegistry } from "@/pipeline/infrastructure/queue/worker-registry.js";
 import { createApp } from "./app.js";
 
-// Load root .env (monorepo level), then local .env overrides
-config({ path: resolve(import.meta.dirname, "../../../../../../.env") });
-config();
+// In production, env vars are injected by the hosting platform.
+// In dev, load from .env files (root monorepo level, then local overrides).
+if (process.env["NODE_ENV"] !== "production") {
+  const rootEnv = resolve(import.meta.dirname, "../../../../../../.env");
+  if (existsSync(rootEnv)) config({ path: rootEnv });
+  config();
+}
 
 async function main() {
   const port = process.env["API_PORT"] ?? 4000;
@@ -66,8 +71,9 @@ async function main() {
   });
 
   // --- Start server ---
-  app.listen(port, () => {
-    console.log(`API server running on http://localhost:${port}`);
+  const host = process.env["HOST"] ?? "0.0.0.0";
+  app.listen(Number(port), host, () => {
+    console.log(`API server running on http://${host}:${port}`);
   });
 
   // --- Graceful shutdown ---

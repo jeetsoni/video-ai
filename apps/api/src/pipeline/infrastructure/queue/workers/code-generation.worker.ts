@@ -1,10 +1,16 @@
 import type { Job } from "bullmq";
 import type { ProgressEvent, SceneDirection } from "@video-ai/shared";
+import type { SfxProfile } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
-import { ANIMATION_THEMES, getLayoutProfile } from "@video-ai/shared";
+import {
+  ANIMATION_THEMES,
+  getLayoutProfile,
+  ALL_SFX_FILENAMES,
+  SCENE_SFX_MAP,
+} from "@video-ai/shared";
 
 export class CodeGenerationWorker {
   private seq = 0;
@@ -121,10 +127,14 @@ export class CodeGenerationWorker {
     }
 
     // Compose the final component that renders all scenes
+    const totalFrames =
+      sceneDirections[sceneDirections.length - 1]!.startFrame +
+      sceneDirections[sceneDirections.length - 1]!.durationFrames;
     const composedCode = composeSceneComponents(
       finalCodes,
       sceneDirections,
       theme,
+      totalFrames,
     );
 
     const uploadResult = await this.objectStore.upload({
@@ -276,6 +286,57 @@ function stripModuleStatements(code: string): string {
 }
 
 /**
+ * Generate SFX Audio JSX code from scene directions and the SFX map.
+ * Pure function — output depends only on inputs, no side effects.
+ */
+function generateSfxCode(
+  scenes: SceneDirection[],
+  totalFrames: number,
+  sfxMap: Record<string, SfxProfile>,
+): string {
+  const sfxLines: string[] = [];
+
+  for (const scene of scenes) {
+    const profile = sfxMap[scene.type];
+    if (!profile) continue;
+
+    // Ambient bed — looped for the full scene duration
+    sfxLines.push(
+      `  <Sequence from={${scene.startFrame}} durationInFrames={${scene.durationFrames}}>`,
+      `    <Audio src={staticFile("sfx/${profile.ambience}")} volume={${profile.ambienceVolume}} loop />`,
+      `  </Sequence>`,
+    );
+
+    // Transition sound — one-shot at scene start
+    sfxLines.push(
+      `  <Sequence from={${scene.startFrame}}>`,
+      `    <Audio src={staticFile("sfx/${profile.transition}")} volume={${profile.transitionVolume}} />`,
+      `  </Sequence>`,
+    );
+
+    // Utility sounds from beat sfx arrays
+    const beats = scene.animationDirection?.beats ?? [];
+    for (const beat of beats) {
+      if (!beat.sfx || beat.sfx.length === 0) continue;
+      for (const filename of beat.sfx) {
+        if (!ALL_SFX_FILENAMES.includes(filename)) continue;
+        sfxLines.push(
+          `  <Sequence from={${beat.frameRange[0]}}>`,
+          `    <Audio src={staticFile("sfx/${filename}")} volume={0.12} />`,
+          `  </Sequence>`,
+        );
+      }
+    }
+  }
+
+  return [
+    `<Sequence from={0} durationInFrames={${totalFrames}}>`,
+    ...sfxLines,
+    `</Sequence>`,
+  ].join("\n");
+}
+
+/**
  * Compose individual scene components into a single Main component
  * that uses Sequence to render each scene at the correct time.
  */
@@ -283,6 +344,7 @@ function composeSceneComponents(
   sceneCodes: string[],
   scenes: SceneDirection[],
   theme: { background: string },
+  totalFrames: number,
 ): string {
   // Each scene code defines its own `function Main({ scene })`.
   // We rename them to Scene1, Scene2, etc. and compose them.
@@ -304,12 +366,16 @@ function composeSceneComponents(
     })
     .join("\n");
 
+  const sfxCode = generateSfxCode(scenes, totalFrames, SCENE_SFX_MAP);
+
   return `${sceneImports}
 
 function Main({ scenePlan }) {
   return (
     <AbsoluteFill style={{ backgroundColor: "${theme.background}" }}>
 ${sceneRenderers}
+      {/* SFX Audio Layer */}
+      ${sfxCode}
     </AbsoluteFill>
   );
 }`;

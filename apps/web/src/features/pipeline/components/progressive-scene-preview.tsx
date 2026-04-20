@@ -28,18 +28,23 @@ const ASPECT_CLASSES: Record<string, string> = {
  * new Function() doesn't support ES module syntax.
  */
 function stripModuleStatements(code: string): string {
-  return code
-    // Remove import statements (handles multiple on same line and multiline)
-    .replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g, "")
-    // Remove simple import side-effect statements like: import "module";
-    .replace(/import\s+["'][^"']+["'];?/g, "")
-    // Remove export default
-    .replace(/export\s+default\s+/g, "")
-    // Remove named exports
-    .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
-    // Remove destructuring from React that tries to get Remotion globals
-    .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
-    .trim();
+  return (
+    code
+      // Remove import statements (handles multiple on same line and multiline)
+      .replace(
+        /import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g,
+        "",
+      )
+      // Remove simple import side-effect statements like: import "module";
+      .replace(/import\s+["'][^"']+["'];?/g, "")
+      // Remove export default
+      .replace(/export\s+default\s+/g, "")
+      // Remove named exports
+      .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
+      // Remove destructuring from React that tries to get Remotion globals
+      .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
+      .trim()
+  );
 }
 
 /**
@@ -52,7 +57,11 @@ function composePartialScenes(
   completedSceneCodes: Map<number, string>,
   themeBackground: string,
 ): string | null {
-  const availableCodes: { code: string; boundary: SceneBoundary; index: number }[] = [];
+  const availableCodes: {
+    code: string;
+    boundary: SceneBoundary;
+    index: number;
+  }[] = [];
 
   for (let i = 0; i < sceneBoundaries.length; i++) {
     const boundary = sceneBoundaries[i]!;
@@ -124,7 +133,9 @@ function SceneProgressIndicator({
                 "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
                 isCompleted && "bg-stage-complete/15 text-stage-complete",
                 isGenerating && "bg-stage-active/15 text-stage-active",
-                !isCompleted && !isGenerating && "bg-surface-container-high text-on-surface-variant",
+                !isCompleted &&
+                  !isGenerating &&
+                  "bg-surface-container-high text-on-surface-variant",
               )}
             >
               {isCompleted && <CheckCircle2 className="size-3" />}
@@ -173,7 +184,8 @@ export function ProgressiveScenePreview({
       endTime: b.endTime,
       startFrame: Math.round(b.startTime * FPS),
       endFrame: Math.round(b.endTime * FPS),
-      durationFrames: Math.round(b.endTime * FPS) - Math.round(b.startTime * FPS),
+      durationFrames:
+        Math.round(b.endTime * FPS) - Math.round(b.startTime * FPS),
       text: b.text,
       words: [],
       animationDirection: {
@@ -207,7 +219,11 @@ export function ProgressiveScenePreview({
       scenes,
     };
 
-    return { component: result.component, totalFrames: frames, scenePlan: plan };
+    return {
+      component: result.component,
+      totalFrames: frames,
+      scenePlan: plan,
+    };
   }, [sceneBoundaries, completedSceneCodes, themeBackground]);
 
   // Create a wrapper component for the Player
@@ -231,7 +247,12 @@ export function ProgressiveScenePreview({
 
       {/* Progressive Remotion preview */}
       {PlayerComponent && totalFrames > 0 ? (
-        <div className={cn("relative w-full overflow-hidden rounded-2xl", ASPECT_CLASSES[format] ?? "aspect-video")}>
+        <div
+          className={cn(
+            "relative w-full overflow-hidden rounded-2xl",
+            ASPECT_CLASSES[format] ?? "aspect-video",
+          )}
+        >
           <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 glass rounded-lg px-2.5 py-1">
             <Loader2 className="size-3 animate-spin text-stage-active" />
             <span className="text-[11px] font-semibold uppercase tracking-wider text-stage-active">
@@ -246,6 +267,7 @@ export function ProgressiveScenePreview({
             compositionWidth={1080}
             compositionHeight={1920}
             controls
+            numberOfSharedAudioTags={20}
             style={{ width: "100%", maxHeight: "70vh" }}
           />
         </div>

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: ["@video-ai/shared"],
   webpack: (config) => {
     // The shared package uses NodeNext module resolution with .js extensions

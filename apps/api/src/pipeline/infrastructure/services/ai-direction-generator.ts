@@ -128,15 +128,18 @@ BAD visual (just a labeled card — NEVER DO THIS):
 - Exit: opacity fade over 8 frames
 - Idle: Math.sin(frame*0.05)*3 for floating
 
-### sfx field:
-Available local SFX files:
-- tech_blip.wav — card/element appears, transitions
-- notification_ping.wav — important reveal, key word lands
-- error_buzz.wav — error state, mistake, failure
-- success_chime.wav — positive reveal, completion
+### sfx field (utility sounds only):
+Available utility SFX files (use ONLY these exact filenames):
+- text-pop.mp3 — text or label appearing on screen
+- slide-in.mp3 — element sliding or entering the frame
+- success-ding.mp3 — positive reveal, completion, checkmark
+- scene-fade.mp3 — scene ending, dissolve, fade out
 
-Format: "filename at Xs volume:V playbackRate:R (reason)"
-Use SFX generously — every visual event should have a matching sound.
+Rules:
+- Place 1–3 utility sounds per scene, only on beats with distinct visual events
+- Do NOT place a utility sound on every beat
+- Do NOT use ambient or transition filenames (ambience-*.mp3, whoosh-*.mp3, pop-reveal.mp3, rise-build.mp3, resolve-warm.mp3) — those are handled automatically
+- Format: ["text-pop.mp3"] or ["slide-in.mp3", "success-ding.mp3"]
 
 ## Attention Engineering
 - Motion every 0.7-1.2 seconds
@@ -150,7 +153,10 @@ Before finalizing, check EVERY beat:
 - Is all content specific to the topic (real terms, real numbers, real labels)?
 - Would a viewer understand the concept with audio muted? If not, visuals are too abstract.`;
 
-function buildDirectionSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+function buildDirectionSystemPrompt(
+  theme: AnimationTheme,
+  layoutProfile: LayoutProfile,
+): string {
   const { canvas, safeZone } = layoutProfile;
   const safeZoneBottom = safeZone.top + safeZone.height;
 
@@ -220,7 +226,7 @@ Respond with ONLY valid JSON for this single scene:
       "visual": "detailed description",
       "typography": "accent color assignments",
       "motion": "spring/interpolation specs",
-      "sfx": ["filename.wav at time (reason)"]
+      "sfx": ["text-pop.mp3"]
     }]
   }
 }`;
@@ -229,7 +235,7 @@ Respond with ONLY valid JSON for this single scene:
 function buildDirectionPrompt(
   scene: SceneBoundary,
   words: WordTimestamp[],
-  previousDirection?: SceneDirection
+  previousDirection?: SceneDirection,
 ): string {
   const lines: string[] = [];
 
@@ -243,7 +249,7 @@ function buildDirectionPrompt(
       `Last beat visual: "${previousDirection.animationDirection.beats.at(-1)?.visual ?? ""}"`,
       "",
       "Use this to ensure visual continuity — you may contrast, evolve, or build upon it, but avoid repeating the exact same layout or visual element.",
-      ""
+      "",
     );
   }
 
@@ -266,7 +272,7 @@ function buildDirectionPrompt(
     `- startFrame = Math.round(startTime * 30), endFrame = Math.round(endTime * 30)`,
     `- durationFrames = endFrame - startFrame`,
     `- 2-4 beats covering the full scene duration`,
-    `- Use correct accent colors based on word meaning`
+    `- Use correct accent colors based on word meaning`,
   );
 
   return lines.join("\n");
@@ -294,15 +300,19 @@ export class AIDirectionGenerator implements DirectionGenerator {
       const { text } = await generateText({
         model: google(this.config.model),
         system: buildDirectionSystemPrompt(params.theme, params.layoutProfile),
-        prompt: buildDirectionPrompt(params.scene, params.words, params.previousDirection),
+        prompt: buildDirectionPrompt(
+          params.scene,
+          params.words,
+          params.previousDirection,
+        ),
         temperature: this.config.temperature,
       });
 
       if (!text || text.trim().length === 0) {
         return Result.fail(
           PipelineError.directionGenerationFailed(
-            `Direction generation returned empty output for scene ${params.scene.id}`
-          )
+            `Direction generation returned empty output for scene ${params.scene.id}`,
+          ),
         );
       }
 
@@ -310,8 +320,8 @@ export class AIDirectionGenerator implements DirectionGenerator {
       if (!parsed) {
         return Result.fail(
           PipelineError.directionGenerationFailed(
-            `Failed to parse direction output for scene ${params.scene.id}`
-          )
+            `Failed to parse direction output for scene ${params.scene.id}`,
+          ),
         );
       }
 
@@ -322,11 +332,14 @@ export class AIDirectionGenerator implements DirectionGenerator {
       if (parsed.beats.length >= 2) {
         parsed.beats[0]!.timeRange[0] = params.scene.startTime;
         parsed.beats[0]!.frameRange[0] = startFrame;
-        parsed.beats[parsed.beats.length - 1]!.timeRange[1] = params.scene.endTime;
+        parsed.beats[parsed.beats.length - 1]!.timeRange[1] =
+          params.scene.endTime;
         parsed.beats[parsed.beats.length - 1]!.frameRange[1] = endFrame;
         for (let i = 1; i < parsed.beats.length; i++) {
           parsed.beats[i]!.timeRange[0] = parsed.beats[i - 1]!.timeRange[1];
-          parsed.beats[i]!.frameRange[0] = Math.round(parsed.beats[i]!.timeRange[0] * FPS);
+          parsed.beats[i]!.frameRange[0] = Math.round(
+            parsed.beats[i]!.timeRange[0] * FPS,
+          );
         }
       }
 
@@ -353,11 +366,13 @@ export class AIDirectionGenerator implements DirectionGenerator {
       return Result.ok(direction);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unknown direction generation error";
+        error instanceof Error
+          ? error.message
+          : "Unknown direction generation error";
       return Result.fail(
         PipelineError.directionGenerationFailed(
-          `Direction generation failed for scene ${params.scene.id}: ${message}`
-        )
+          `Direction generation failed for scene ${params.scene.id}: ${message}`,
+        ),
       );
     }
   }

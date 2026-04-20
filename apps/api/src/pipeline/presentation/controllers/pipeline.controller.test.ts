@@ -23,12 +23,13 @@ function makeReq(overrides: {
   body?: unknown;
   params?: Record<string, unknown>;
   query?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
 }): HttpRequest {
   return new HttpRequest(
     overrides.body ?? {},
     overrides.query ?? {},
     overrides.params ?? {},
-    {},
+    overrides.headers ?? {},
   );
 }
 
@@ -75,6 +76,7 @@ describe("PipelineController", () => {
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
       const req = makeReq({
         body: { topic: "AI basics", format: "reel", themeId: "t1" },
+        headers: { "x-browser-id": "browser-1" },
       });
       const res = mockRes();
 
@@ -86,9 +88,27 @@ describe("PipelineController", () => {
       });
     });
 
+    it("returns 400 when X-Browser-Id header is missing", async () => {
+      const ctrl = buildController();
+      const req = makeReq({
+        body: { topic: "AI basics", format: "reel", themeId: "t1" },
+      });
+      const res = mockRes();
+
+      await ctrl.createJob(req, res);
+
+      expect(res.badRequest).toHaveBeenCalledWith({
+        error: "MISSING_BROWSER_ID",
+        message: "X-Browser-Id header is required",
+      });
+    });
+
     it("returns 400 when body fails Zod validation", async () => {
       const ctrl = buildController();
-      const req = makeReq({ body: { topic: "ab" } }); // too short, missing fields
+      const req = makeReq({
+        body: { topic: "ab" },
+        headers: { "x-browser-id": "browser-1" },
+      }); // too short, missing fields
       const res = mockRes();
 
       await ctrl.createJob(req, res);
@@ -107,6 +127,7 @@ describe("PipelineController", () => {
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
       const req = makeReq({
         body: { topic: "AI basics", format: "reel", themeId: "t1" },
+        headers: { "x-browser-id": "browser-1" },
       });
       const res = mockRes();
 
@@ -123,6 +144,7 @@ describe("PipelineController", () => {
       const ctrl = buildController({ createPipelineJobUseCase: { execute } });
       const req = makeReq({
         body: { topic: "AI basics", format: "reel", themeId: "t1" },
+        headers: { "x-browser-id": "browser-1" },
       });
       const res = mockRes();
 

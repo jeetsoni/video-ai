@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/shared/presentation/http/server.ts",
-    "build": "tsc",
+    "build": "tsc && npm run db:generate",
+    "start": "node --import tsx/esm src/shared/presentation/http/server.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

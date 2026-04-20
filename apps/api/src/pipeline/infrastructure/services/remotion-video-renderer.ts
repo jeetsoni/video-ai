@@ -1,6 +1,6 @@
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import { FORMAT_RESOLUTIONS } from "@video-ai/shared";
+import { FORMAT_RESOLUTIONS, ALL_SFX_FILENAMES } from "@video-ai/shared";
 import type { ScenePlan, VideoFormat } from "@video-ai/shared";
 import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
@@ -10,6 +10,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface RemotionVideoRendererConfig {
   compositionId: string;
@@ -31,7 +34,12 @@ const FPS = 30;
  * Builds a minimal Remotion entry file that registers the generated component
  * as a composition. This is what Remotion's bundler needs as an entry point.
  */
-function buildEntrySource(code: string, scenePlan: ScenePlan, resolution: { width: number; height: number }, audioFileName: string): string {
+function buildEntrySource(
+  code: string,
+  scenePlan: ScenePlan,
+  resolution: { width: number; height: number },
+  audioFileName: string,
+): string {
   return [
     `import React, { useState, useEffect, useMemo, useCallback } from "react";`,
     `import { registerRoot, Composition, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing, Audio, staticFile } from "remotion";`,
@@ -72,7 +80,10 @@ export class RemotionVideoRenderer implements VideoRenderer {
   private readonly config: RemotionVideoRendererConfig;
   private readonly objectStore: ObjectStore;
 
-  constructor(objectStore: ObjectStore, config?: Partial<RemotionVideoRendererConfig>) {
+  constructor(
+    objectStore: ObjectStore,
+    config?: Partial<RemotionVideoRendererConfig>,
+  ) {
     this.objectStore = objectStore;
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
@@ -90,12 +101,14 @@ export class RemotionVideoRenderer implements VideoRenderer {
       fs.mkdirSync(tmpDir, { recursive: true });
 
       // 1. Download the voiceover audio from object store to temp directory
-      const audioSignedUrlResult = await this.objectStore.getSignedUrl(params.audioPath);
+      const audioSignedUrlResult = await this.objectStore.getSignedUrl(
+        params.audioPath,
+      );
       if (audioSignedUrlResult.isFailure) {
         return Result.fail(
           PipelineError.renderingFailed(
-            `Failed to get audio URL: ${audioSignedUrlResult.getError().message}`
-          )
+            `Failed to get audio URL: ${audioSignedUrlResult.getError().message}`,
+          ),
         );
       }
 
@@ -107,18 +120,49 @@ export class RemotionVideoRenderer implements VideoRenderer {
       const audioResponse = await fetch(audioSignedUrlResult.getValue());
       if (!audioResponse.ok) {
         return Result.fail(
-          PipelineError.renderingFailed(`Failed to download audio: HTTP ${audioResponse.status}`)
+          PipelineError.renderingFailed(
+            `Failed to download audio: HTTP ${audioResponse.status}`,
+          ),
         );
       }
       const audioArrayBuffer = await audioResponse.arrayBuffer();
       fs.writeFileSync(localAudioPath, Buffer.from(audioArrayBuffer));
 
-      // 2. Write the Remotion entry file to a temp directory
-      const entrySource = buildEntrySource(params.code, params.scenePlan, resolution, audioFileName);
+      // 2. Stage SFX files into public/sfx/ for staticFile() resolution
+      try {
+        const sfxDir = path.join(publicDir, "sfx");
+        fs.mkdirSync(sfxDir, { recursive: true });
+
+        for (const filename of ALL_SFX_FILENAMES) {
+          try {
+            const src = path.resolve(
+              __dirname,
+              "../../../../../../packages/shared/src/sfx/assets",
+              filename,
+            );
+            const dest = path.join(sfxDir, filename);
+            fs.copyFileSync(src, dest);
+          } catch {
+            console.warn(`[SFX staging] Failed to copy ${filename}, skipping`);
+          }
+        }
+      } catch {
+        console.warn(
+          "[SFX staging] Failed to create sfx directory, proceeding without SFX",
+        );
+      }
+
+      // 3. Write the Remotion entry file to a temp directory
+      const entrySource = buildEntrySource(
+        params.code,
+        params.scenePlan,
+        resolution,
+        audioFileName,
+      );
       const entryPath = path.join(tmpDir, "index.tsx");
       fs.writeFileSync(entryPath, entrySource, "utf-8");
 
-      // 3. Bundle the entry file with Remotion's webpack bundler
+      // 4. Bundle the entry file with Remotion's webpack bundler
       const bundlePath = await bundle({
         entryPoint: entryPath,
         publicDir,
@@ -127,7 +171,7 @@ export class RemotionVideoRenderer implements VideoRenderer {
         },
       });
 
-      // 4. Select the composition to render
+      // 5. Select the composition to render
       const composition = await selectComposition({
         serveUrl: bundlePath,
         id: this.config.compositionId,
@@ -137,7 +181,7 @@ export class RemotionVideoRenderer implements VideoRenderer {
         },
       });
 
-      // 5. Render the video to a temp output file
+      // 6. Render the video to a temp output file
       const outputPath = path.join(tmpDir, "output.mp4");
 
       await renderMedia({
@@ -158,7 +202,7 @@ export class RemotionVideoRenderer implements VideoRenderer {
         },
       });
 
-      // 6. Upload the rendered video to object store
+      // 7. Upload the rendered video to object store
       const videoBuffer = fs.readFileSync(outputPath);
       const videoKey = `videos/${crypto.randomUUID()}.mp4`;
 
@@ -171,15 +215,18 @@ export class RemotionVideoRenderer implements VideoRenderer {
       if (uploadResult.isFailure) {
         return Result.fail(
           PipelineError.renderingFailed(
-            `Failed to upload rendered video: ${uploadResult.getError().message}`
-          )
+            `Failed to upload rendered video: ${uploadResult.getError().message}`,
+          ),
         );
       }
 
       return Result.ok({ videoPath: uploadResult.getValue() });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown rendering error";
-      return Result.fail(PipelineError.renderingFailed(`Video rendering failed: ${message}`));
+      const message =
+        error instanceof Error ? error.message : "Unknown rendering error";
+      return Result.fail(
+        PipelineError.renderingFailed(`Video rendering failed: ${message}`),
+      );
     } finally {
       // Clean up temp directory
       try {
