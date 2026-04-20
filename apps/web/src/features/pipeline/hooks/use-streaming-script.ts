@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SceneBoundary } from "@video-ai/shared";
 import { scriptStreamEventSchema } from "@video-ai/shared";
 import { SSEClient } from "@/shared/services/sse-client";
+import { getBrowserId } from "@/shared/lib/browser-id";
 
 export type StreamingStatus = "loading" | "streaming" | "complete" | "error";
 
@@ -49,6 +50,7 @@ export function useStreamingScript(params: {
       const client = new SSEClient({
         url,
         parseEvent: (data: string) => scriptStreamEventSchema.parse(JSON.parse(data)),
+        headers: { "X-Browser-Id": getBrowserId() },
       });
       sseClientRef.current = client;
 

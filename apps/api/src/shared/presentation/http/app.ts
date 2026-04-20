@@ -4,6 +4,7 @@ import type { Queue } from "bullmq";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import { healthRouter } from "./routes/health.route.js";
 import { createPipelineModule } from "@/pipeline/presentation/factories/pipeline.factory.js";
+import { createBrowserIdMiddleware } from "@/shared/presentation/middleware/browser-id.middleware.js";
 
 export function createApp(deps?: {
   prisma: PrismaClient;
@@ -20,7 +21,7 @@ export function createApp(deps?: {
       "Access-Control-Allow-Methods",
       "GET,POST,PUT,DELETE,OPTIONS",
     );
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Browser-Id");
     if (_req.method === "OPTIONS") {
       res.status(204).end();
       return;
@@ -33,6 +34,7 @@ export function createApp(deps?: {
   app.use("/health", healthRouter);
 
   if (deps) {
+    app.use(createBrowserIdMiddleware(deps.prisma));
     app.use("/api/pipeline", createPipelineModule(deps));
   }
 

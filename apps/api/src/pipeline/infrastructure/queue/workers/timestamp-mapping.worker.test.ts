@@ -74,6 +74,7 @@ function createPipelineJobAtTimestampMappingStage(id: string): PipelineJob {
 
   return PipelineJob.reconstitute({
     id,
+    browserId: "test-browser-id",
     topic: "Test topic",
     format,
     themeId,
@@ -178,6 +179,7 @@ describe("TimestampMappingWorker", () => {
     // Override approvedScenes to null via reconstitute
     const jobWithoutScenes = PipelineJob.reconstitute({
       id: "job-3",
+      browserId: "test-browser-id",
       topic: "Test topic",
       format: pipelineJob.format,
       themeId: pipelineJob.themeId,
@@ -212,6 +214,7 @@ describe("TimestampMappingWorker", () => {
   it("should throw when job has no transcript", async () => {
     const jobWithoutTranscript = PipelineJob.reconstitute({
       id: "job-4",
+      browserId: "test-browser-id",
       topic: "Test topic",
       format: VideoFormat.create("short").getValue(),
       themeId: AnimationThemeId.create("studio").getValue(),

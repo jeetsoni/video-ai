@@ -22,7 +22,7 @@ function createMockJob(jobId: string): Job<{ jobId: string }> {
 function createPipelineJobAtTTSStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
-  const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
+  const job = PipelineJob.create({ id, topic: "Test topic", browserId: "test-browser-id", format, themeId });
   const scenes = [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }];
   // Advance to tts_generation stage: script_generation -> script_review -> tts_generation
   job.setScript("Generated script content", scenes);
@@ -127,7 +127,7 @@ describe("TTSGenerationWorker", () => {
   it("should throw when approved script is missing", async () => {
     const format = VideoFormat.create("short").getValue();
     const themeId = AnimationThemeId.create("studio").getValue();
-    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
+    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", browserId: "test-browser-id", format, themeId });
     // Advance to tts_generation but without setting approvedScript
     const scenes = [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }];
     pipelineJob.setScript("Generated script", scenes);

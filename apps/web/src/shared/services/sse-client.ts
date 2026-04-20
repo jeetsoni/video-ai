@@ -3,6 +3,7 @@ export interface SSEClientConfig<T> {
   parseEvent: (data: string) => T;
   maxRetries?: number;
   retryDelayMs?: number;
+  headers?: Record<string, string>;
 }
 
 interface SSEParsedLine {
@@ -16,6 +17,7 @@ export class SSEClient<T> {
   private readonly parseEvent: (data: string) => T;
   private readonly maxRetries: number;
   private readonly retryDelayMs: number;
+  private readonly headers: Record<string, string>;
   private abortController: AbortController | null = null;
   private closed = false;
 
@@ -24,6 +26,7 @@ export class SSEClient<T> {
     this.parseEvent = config.parseEvent;
     this.maxRetries = config.maxRetries ?? 3;
     this.retryDelayMs = config.retryDelayMs ?? 1000;
+    this.headers = config.headers ?? {};
   }
 
   async *connect(): AsyncIterable<T> {
@@ -59,7 +62,7 @@ export class SSEClient<T> {
     this.abortController = new AbortController();
 
     const response = await fetch(this.url, {
-      headers: { Accept: "text/event-stream" },
+      headers: { Accept: "text/event-stream", ...this.headers },
       signal: this.abortController.signal,
     });
 

@@ -20,7 +20,7 @@ function createMockJob(jobId: string): Job<{ jobId: string }> {
 function createPipelineJob(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
-  return PipelineJob.create({ id, topic: "Test topic", format, themeId });
+  return PipelineJob.create({ id, topic: "Test topic", browserId: "test-browser-id", format, themeId });
 }
 
 describe("ScriptGenerationWorker", () => {

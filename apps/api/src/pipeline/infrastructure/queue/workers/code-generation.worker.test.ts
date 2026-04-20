@@ -99,7 +99,7 @@ const sampleDirections: SceneDirection[] = [
 function createPipelineJobAtCodeGenerationStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
-  const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
+  const job = PipelineJob.create({ id, topic: "Test topic", browserId: "test-browser-id", format, themeId });
   // Advance through all prior stages
   job.setScript("Generated script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }]);
   job.transitionTo("script_review");
@@ -222,7 +222,7 @@ describe("CodeGenerationWorker", () => {
   it("should throw when scene directions are missing", async () => {
     const format = VideoFormat.create("short").getValue();
     const themeId = AnimationThemeId.create("studio").getValue();
-    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
+    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", browserId: "test-browser-id", format, themeId });
     // Advance to code_generation without setting scene directions
     pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");

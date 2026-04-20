@@ -16,6 +16,7 @@ interface CreatePipelineJobRequest {
   themeId: string;
   voiceId?: string;
   voiceSettings?: VoiceSettings;
+  browserId: string;
 }
 
 interface CreatePipelineJobResponse {
@@ -43,6 +44,7 @@ export class CreatePipelineJobUseCase implements UseCase<
     }
 
     const { topic, format, themeId, voiceId } = parsed.data;
+    const { browserId } = request;
 
     const formatResult = VideoFormat.create(format);
     if (formatResult.isFailure) {
@@ -56,6 +58,7 @@ export class CreatePipelineJobUseCase implements UseCase<
 
     const job = PipelineJob.create({
       id: this.idGenerator.generate(),
+      browserId,
       topic,
       format: formatResult.getValue(),
       themeId: themeIdResult.getValue(),

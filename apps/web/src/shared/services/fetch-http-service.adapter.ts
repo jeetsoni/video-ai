@@ -1,5 +1,6 @@
 import type { HttpClient } from "../interfaces/http-client";
 import type { ConfigClient } from "../interfaces/config-client";
+import { getBrowserId } from "../lib/browser-id";
 
 export class FetchHttpServiceAdapter implements HttpClient {
   constructor(private readonly configService: ConfigClient) {}
@@ -9,7 +10,9 @@ export class FetchHttpServiceAdapter implements HttpClient {
     queryParams?: Record<string, string>;
   }): Promise<T> {
     const url = this.buildUrl(params.path, params.queryParams);
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: this.defaultHeaders(),
+    });
     if (!response.ok)
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     return response.json() as Promise<T>;
@@ -23,7 +26,7 @@ export class FetchHttpServiceAdapter implements HttpClient {
     const url = this.buildUrl(params.path);
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...params.headers },
+      headers: { ...this.defaultHeaders(), "Content-Type": "application/json", ...params.headers },
       body: JSON.stringify(params.body),
     });
     if (!response.ok)
@@ -35,7 +38,7 @@ export class FetchHttpServiceAdapter implements HttpClient {
     const url = this.buildUrl(params.path);
     const response = await fetch(url, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...this.defaultHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(params.body),
     });
     if (!response.ok)
@@ -47,12 +50,16 @@ export class FetchHttpServiceAdapter implements HttpClient {
     const url = this.buildUrl(params.path);
     const response = await fetch(url, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...this.defaultHeaders(), "Content-Type": "application/json" },
       body: params.body ? JSON.stringify(params.body) : undefined,
     });
     if (!response.ok)
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     return response.json() as Promise<T>;
+  }
+
+  private defaultHeaders(): Record<string, string> {
+    return { "X-Browser-Id": getBrowserId() };
   }
 
   private buildUrl(

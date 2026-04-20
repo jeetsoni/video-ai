@@ -5,6 +5,7 @@ import type {
 } from "@video-ai/shared";
 import type { HttpClient } from "@/shared/interfaces/http-client";
 import type { ConfigClient } from "@/shared/interfaces/config-client";
+import { getBrowserId } from "@/shared/lib/browser-id";
 import type {
   PipelineRepository,
   CreateJobParams,
@@ -103,7 +104,10 @@ export class HttpPipelineRepository implements PipelineRepository {
     const apiBase = this.configService?.getApiBaseUrl() ?? "";
     const response = await fetch(`${apiBase}${BASE}/voice-preview`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Browser-Id": getBrowserId(),
+      },
       body: JSON.stringify(params),
     });
 

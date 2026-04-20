@@ -27,8 +27,10 @@ export class PrismaPipelineJobRepository implements PipelineJobRepository {
     return PipelineJobMapper.toDomain(record);
   }
 
-  async findAll(page: number, limit: number): Promise<PipelineJob[]> {
+  async findAll(page: number, limit: number, browserId?: string): Promise<PipelineJob[]> {
+    const where = browserId ? { browserId } : {};
     const records = await this.prisma.pipelineJob.findMany({
+      where,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: "desc" },
@@ -37,7 +39,8 @@ export class PrismaPipelineJobRepository implements PipelineJobRepository {
     return records.map(PipelineJobMapper.toDomain);
   }
 
-  async count(): Promise<number> {
-    return this.prisma.pipelineJob.count();
+  async count(browserId?: string): Promise<number> {
+    const where = browserId ? { browserId } : {};
+    return this.prisma.pipelineJob.count({ where });
   }
 }

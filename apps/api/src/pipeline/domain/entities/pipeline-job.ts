@@ -42,6 +42,7 @@ const STAGE_TO_PROGRESS: Record<PipelineStageType, number> = {
 
 interface PipelineJobProps {
   id: string;
+  browserId: string;
   topic: string;
   format: VideoFormat;
   themeId: AnimationThemeId;
@@ -71,6 +72,9 @@ export class PipelineJob {
 
   get id(): string {
     return this.props.id;
+  }
+  get browserId(): string {
+    return this.props.browserId;
   }
   get topic(): string {
     return this.props.topic;
@@ -141,6 +145,7 @@ export class PipelineJob {
 
   static create(params: {
     id: string;
+    browserId: string;
     topic: string;
     format: VideoFormat;
     themeId: AnimationThemeId;
@@ -150,6 +155,7 @@ export class PipelineJob {
     const now = new Date();
     return new PipelineJob({
       id: params.id,
+      browserId: params.browserId,
       topic: params.topic,
       format: params.format,
       themeId: params.themeId,
@@ -177,6 +183,7 @@ export class PipelineJob {
 
   static reconstitute(params: {
     id: string;
+    browserId: string;
     topic: string;
     format: VideoFormat;
     themeId: AnimationThemeId;

@@ -10,6 +10,7 @@ describe("PipelineJobMapper", () => {
     approvedScenes?: unknown;
   } = {
     id: "test-id-123",
+    browserId: "test-browser-id",
     topic: "How async/await works in JavaScript",
     format: "short",
     themeId: "studio",
@@ -167,6 +168,7 @@ describe("PipelineJobMapper", () => {
 
       const job = PipelineJob.create({
         id: "job-456",
+        browserId: "test-browser-id",
         topic: "Rust ownership model",
         format,
         themeId,
@@ -191,6 +193,7 @@ describe("PipelineJobMapper", () => {
 
       const original = PipelineJob.create({
         id: "round-trip-id",
+        browserId: "test-browser-id",
         topic: "GraphQL vs REST",
         format,
         themeId,
@@ -219,6 +222,7 @@ describe("PipelineJobMapper", () => {
 
       const job = PipelineJob.create({
         id: "scenes-round-trip",
+        browserId: "test-browser-id",
         topic: "Scene mapping test",
         format,
         themeId,

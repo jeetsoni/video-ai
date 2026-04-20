@@ -5,6 +5,7 @@ import type { PipelineJobDto, ProgressEvent } from "@video-ai/shared";
 import { isTerminalStatus } from "@video-ai/shared";
 import type { PipelineRepository } from "../interfaces/pipeline-repository";
 import { SSEClient } from "@/shared/services/sse-client";
+import { getBrowserId } from "@/shared/lib/browser-id";
 
 export interface UsePipelineProgressOptions {
   /** Pipeline repository instance for fetching job status. */
@@ -98,6 +99,7 @@ export function usePipelineProgress({
       const client = new SSEClient<ProgressEvent>({
         url,
         parseEvent: parseProgressEvent,
+        headers: { "X-Browser-Id": getBrowserId() },
       });
       sseClientRef.current = client;
 

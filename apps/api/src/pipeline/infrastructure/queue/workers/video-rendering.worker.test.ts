@@ -97,7 +97,7 @@ const sampleDirections: SceneDirection[] = [
 function createPipelineJobAtRenderingStage(id: string): PipelineJob {
   const format = VideoFormat.create("short").getValue();
   const themeId = AnimationThemeId.create("studio").getValue();
-  const job = PipelineJob.create({ id, topic: "Test topic", format, themeId });
+  const job = PipelineJob.create({ id, topic: "Test topic", browserId: "test-browser-id", format, themeId });
   // Advance through all prior stages
   job.setScript("Generated script content", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script content" }]);
   job.transitionTo("script_review");
@@ -199,7 +199,7 @@ describe("VideoRenderingWorker", () => {
   it("should throw when generated code is missing", async () => {
     const format = VideoFormat.create("short").getValue();
     const themeId = AnimationThemeId.create("studio").getValue();
-    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", format, themeId });
+    const pipelineJob = PipelineJob.create({ id: "job-3", topic: "Test topic", browserId: "test-browser-id", format, themeId });
     // Advance to rendering without setting generated code
     pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");
@@ -228,7 +228,7 @@ describe("VideoRenderingWorker", () => {
   it("should throw when audio path is missing", async () => {
     const format = VideoFormat.create("short").getValue();
     const themeId = AnimationThemeId.create("studio").getValue();
-    const pipelineJob = PipelineJob.create({ id: "job-4", topic: "Test topic", format, themeId });
+    const pipelineJob = PipelineJob.create({ id: "job-4", topic: "Test topic", browserId: "test-browser-id", format, themeId });
     // Advance to rendering without setting audio path
     pipelineJob.setScript("Generated script", [{ id: 1, name: "Hook", type: "Hook" as const, startTime: 0, endTime: 0, text: "Generated script" }]);
     pipelineJob.transitionTo("script_review");

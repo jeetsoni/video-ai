@@ -8,6 +8,7 @@ import type { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 interface ListPipelineJobsRequest {
   page: number;
   limit: number;
+  browserId?: string;
 }
 
 interface ListPipelineJobsResponse {
@@ -46,7 +47,7 @@ export class ListPipelineJobsUseCase
   async execute(
     request: ListPipelineJobsRequest,
   ): Promise<Result<ListPipelineJobsResponse, ValidationError>> {
-    const { page, limit } = request;
+    const { page, limit, browserId } = request;
 
     if (page < 1 || limit < 1) {
       return Result.fail(
@@ -55,8 +56,8 @@ export class ListPipelineJobsUseCase
     }
 
     const [jobs, total] = await Promise.all([
-      this.repository.findAll(page, limit),
-      this.repository.count(),
+      this.repository.findAll(page, limit, browserId),
+      this.repository.count(browserId),
     ]);
 
     return Result.ok({

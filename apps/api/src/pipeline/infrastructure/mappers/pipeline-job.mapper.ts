@@ -32,6 +32,7 @@ export class PipelineJobMapper {
 
     return PipelineJob.reconstitute({
       id: record.id,
+      browserId: record.browserId,
       topic: record.topic,
       format,
       themeId,
@@ -70,6 +71,7 @@ export class PipelineJobMapper {
   } {
     return {
       id: job.id,
+      browserId: job.browserId,
       topic: job.topic,
       format: job.format.value as PrismaPipelineJob["format"],
       themeId: job.themeId.value,

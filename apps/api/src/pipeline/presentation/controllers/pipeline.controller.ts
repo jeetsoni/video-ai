@@ -37,6 +37,12 @@ export class PipelineController {
 
   async createJob(req: HttpRequest, res: HttpResponse): Promise<void> {
     try {
+      const browserId = req.headers["x-browser-id"] as string | undefined;
+      if (!browserId) {
+        res.badRequest({ error: "MISSING_BROWSER_ID", message: "X-Browser-Id header is required" });
+        return;
+      }
+
       const parsed = createPipelineJobSchema.safeParse(req.body);
       if (!parsed.success) {
         const message = parsed.error.issues[0]?.message ?? "Invalid input";
@@ -44,7 +50,10 @@ export class PipelineController {
         return;
       }
 
-      const result = await this.createPipelineJobUseCase.execute(parsed.data);
+      const result = await this.createPipelineJobUseCase.execute({
+        ...parsed.data,
+        browserId,
+      });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;
@@ -82,10 +91,12 @@ export class PipelineController {
     try {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
+      const browserId = req.headers["x-browser-id"] as string | undefined;
 
       const result = await this.listPipelineJobsUseCase.execute({
         page,
         limit,
+        browserId,
       });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());

@@ -13,6 +13,7 @@ import type {
 function makeJob() {
   return PipelineJob.create({
     id: "job-1",
+    browserId: "test-browser-id",
     topic: "How databases work",
     format: VideoFormat.create("short").getValue(),
     themeId: AnimationThemeId.create("studio").getValue(),
@@ -91,6 +92,7 @@ describe("PipelineJob", () => {
       ).getValue();
       const job = PipelineJob.reconstitute({
         id: "job-2",
+        browserId: "test-browser-id",
         topic: "AI basics",
         format: VideoFormat.create("reel").getValue(),
         themeId: AnimationThemeId.create("neon").getValue(),
@@ -124,6 +126,7 @@ describe("PipelineJob", () => {
       const scenes = [makeSceneBoundary()];
       const job = PipelineJob.reconstitute({
         id: "job-3",
+        browserId: "test-browser-id",
         topic: "Scene test",
         format: VideoFormat.create("short").getValue(),
         themeId: AnimationThemeId.create("studio").getValue(),
