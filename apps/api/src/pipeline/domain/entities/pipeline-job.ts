@@ -422,4 +422,13 @@ export class PipelineJob {
     this.props.generatedCode = code;
     this.props.updatedAt = new Date();
   }
+
+  /**
+   * Clears the video URL to allow re-rendering.
+   * Used when user wants to re-render from "done" stage.
+   */
+  clearVideoUrl(): void {
+    this.props.videoPath = null;
+    this.props.updatedAt = new Date();
+  }
 }

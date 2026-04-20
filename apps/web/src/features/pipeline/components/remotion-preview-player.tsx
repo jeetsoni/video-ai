@@ -3,9 +3,40 @@
 import type React from "react";
 import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { Player, type PlayerRef, type ErrorFallback } from "@remotion/player";
-import { Audio, prefetch } from "remotion";
+import { AbsoluteFill, Audio, prefetch } from "remotion";
 import { AlertTriangle, Wand2, RefreshCw, Loader2 } from "lucide-react";
 import type { ScenePlan } from "@video-ai/shared";
+
+// Load Google Fonts for consistent rendering between preview and export
+import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { loadFont as loadRobotoMono } from "@remotion/google-fonts/RobotoMono";
+import { loadFont as loadPoppins } from "@remotion/google-fonts/Poppins";
+import { loadFont as loadOpenSans } from "@remotion/google-fonts/OpenSans";
+
+// Load fonts and get their CSS font-family values
+const { fontFamily: interFamily } = loadInter();
+const { fontFamily: monoFamily } = loadRobotoMono();
+const { fontFamily: poppinsFamily } = loadPoppins();
+const { fontFamily: openSansFamily } = loadOpenSans();
+
+// CSS to apply fonts globally and override monospace
+function FontStyles() {
+  return (
+    <style>
+      {`
+        * {
+          font-family: ${interFamily}, ${openSansFamily}, system-ui, sans-serif;
+        }
+        code, pre, .monospace, [style*="monospace"] {
+          font-family: ${monoFamily}, 'Courier New', monospace !important;
+        }
+        h1, h2, h3, .heading {
+          font-family: ${poppinsFamily}, ${interFamily}, system-ui, sans-serif;
+        }
+      `}
+    </style>
+  );
+}
 
 export interface RemotionPreviewPlayerProps {
   component: React.ComponentType<{ scenePlan: ScenePlan }>;
@@ -35,12 +66,13 @@ function CompositionWrapper({
   onAudioError,
 }: CompositionProps) {
   return (
-    <>
+    <AbsoluteFill>
+      <FontStyles />
       <MainComponent scenePlan={scenePlan} />
       {audioUrl && (
         <Audio src={audioUrl} onError={onAudioError} pauseWhenBuffering />
       )}
-    </>
+    </AbsoluteFill>
   );
 }
 

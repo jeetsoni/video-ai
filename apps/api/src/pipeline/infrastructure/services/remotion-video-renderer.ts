@@ -11,8 +11,28 @@ import * as path from "node:path";
 import * as os from "node:os";
 import * as crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import type { Configuration } from "webpack";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Find node_modules path dynamically using require.resolve
+// This is more robust than hardcoded relative paths because it works
+// regardless of where the file is located in the project structure
+function findNodeModulesPath(): string {
+  try {
+    // Try to resolve @remotion/google-fonts and extract its node_modules path
+    const googleFontsPath = path.dirname(
+      require.resolve("@remotion/google-fonts/package.json"),
+    );
+    // Go up from @remotion/google-fonts to node_modules
+    return path.resolve(googleFontsPath, "../..");
+  } catch {
+    // Fallback to relative path if resolution fails
+    return path.resolve(__dirname, "../../../../node_modules");
+  }
+}
+
+const NODE_MODULES_PATH = findNodeModulesPath();
 
 export interface RemotionVideoRendererConfig {
   compositionId: string;
@@ -33,6 +53,9 @@ const FPS = 30;
 /**
  * Builds a minimal Remotion entry file that registers the generated component
  * as a composition. This is what Remotion's bundler needs as an entry point.
+ *
+ * Loads Google Fonts (Inter, Roboto Mono) to ensure consistent font rendering
+ * between browser preview and server-side video rendering.
  */
 function buildEntrySource(
   code: string,
@@ -44,14 +67,47 @@ function buildEntrySource(
     `import React, { useState, useEffect, useMemo, useCallback } from "react";`,
     `import { registerRoot, Composition, AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig, interpolate, spring, Easing, Audio, staticFile } from "remotion";`,
     ``,
+    `// Load Google Fonts for consistent rendering between preview and export`,
+    `import { loadFont as loadInter } from "@remotion/google-fonts/Inter";`,
+    `import { loadFont as loadRobotoMono } from "@remotion/google-fonts/RobotoMono";`,
+    `import { loadFont as loadPoppins } from "@remotion/google-fonts/Poppins";`,
+    `import { loadFont as loadOpenSans } from "@remotion/google-fonts/OpenSans";`,
+    ``,
+    `// Load all font weights for Inter (primary UI font)`,
+    `const { fontFamily: interFamily } = loadInter();`,
+    `// Load Roboto Mono for code/monospace text`,
+    `const { fontFamily: monoFamily } = loadRobotoMono();`,
+    `// Load Poppins for headings`,
+    `const { fontFamily: poppinsFamily } = loadPoppins();`,
+    `// Load Open Sans as fallback`,
+    `const { fontFamily: openSansFamily } = loadOpenSans();`,
+    ``,
+    `// CSS to apply fonts globally and override monospace`,
+    `const FontStyles = () => (`,
+    `  <style>`,
+    `    {\``,
+    `      * {`,
+    `        font-family: \${interFamily}, \${openSansFamily}, system-ui, sans-serif;`,
+    `      }`,
+    `      code, pre, .monospace, [style*="monospace"] {`,
+    `        font-family: \${monoFamily}, 'Courier New', monospace !important;`,
+    `      }`,
+    `      h1, h2, h3, .heading {`,
+    `        font-family: \${poppinsFamily}, \${interFamily}, system-ui, sans-serif;`,
+    `      }`,
+    `    \`}`,
+    `  </style>`,
+    `);`,
+    ``,
     `// --- Generated component code (inlined) ---`,
     code,
     `// --- End generated component ---`,
     ``,
-    `// Wrapper that adds voiceover audio to the generated animation`,
+    `// Wrapper that adds voiceover audio and font styles to the generated animation`,
     `const MainWithAudio: React.FC<{ scenePlan: any }> = ({ scenePlan }) => {`,
     `  return (`,
     `    <AbsoluteFill>`,
+    `      <FontStyles />`,
     `      <Main scenePlan={scenePlan} />`,
     `      <Audio src={staticFile("${audioFileName}")} />`,
     `    </AbsoluteFill>`,
@@ -163,9 +219,22 @@ export class RemotionVideoRenderer implements VideoRenderer {
       fs.writeFileSync(entryPath, entrySource, "utf-8");
 
       // 4. Bundle the entry file with Remotion's webpack bundler
+      // Use webpackOverride to resolve @remotion/google-fonts from the API's node_modules
       const bundlePath = await bundle({
         entryPoint: entryPath,
         publicDir,
+        webpackOverride: (config: Configuration): Configuration => {
+          return {
+            ...config,
+            resolve: {
+              ...config.resolve,
+              modules: [
+                NODE_MODULES_PATH,
+                ...(config.resolve?.modules ?? ["node_modules"]),
+              ],
+            },
+          };
+        },
         onProgress: () => {
           // Bundling progress — no-op for now
         },

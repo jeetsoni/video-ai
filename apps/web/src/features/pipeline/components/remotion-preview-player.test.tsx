@@ -4,6 +4,20 @@ import { render, fireEvent } from "@testing-library/react";
 import { RemotionPreviewPlayer } from "./remotion-preview-player";
 import type { ScenePlan } from "@video-ai/shared";
 
+// Mock @remotion/google-fonts modules
+jest.mock("@remotion/google-fonts/Inter", () => ({
+  loadFont: () => ({ fontFamily: "Inter" }),
+}));
+jest.mock("@remotion/google-fonts/RobotoMono", () => ({
+  loadFont: () => ({ fontFamily: "Roboto Mono" }),
+}));
+jest.mock("@remotion/google-fonts/Poppins", () => ({
+  loadFont: () => ({ fontFamily: "Poppins" }),
+}));
+jest.mock("@remotion/google-fonts/OpenSans", () => ({
+  loadFont: () => ({ fontFamily: "Open Sans" }),
+}));
+
 // Mock remotion modules since they won't work in jsdom
 jest.mock("remotion", () => ({
   Audio: (props: Record<string, unknown>) => {
@@ -14,6 +28,17 @@ jest.mock("remotion", () => ({
       "data-testid": "remotion-audio",
     });
   },
+  AbsoluteFill: ({ children }: { children: React.ReactNode }) => {
+    return React.createElement(
+      "div",
+      { "data-testid": "absolute-fill" },
+      children,
+    );
+  },
+  prefetch: () => ({
+    free: () => {},
+    waitUntilDone: () => Promise.resolve(),
+  }),
 }));
 
 jest.mock("@remotion/player", () => ({

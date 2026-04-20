@@ -6,11 +6,13 @@ import type { QueueService } from "@/pipeline/application/interfaces/queue-servi
 
 interface ExportVideoRequest {
   jobId: string;
+  forceRerender?: boolean;
 }
 
-export class ExportVideoUseCase
-  implements UseCase<ExportVideoRequest, Result<void, ValidationError>>
-{
+export class ExportVideoUseCase implements UseCase<
+  ExportVideoRequest,
+  Result<void, ValidationError>
+> {
   constructor(
     private readonly repository: PipelineJobRepository,
     private readonly queueService: QueueService,
@@ -26,13 +28,20 @@ export class ExportVideoUseCase
       );
     }
 
-    if (job.stage.value !== "preview") {
+    // Allow export from "preview" stage (first render) or "done" stage (re-render)
+    const allowedStages = ["preview", "done"];
+    if (!allowedStages.includes(job.stage.value)) {
       return Result.fail(
         new ValidationError(
-          `Job must be in "preview" stage to export, currently in "${job.stage.value}"`,
+          `Job must be in "preview" or "done" stage to export, currently in "${job.stage.value}"`,
           "INVALID_STAGE",
         ),
       );
+    }
+
+    // If job is already done and has a video, clear it for re-render
+    if (job.stage.value === "done") {
+      job.clearVideoUrl();
     }
 
     const transitionResult = job.transitionTo("rendering");

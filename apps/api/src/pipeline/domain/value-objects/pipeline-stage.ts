@@ -13,19 +13,21 @@ const STAGES_IN_ORDER: readonly PipelineStageType[] = [
   "done",
 ] as const;
 
-const VALID_TRANSITIONS: ReadonlyMap<PipelineStageType, readonly PipelineStageType[]> =
-  new Map([
-    ["script_generation", ["script_review"]],
-    ["script_review", ["tts_generation", "script_generation"]],
-    ["tts_generation", ["transcription"]],
-    ["transcription", ["timestamp_mapping"]],
-    ["timestamp_mapping", ["direction_generation"]],
-    ["direction_generation", ["code_generation"]],
-    ["code_generation", ["preview"]],
-    ["preview", ["rendering", "done", "direction_generation"]],
-    ["rendering", ["done"]],
-    ["done", ["direction_generation"]],
-  ]);
+const VALID_TRANSITIONS: ReadonlyMap<
+  PipelineStageType,
+  readonly PipelineStageType[]
+> = new Map([
+  ["script_generation", ["script_review"]],
+  ["script_review", ["tts_generation", "script_generation"]],
+  ["tts_generation", ["transcription"]],
+  ["transcription", ["timestamp_mapping"]],
+  ["timestamp_mapping", ["direction_generation"]],
+  ["direction_generation", ["code_generation"]],
+  ["code_generation", ["preview"]],
+  ["preview", ["rendering", "done", "direction_generation"]],
+  ["rendering", ["done"]],
+  ["done", ["direction_generation", "rendering"]],
+]);
 
 export class PipelineStage {
   private constructor(private readonly _value: PipelineStageType) {}
@@ -74,7 +76,9 @@ export class PipelineStage {
     return STAGES_IN_ORDER;
   }
 
-  static validTransitionsFrom(stage: PipelineStageType): readonly PipelineStageType[] {
+  static validTransitionsFrom(
+    stage: PipelineStageType,
+  ): readonly PipelineStageType[] {
     return VALID_TRANSITIONS.get(stage) ?? [];
   }
 }

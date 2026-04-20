@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PipelineJobDto, ProgressEvent, SceneProgressInfo } from "@video-ai/shared";
+import type {
+  PipelineJobDto,
+  ProgressEvent,
+  SceneProgressInfo,
+} from "@video-ai/shared";
 import { isTerminalStatus } from "@video-ai/shared";
 import type { PipelineRepository } from "../interfaces/pipeline-repository";
 import { SSEClient } from "@/shared/services/sse-client";
@@ -46,8 +50,12 @@ export function usePipelineProgress({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [generation, setGeneration] = useState(0);
-  const [sceneProgress, setSceneProgress] = useState<Map<number, SceneProgressInfo>>(new Map());
-  const [completedSceneCodes, setCompletedSceneCodes] = useState<Map<number, string>>(new Map());
+  const [sceneProgress, setSceneProgress] = useState<
+    Map<number, SceneProgressInfo>
+  >(new Map());
+  const [completedSceneCodes, setCompletedSceneCodes] = useState<
+    Map<number, string>
+  >(new Map());
 
   const sseClientRef = useRef<SSEClient<ProgressEvent> | null>(null);
   const mountedRef = useRef(true);
@@ -138,15 +146,20 @@ export function usePipelineProgress({
               stage: event.data.stage,
               status: event.data.status,
               progressPercent: event.data.progressPercent,
-              ...(event.data.errorCode ? { errorCode: event.data.errorCode } : {}),
-              ...(event.data.errorMessage ? { errorMessage: event.data.errorMessage } : {}),
+              ...(event.data.errorCode
+                ? { errorCode: event.data.errorCode }
+                : {}),
+              ...(event.data.errorMessage
+                ? { errorMessage: event.data.errorMessage }
+                : {}),
             };
           });
 
-          // Close on terminal status
+          // Close on terminal status and refetch to get complete job data (e.g., videoUrl)
           if (isTerminalStatus(event.data.status)) {
             client.close();
             sseClientRef.current = null;
+            await fetchJob();
             return;
           }
         }
@@ -170,5 +183,13 @@ export function usePipelineProgress({
     };
   }, [fetchJob, jobId, apiBaseUrl, closeSSE, generation]);
 
-  return { job, isLoading, error, refetch, reconnect, sceneProgress, completedSceneCodes };
+  return {
+    job,
+    isLoading,
+    error,
+    refetch,
+    reconnect,
+    sceneProgress,
+    completedSceneCodes,
+  };
 }

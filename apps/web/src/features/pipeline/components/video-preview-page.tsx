@@ -587,7 +587,17 @@ export function VideoPreviewPage({
                   }}
                 >
                   <Download className="size-4" />
-                  Download MP4
+                  Download Video
+                </Button>
+              )}
+              {job.stage === "done" && onExport && (
+                <Button
+                  variant="secondary"
+                  className="w-full rounded-xl gap-2"
+                  onClick={onExport}
+                >
+                  <RefreshCw className="size-4" />
+                  Re-render Video
                 </Button>
               )}
 
