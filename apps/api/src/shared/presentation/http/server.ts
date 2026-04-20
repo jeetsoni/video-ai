@@ -16,7 +16,8 @@ if (process.env["NODE_ENV"] !== "production") {
 }
 
 async function main() {
-  const port = process.env["API_PORT"] ?? 4000;
+  // Railway provides PORT, we also support API_PORT for local dev
+  const port = process.env["PORT"] ?? process.env["API_PORT"] ?? 4000;
 
   // --- Redis connection ---
   const redisUrlStr = process.env["REDIS_URL"] ?? "redis://localhost:6379";
