@@ -39,8 +39,17 @@ export interface WorkerRegistry {
   close(): Promise<void>;
 }
 
-export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegistry {
-  const { prisma, queue, objectStore, connection, elevenLabsApiKey, elevenLabsVoiceId } = config;
+export function createWorkerRegistry(
+  config: WorkerRegistryConfig,
+): WorkerRegistry {
+  const {
+    prisma,
+    queue,
+    objectStore,
+    connection,
+    elevenLabsApiKey,
+    elevenLabsVoiceId,
+  } = config;
 
   // Shared infrastructure
   const jobRepository = new PrismaPipelineJobRepository(prisma);
@@ -48,9 +57,16 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
 
   // Service adapters
   const streamingScriptGenerator = new AIStreamingScriptGenerator();
-  const redisClient = new Redis({ host: (connection as { host?: string }).host ?? "localhost", port: (connection as { port?: number }).port ?? 6379 });
+  const redisClient = new Redis({
+    host: (connection as { host?: string }).host ?? "localhost",
+    port: (connection as { port?: number }).port ?? 6379,
+    password: (connection as { password?: string }).password,
+  });
   const eventPublisher = new RedisStreamEventPublisher(redisClient);
-  const ttsService = new ElevenLabsTTSService({ apiKey: elevenLabsApiKey }, objectStore);
+  const ttsService = new ElevenLabsTTSService(
+    { apiKey: elevenLabsApiKey },
+    objectStore,
+  );
   const transcriptionService = new AITranscriptionService(objectStore);
   const timestampMapper = new TextTimestampMapper();
   const directionGenerator = new AIDirectionGenerator();
@@ -58,16 +74,53 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const videoRenderer = new RemotionVideoRenderer(objectStore);
 
   // Pipeline workers (application-level handlers)
-  const scriptGenerationWorker = new ScriptGenerationWorker(streamingScriptGenerator, eventPublisher, jobRepository);
-  const ttsGenerationWorker = new TTSGenerationWorker(ttsService, jobRepository, queueService, elevenLabsVoiceId, eventPublisher);
-  const transcriptionWorker = new TranscriptionWorker(transcriptionService, jobRepository, queueService, eventPublisher);
-  const timestampMappingWorker = new TimestampMappingWorker(timestampMapper, jobRepository, queueService, eventPublisher);
-  const directionGenerationWorker = new DirectionGenerationWorker(directionGenerator, jobRepository, queueService, eventPublisher);
-  const codeGenerationWorker = new CodeGenerationWorker(codeGenerator, jobRepository, objectStore, eventPublisher);
-  const videoRenderingWorker = new VideoRenderingWorker(videoRenderer, jobRepository, eventPublisher);
+  const scriptGenerationWorker = new ScriptGenerationWorker(
+    streamingScriptGenerator,
+    eventPublisher,
+    jobRepository,
+  );
+  const ttsGenerationWorker = new TTSGenerationWorker(
+    ttsService,
+    jobRepository,
+    queueService,
+    elevenLabsVoiceId,
+    eventPublisher,
+  );
+  const transcriptionWorker = new TranscriptionWorker(
+    transcriptionService,
+    jobRepository,
+    queueService,
+    eventPublisher,
+  );
+  const timestampMappingWorker = new TimestampMappingWorker(
+    timestampMapper,
+    jobRepository,
+    queueService,
+    eventPublisher,
+  );
+  const directionGenerationWorker = new DirectionGenerationWorker(
+    directionGenerator,
+    jobRepository,
+    queueService,
+    eventPublisher,
+  );
+  const codeGenerationWorker = new CodeGenerationWorker(
+    codeGenerator,
+    jobRepository,
+    objectStore,
+    eventPublisher,
+  );
+  const videoRenderingWorker = new VideoRenderingWorker(
+    videoRenderer,
+    jobRepository,
+    eventPublisher,
+  );
 
   // Stage name → worker process handler mapping
-  const stageHandlers: Record<string, (job: Job<{ jobId: string }>) => Promise<void>> = {
+  const stageHandlers: Record<
+    string,
+    (job: Job<{ jobId: string }>) => Promise<void>
+  > = {
     script_generation: (job) => scriptGenerationWorker.process(job),
     tts_generation: (job) => ttsGenerationWorker.process(job),
     transcription: (job) => transcriptionWorker.process(job),
@@ -81,19 +134,26 @@ export function createWorkerRegistry(config: WorkerRegistryConfig): WorkerRegist
   const bullWorker = new Worker(
     PIPELINE_QUEUE_NAME,
     async (job: Job<{ jobId: string }>) => {
-      console.log(`[worker] Processing stage: ${job.name} for job: ${job.data.jobId}`);
+      console.log(
+        `[worker] Processing stage: ${job.name} for job: ${job.data.jobId}`,
+      );
       const handler = stageHandlers[job.name];
       if (!handler) {
         throw new Error(`No handler registered for stage: ${job.name}`);
       }
       await handler(job);
-      console.log(`[worker] Completed stage: ${job.name} for job: ${job.data.jobId}`);
+      console.log(
+        `[worker] Completed stage: ${job.name} for job: ${job.data.jobId}`,
+      );
     },
     { connection },
   );
 
   bullWorker.on("failed", (job, err) => {
-    console.error(`[worker] FAILED stage: ${job?.name} for job: ${job?.data?.jobId}`, err.message);
+    console.error(
+      `[worker] FAILED stage: ${job?.name} for job: ${job?.data?.jobId}`,
+      err.message,
+    );
   });
 
   bullWorker.on("error", (err) => {
