@@ -51,8 +51,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+# Copy node_modules from build stage (includes generated Prisma client)
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/apps/api ./apps/api
 COPY --from=build /app/tsconfig.base.json ./tsconfig.base.json
@@ -60,5 +61,5 @@ COPY --from=build /app/package.json ./package.json
 
 EXPOSE 4000
 
-# Run migrations then start the server
-CMD ["sh", "-c", "cd apps/api && npx prisma migrate deploy && node --import tsx/esm src/shared/presentation/http/server.ts"]
+# Run migrations, generate Prisma client, seed themes, then start the server
+CMD ["sh", "-c", "cd apps/api && npx prisma migrate deploy && npx prisma generate && npx tsx src/pipeline/infrastructure/seed/seed-themes.ts && node --import tsx/esm src/shared/presentation/http/server.ts"]
