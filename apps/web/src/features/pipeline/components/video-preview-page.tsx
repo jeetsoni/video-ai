@@ -9,6 +9,7 @@ import {
   Play,
   RefreshCw,
   Volume2,
+  Wand2,
 } from "lucide-react";
 import {
   FORMAT_RESOLUTIONS,
@@ -72,10 +73,21 @@ function PreviewSkeleton({ format }: { format: string }) {
 function PreviewError({
   error,
   onRetry,
+  onAutofix,
+  isAutofixing,
+  autofixExplanation,
 }: {
   error: string;
   onRetry: () => void;
+  onAutofix?: () => void;
+  isAutofixing?: boolean;
+  autofixExplanation?: string | null;
 }) {
+  const isRuntimeError = error.includes("is not defined") || 
+    error.includes("ReferenceError") ||
+    error.includes("TypeError") ||
+    error.includes("Cannot read");
+  
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl bg-stage-failed/20 p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-xl bg-stage-failed/20">
@@ -85,12 +97,35 @@ function PreviewError({
         <p className="text-sm font-semibold text-stage-failed">
           Preview Failed
         </p>
-        <p className="text-sm text-on-surface-variant">{error}</p>
+        <p className="text-sm text-on-surface-variant max-w-md">{error}</p>
+        {autofixExplanation && (
+          <p className="text-xs text-emerald-400 mt-2">
+            ✓ {autofixExplanation}
+          </p>
+        )}
       </div>
-      <Button variant="secondary" size="sm" className="gap-2" onClick={onRetry}>
-        <RefreshCw className="size-3.5" />
-        Retry
-      </Button>
+      <div className="flex gap-2">
+        {isRuntimeError && onAutofix && (
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700" 
+            onClick={onAutofix}
+            disabled={isAutofixing}
+          >
+            {isAutofixing ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="size-3.5" />
+            )}
+            {isAutofixing ? "Fixing..." : "Autofix"}
+          </Button>
+        )}
+        <Button variant="secondary" size="sm" className="gap-2" onClick={onRetry}>
+          <RefreshCw className="size-3.5" />
+          {isRuntimeError ? "Regenerate" : "Retry"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -142,9 +177,12 @@ export function VideoPreviewPage({
     FORMAT_RESOLUTIONS[job.format as keyof typeof FORMAT_RESOLUTIONS];
 
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isAutofixing, setIsAutofixing] = useState(false);
+  const [autofixExplanation, setAutofixExplanation] = useState<string | null>(null);
 
   const handleRegenerateCode = useCallback(async () => {
     setIsRegenerating(true);
+    setAutofixExplanation(null);
     try {
       await repository.regenerateCode(job.id);
       onRefresh?.();
@@ -154,6 +192,61 @@ export function VideoPreviewPage({
       setIsRegenerating(false);
     }
   }, [job.id, repository, onRefresh]);
+
+  const handleAutofixCode = useCallback(async () => {
+    if (!previewError) return;
+    
+    setIsAutofixing(true);
+    setAutofixExplanation(null);
+    
+    // Parse error type from the error message
+    let errorType = "Runtime Error";
+    if (previewError.includes("ReferenceError") || previewError.includes("is not defined")) {
+      errorType = "ReferenceError";
+    } else if (previewError.includes("TypeError")) {
+      errorType = "TypeError";
+    } else if (previewError.includes("SyntaxError")) {
+      errorType = "SyntaxError";
+    }
+    
+    try {
+      const result = await repository.autofixCode({
+        jobId: job.id,
+        errorMessage: previewError,
+        errorType,
+      });
+      setAutofixExplanation(result.explanation);
+      // Refetch to get the updated code
+      await refetch();
+    } catch (err) {
+      console.error("Autofix failed:", err);
+      // If autofix fails, user can still use regenerate
+    } finally {
+      setIsAutofixing(false);
+    }
+  }, [job.id, previewError, repository, refetch]);
+
+  // Handler for autofix from the player (receives error details directly)
+  const handleAutofixForPlayer = useCallback(async (errorMessage: string, errorType: string) => {
+    setIsAutofixing(true);
+    setAutofixExplanation(null);
+    
+    try {
+      const result = await repository.autofixCode({
+        jobId: job.id,
+        errorMessage,
+        errorType,
+      });
+      setAutofixExplanation(result.explanation);
+      // Refetch to get the updated code
+      await refetch();
+    } catch (err) {
+      console.error("Autofix failed:", err);
+      // If autofix fails, user can still use regenerate
+    } finally {
+      setIsAutofixing(false);
+    }
+  }, [job.id, repository, refetch]);
 
   // Determine what to render in the preview area
   function renderPreviewArea() {
@@ -226,10 +319,17 @@ export function VideoPreviewPage({
       const isSyntaxOrEvalError =
         previewError.startsWith("SyntaxError") ||
         previewError.includes("does not define a Main");
+      const isRuntimeError = 
+        previewError.includes("is not defined") ||
+        previewError.includes("ReferenceError") ||
+        previewError.includes("TypeError");
       return (
         <PreviewError
           error={previewError}
-          onRetry={isSyntaxOrEvalError ? handleRegenerateCode : refetch}
+          onRetry={isSyntaxOrEvalError || isRuntimeError ? handleRegenerateCode : refetch}
+          onAutofix={isRuntimeError ? handleAutofixCode : undefined}
+          isAutofixing={isAutofixing}
+          autofixExplanation={autofixExplanation}
         />
       );
     }
@@ -258,6 +358,9 @@ export function VideoPreviewPage({
             compositionWidth={previewData.compositionWidth}
             compositionHeight={previewData.compositionHeight}
             onAudioError={refreshAudioUrl}
+            onAutofix={handleAutofixForPlayer}
+            onRegenerate={handleRegenerateCode}
+            isAutofixing={isAutofixing}
           />
         </div>
       );

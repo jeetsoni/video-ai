@@ -11,6 +11,7 @@ import { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/list-p
 import { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
 import { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
+import { AutofixCodeUseCase } from "@/pipeline/application/use-cases/autofix-code.use-case.js";
 import { RetryJobUseCase } from "@/pipeline/application/use-cases/retry-job.use-case.js";
 import { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
@@ -29,6 +30,7 @@ import { RedisStreamEventSubscriber } from "@/shared/infrastructure/streaming/st
 import { ExpressSSEResponseHelper } from "@/shared/infrastructure/streaming/sse-response-helper.js";
 import { createPipelineRouter } from "@/pipeline/presentation/routes/pipeline.routes.js";
 import { createVoicePreviewRouter } from "@/pipeline/presentation/routes/voice-preview.routes.js";
+import { AICodeAutoFixer } from "@/pipeline/infrastructure/services/ai-code-autofixer.js";
 
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
@@ -67,6 +69,11 @@ export function createPipelineModule(deps: {
     repository,
     queueService,
   );
+  const codeAutoFixer = new AICodeAutoFixer();
+  const autofixCodeUseCase = new AutofixCodeUseCase(
+    repository,
+    codeAutoFixer,
+  );
   const retryJobUseCase = new RetryJobUseCase(
     repository,
     queueService,
@@ -93,6 +100,7 @@ export function createPipelineModule(deps: {
     approveScriptUseCase,
     regenerateScriptUseCase,
     regenerateCodeUseCase,
+    autofixCodeUseCase,
     retryJobUseCase,
     getThemesFn,
     getPreviewDataUseCase,

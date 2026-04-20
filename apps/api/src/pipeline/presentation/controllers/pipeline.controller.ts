@@ -8,6 +8,7 @@ import type { ListPipelineJobsUseCase } from "@/pipeline/application/use-cases/l
 import type { ApproveScriptUseCase } from "@/pipeline/application/use-cases/approve-script.use-case.js";
 import type { RegenerateScriptUseCase } from "@/pipeline/application/use-cases/regenerate-script.use-case.js";
 import type { RegenerateCodeUseCase } from "@/pipeline/application/use-cases/regenerate-code.use-case.js";
+import type { AutofixCodeUseCase } from "@/pipeline/application/use-cases/autofix-code.use-case.js";
 import type { RetryJobUseCase } from "@/pipeline/application/use-cases/retry-job.use-case.js";
 import type { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
@@ -30,6 +31,7 @@ export class PipelineController {
     private readonly approveScriptUseCase: ApproveScriptUseCase,
     private readonly regenerateScriptUseCase: RegenerateScriptUseCase,
     private readonly regenerateCodeUseCase: RegenerateCodeUseCase,
+    private readonly autofixCodeUseCase: AutofixCodeUseCase,
     private readonly retryJobUseCase: RetryJobUseCase,
     private readonly getThemesFn: () => Promise<ThemeDto[]>,
     private readonly getPreviewDataUseCase: GetPreviewDataUseCase,
@@ -179,6 +181,45 @@ export class PipelineController {
       }
 
       res.ok({ status: "ok" });
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async autofixCode(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const body = req.body as {
+        errorMessage?: string;
+        errorType?: string;
+        sceneIndex?: number;
+      };
+
+      if (!body.errorMessage || !body.errorType) {
+        res.badRequest({
+          error: "INVALID_INPUT",
+          message: "errorMessage and errorType are required",
+        });
+        return;
+      }
+
+      const result = await this.autofixCodeUseCase.execute({
+        jobId: id,
+        errorMessage: body.errorMessage,
+        errorType: body.errorType,
+        sceneIndex: body.sceneIndex,
+      });
+
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      const { fixedCode, explanation } = result.getValue();
+      res.ok({ status: "ok", fixedCode, explanation });
     } catch {
       res.serverError({
         error: "internal_error",

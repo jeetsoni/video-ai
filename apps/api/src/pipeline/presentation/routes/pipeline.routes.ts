@@ -59,6 +59,15 @@ export function createPipelineRouter(
   );
 
   router.post(
+    "/jobs/:id/autofix-code",
+    async (req: Request, res: Response) => {
+      const httpReq = HttpRequest.fromExpress(req);
+      const httpRes = HttpResponse.fromExpress(res);
+      await controller.autofixCode(httpReq, httpRes);
+    },
+  );
+
+  router.post(
     "/jobs/:id/retry",
     async (req: Request, res: Response) => {
       const httpReq = HttpRequest.fromExpress(req);

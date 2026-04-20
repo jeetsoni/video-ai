@@ -110,11 +110,14 @@ function createMockRepository(
     approveScript: jest.fn(),
     regenerateScript: jest.fn(),
     regenerateCode: jest.fn(),
+    autofixCode: jest.fn(),
+    retryJob: jest.fn(),
     listJobs: jest.fn(),
     getThemes: jest.fn(),
     getPreviewData: getPreviewDataFn ?? jest.fn(),
     exportVideo: jest.fn(),
     listVoices: jest.fn(),
+    previewVoice: jest.fn(),
   };
 }
 

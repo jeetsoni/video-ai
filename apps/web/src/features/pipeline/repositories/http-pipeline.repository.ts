@@ -10,6 +10,8 @@ import type {
   PipelineRepository,
   CreateJobParams,
   ApproveScriptParams,
+  AutofixCodeParams,
+  AutofixCodeResponse,
 } from "../interfaces/pipeline-repository";
 import type {
   CreateJobResponse,
@@ -64,6 +66,17 @@ export class HttpPipelineRepository implements PipelineRepository {
     return this.http.post<ActionResponse>({
       path: `${BASE}/jobs/${jobId}/regenerate-code`,
       body: {},
+    });
+  }
+
+  autofixCode(params: AutofixCodeParams): Promise<AutofixCodeResponse> {
+    return this.http.post<AutofixCodeResponse>({
+      path: `${BASE}/jobs/${params.jobId}/autofix-code`,
+      body: {
+        errorMessage: params.errorMessage,
+        errorType: params.errorType,
+        sceneIndex: params.sceneIndex,
+      },
     });
   }
 

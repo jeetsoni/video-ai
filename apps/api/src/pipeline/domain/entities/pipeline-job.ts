@@ -414,4 +414,14 @@ export class PipelineJob {
     this.props.updatedAt = new Date();
     return Result.ok(undefined);
   }
+
+  /**
+   * Updates the generated code without stage validation.
+   * Used for autofix operations where we need to update code
+   * in preview or done stages.
+   */
+  updateGeneratedCode(code: string): void {
+    this.props.generatedCode = code;
+    this.props.updatedAt = new Date();
+  }
 }

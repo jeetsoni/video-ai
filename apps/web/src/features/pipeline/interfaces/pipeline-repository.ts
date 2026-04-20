@@ -29,12 +29,26 @@ export interface ApproveScriptParams {
   voiceSettings?: VoiceSettings;
 }
 
+export interface AutofixCodeParams {
+  jobId: string;
+  errorMessage: string;
+  errorType: string;
+  sceneIndex?: number;
+}
+
+export interface AutofixCodeResponse {
+  status: "ok";
+  fixedCode: string;
+  explanation: string;
+}
+
 export interface PipelineRepository {
   createJob(params: CreateJobParams): Promise<CreateJobResponse>;
   getJobStatus(jobId: string): Promise<PipelineJobDto>;
   approveScript(params: ApproveScriptParams): Promise<ActionResponse>;
   regenerateScript(jobId: string): Promise<ActionResponse>;
   regenerateCode(jobId: string): Promise<ActionResponse>;
+  autofixCode(params: AutofixCodeParams): Promise<AutofixCodeResponse>;
   retryJob(jobId: string): Promise<ActionResponse>;
   listJobs(page: number, limit: number): Promise<ListJobsResponse>;
   getThemes(): Promise<ListThemesResponse>;
