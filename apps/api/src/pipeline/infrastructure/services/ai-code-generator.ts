@@ -22,7 +22,10 @@ const DEFAULT_CONFIG: AICodeGeneratorConfig = {
   maxRetries: 2,
 };
 
-function buildDesignSystemSection(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+function buildDesignSystemSection(
+  theme: AnimationTheme,
+  layoutProfile: LayoutProfile,
+): string {
   const cards = getCardTinted(theme);
   const { canvas, safeZone } = layoutProfile;
   const safeZoneBottom = safeZone.top + safeZone.height;
@@ -68,7 +71,10 @@ CRITICAL: Before writing any layout, calculate total height budget:
 - Sum up all block heights + gaps. If total > CANVAS_H (${safeZone.height}), reduce block heights or font sizes until it fits.`;
 }
 
-function buildCodeSystemPrompt(theme: AnimationTheme, layoutProfile: LayoutProfile): string {
+function buildCodeSystemPrompt(
+  theme: AnimationTheme,
+  layoutProfile: LayoutProfile,
+): string {
   return `You are a world-class Remotion motion graphics engineer. You receive a single scene's animation direction and produce a React component that renders RICH, PROFESSIONAL animated motion graphics — the quality of a senior designer at a top tech company, combined with the clarity of a master teacher.
 
 ## ABSOLUTE RULES (violating these is a critical bug)
@@ -115,19 +121,20 @@ These rules apply to STATIC layout only. Animated elements (using interpolate/sp
   - padding + paddingTop → use padding shorthand only
 
 ## Rules
-1. function Main({ scene }) — frame 0 = scene start
-2. beat.frameRange is ABSOLUTE — subtract scene.startFrame to get relative frame
-3. Inline styles only — no CSS imports, no Tailwind
-4. Keep code under 300 lines — write DRY, compact code
-5. Return ONLY the code — no markdown fences, no explanation
-6. ALWAYS add a global scene entry fade: compute \`const sceneEnterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\` and apply \`opacity: sceneEnterOpacity\` to the outermost content div.
-7. NO code comments — zero comments
-8. Extract repeated style objects into shared const variables at the top of Main
-9. Extract repeated interpolate/spring patterns into helper functions
-10. Use short variable names for internal helpers
-11. For SVG icons, use the simplest recognizable path
-12. Combine adjacent elements that share the same animation timing into a single wrapper div
-13. If multiple cards share the same structure, use a .map() over a data array
+1. function Main({ scene }) — \`useCurrentFrame()\` returns 0 at scene start (Remotion <Sequence> resets it)
+2. NEVER subtract scene.startFrame from \`useCurrentFrame()\` or create a variable like \`frame - scene.startFrame\` — the frame is ALREADY scene-local
+3. beat.frameRange values are ABSOLUTE — subtract scene.startFrame from the frameRange values (NOT from the frame variable) to get scene-relative timing
+4. Inline styles only — no CSS imports, no Tailwind
+5. Keep code under 300 lines — write DRY, compact code
+6. Return ONLY the code — no markdown fences, no explanation
+7. ALWAYS add a global scene entry fade: compute \`const sceneEnterOpacity = interpolate(frame, [0, 8], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });\` and apply \`opacity: sceneEnterOpacity\` to the outermost content div.
+8. NO code comments — zero comments
+9. Extract repeated style objects into shared const variables at the top of Main
+10. Extract repeated interpolate/spring patterns into helper functions
+11. Use short variable names for internal helpers
+12. For SVG icons, use the simplest recognizable path
+13. Combine adjacent elements that share the same animation timing into a single wrapper div
+14. If multiple cards share the same structure, use a .map() over a data array
 
 ## Component Structure
 function Main({ scene }) {
@@ -147,12 +154,18 @@ function Main({ scene }) {
   );
 }
 
-## Beat Interpretation
+## Beat Interpretation — Frame Timing (CRITICAL)
+This component is rendered inside a Remotion <Sequence> that ALREADY resets the frame counter.
+- \`useCurrentFrame()\` returns 0 at the start of THIS scene — it is ALREADY scene-relative.
+- NEVER subtract scene.startFrame from \`useCurrentFrame()\`. The frame variable is already local.
+- beat.frameRange values in the JSON are ABSOLUTE (relative to the whole video). To convert them to scene-local frames, subtract scene.startFrame from the beat frameRange values ONLY — not from the frame variable.
+- Example: if beat.frameRange = [613, 750] and scene.startFrame = 613, the beat starts at local frame 0 (613-613) and ends at local frame 137 (750-613).
+
 For each beat in a scene:
 - Read the visual field to decide WHAT to render — build the actual visualization described (diagrams, charts, UIs, visual metaphors)
 - Read the motion field for timing and animation specs
 - Read the typography field for text styling and accent colors
-- Use the beat's frameRange for timing within the scene (subtract scene.startFrame for relative frames)
+- Convert beat.frameRange to scene-local frames by subtracting scene.startFrame from the frameRange values
 
 ## Output Format
 Return ONLY the component code. No markdown fences, no explanation, no imports.
@@ -163,8 +176,9 @@ function buildCodePrompt(scene: SceneDirection): string {
   return `Generate a Remotion component for this single scene. The component receives the scene object as a prop called "scene".
 
 IMPORTANT:
-- frame 0 = start of this scene (not the whole video)
-- beat.frameRange values are ABSOLUTE — subtract scene.startFrame to get scene-relative frames
+- This component is rendered inside a <Sequence> — useCurrentFrame() ALREADY returns 0 at scene start
+- NEVER subtract scene.startFrame from useCurrentFrame() — the frame is already scene-local
+- beat.frameRange values are ABSOLUTE — subtract scene.startFrame from the frameRange values (not from the frame variable) to get scene-relative timing
 - Start with: function Main({ scene }) {
 - Return ONLY code
 - Build the ACTUAL visualization described in each beat — diagrams, charts, UIs, visual metaphors — not generic cards with emoji
@@ -174,22 +188,29 @@ ${JSON.stringify(scene, null, 1)}`;
 }
 
 function stripModuleStatements(code: string): string {
-  return code
-    // Remove import statements (handles multiple on same line and multiline)
-    .replace(/import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g, "")
-    // Remove simple import side-effect statements like: import "module";
-    .replace(/import\s+["'][^"']+["'];?/g, "")
-    // Remove export default
-    .replace(/export\s+default\s+/g, "")
-    // Remove named exports
-    .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
-    // Remove destructuring from React that tries to get Remotion globals
-    .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
-    .trim();
+  return (
+    code
+      // Remove import statements (handles multiple on same line and multiline)
+      .replace(
+        /import\s+(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+\w+|\w+))*\s+from\s+["'][^"']+["'];?/g,
+        "",
+      )
+      // Remove simple import side-effect statements like: import "module";
+      .replace(/import\s+["'][^"']+["'];?/g, "")
+      // Remove export default
+      .replace(/export\s+default\s+/g, "")
+      // Remove named exports
+      .replace(/export\s+(?=(?:const|let|var|function|class|async)\s)/g, "")
+      // Remove destructuring from React that tries to get Remotion globals
+      .replace(/const\s+\{[^}]*\}\s*=\s*React\s*;?/g, "")
+      .trim()
+  );
 }
 
 function extractCode(text: string): string {
-  const fenceMatch = text.match(/```(?:tsx|jsx|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/);
+  const fenceMatch = text.match(
+    /```(?:tsx|jsx|typescript|javascript)?\s*\n?([\s\S]*?)\n?```/,
+  );
   let code = fenceMatch ? fenceMatch[1]!.trim() : text.trim();
 
   // Strip import/export statements (AI sometimes adds them despite instructions)
@@ -217,7 +238,10 @@ export class AICodeGenerator implements CodeGenerator {
       apiKey: process.env["GEMINI_API_KEY"] ?? "",
     });
 
-    const systemPrompt = buildCodeSystemPrompt(params.theme, params.layoutProfile);
+    const systemPrompt = buildCodeSystemPrompt(
+      params.theme,
+      params.layoutProfile,
+    );
     const prompt = buildCodePrompt(params.scene);
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
