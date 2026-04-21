@@ -35,6 +35,7 @@ import { PrismaTweakMessageRepository } from "@/pipeline/infrastructure/reposito
 import { AICodeTweaker } from "@/pipeline/infrastructure/services/ai-code-tweaker.js";
 import { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
 import { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
+import { ListShowcaseUseCase } from "@/pipeline/application/use-cases/list-showcase.use-case.js";
 
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
@@ -79,6 +80,7 @@ export function createPipelineModule(deps: {
   const codeTweaker = new AICodeTweaker();
   const sendTweakUseCase = new SendTweakUseCase(repository, tweakMessageRepository, codeTweaker);
   const getTweakMessagesUseCase = new GetTweakMessagesUseCase(repository, tweakMessageRepository);
+  const listShowcaseUseCase = new ListShowcaseUseCase(repository);
   const retryJobUseCase = new RetryJobUseCase(repository, queueService);
   const getPreviewDataUseCase = new GetPreviewDataUseCase(
     repository,
@@ -110,6 +112,7 @@ export function createPipelineModule(deps: {
     listVoicesUseCase,
     sendTweakUseCase,
     getTweakMessagesUseCase,
+    listShowcaseUseCase,
   );
 
   // 6. Streaming SSE infrastructure
@@ -194,7 +197,35 @@ export function createPipelineModule(deps: {
     }
   });
 
-  // 13. Combine routers
+  // 13. Video proxy route (avoids MinIO MetadataTooLarge on signed URLs)
+  pipelineRouter.get("/jobs/:id/video", async (req, res) => {
+    try {
+      const job = await deps.prisma.pipelineJob.findUnique({
+        where: { id: req.params.id },
+      });
+      if (!job || !job.videoPath) {
+        res.status(404).json({ error: "Video not found" });
+        return;
+      }
+
+      const result = await deps.objectStore.getObject(job.videoPath);
+      if (result.isFailure) {
+        res.status(500).json({ error: "Failed to retrieve video" });
+        return;
+      }
+
+      const { data, contentType, contentLength } = result.getValue();
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", contentLength);
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(data);
+    } catch {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // 14. Combine routers
   const router = Router();
   router.use(pipelineRouter);
   router.use(voicePreviewRouter);

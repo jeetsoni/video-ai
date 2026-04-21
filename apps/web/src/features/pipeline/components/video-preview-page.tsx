@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { PlayerRef } from "@remotion/player";
 import {
   AlertTriangle,
   ArrowLeft,
-  Download,
   Info,
   Loader2,
   LifeBuoy,
@@ -31,6 +30,7 @@ import { VideoPreviewSection } from "./video-preview-section";
 import { RemotionPreviewPlayer } from "./remotion-preview-player";
 import { ProgressiveScenePreview } from "./progressive-scene-preview";
 import { ChatPanel } from "./chat-panel";
+import { SmartDownloadButton } from "./smart-download-button";
 
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
@@ -195,6 +195,9 @@ export function VideoPreviewPage({
     null,
   );
 
+  // Track whether the smart download button initiated a render so we can auto-download on completion
+  const pendingDownloadRef = useRef<boolean>(false);
+
   // Refs for ChatPanel integration — player ref for frame/time, container ref for screenshots
   const playerRefObj = useRef<PlayerRef | null>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -202,6 +205,39 @@ export function VideoPreviewPage({
   const handlePlayerRef = useCallback((ref: PlayerRef | null) => {
     playerRefObj.current = ref;
   }, []);
+
+  // Wrap onExport to set the pending download flag before triggering the render
+  const handleSmartExport = useCallback(() => {
+    pendingDownloadRef.current = true;
+    onExport?.();
+  }, [onExport]);
+
+  // Auto-download when a render completes that was initiated by the smart download button
+  useEffect(() => {
+    if (job.stage === "done" && job.videoUrl && pendingDownloadRef.current) {
+      pendingDownloadRef.current = false;
+      (async () => {
+        try {
+          const res = await fetch(job.videoUrl!);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${job.topic || "video"}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch {
+          window.open(job.videoUrl!, "_blank");
+        }
+      })();
+    }
+
+    if (job.stage === "failed") {
+      pendingDownloadRef.current = false;
+    }
+  }, [job.stage, job.videoUrl, job.topic]);
 
   const handleRegenerateCode = useCallback(async () => {
     setIsRegenerating(true);
@@ -531,11 +567,15 @@ export function VideoPreviewPage({
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-white/50">Format</span>
-                    <span className="text-white">{FORMAT_LABELS[job.format] ?? job.format}</span>
+                    <span className="text-white">
+                      {FORMAT_LABELS[job.format] ?? job.format}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/50">Resolution</span>
-                    <span className="text-white">{resolution.width}×{resolution.height}</span>
+                    <span className="text-white">
+                      {resolution.width}×{resolution.height}
+                    </span>
                   </div>
                   {job.themeId && (
                     <div className="flex items-center justify-between">
@@ -556,13 +596,16 @@ export function VideoPreviewPage({
                     <div className="flex items-center justify-between">
                       <span className="text-white/50">Settings</span>
                       <span className="text-white/70">
-                        {job.voiceSettings.speed}x · Stab {job.voiceSettings.stability}
+                        {job.voiceSettings.speed}x · Stab{" "}
+                        {job.voiceSettings.stability}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-white/50">Created</span>
-                    <span className="text-white">{new Date(job.createdAt).toLocaleDateString()}</span>
+                    <span className="text-white">
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/50">Stage</span>
@@ -576,62 +619,12 @@ export function VideoPreviewPage({
 
             {/* Action buttons */}
             <div className="flex gap-1.5 shrink-0">
-              {job.stage === "preview" && onExport && (
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 gradient-primary rounded-lg text-primary-foreground font-semibold text-xs px-2.5"
-                  onClick={onExport}
-                >
-                  <Download className="size-3" />
-                  Export
-                </Button>
-              )}
-              {job.stage === "rendering" && (
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 gradient-primary rounded-lg text-primary-foreground font-semibold text-xs px-2.5"
-                  disabled
-                >
-                  <Loader2 className="size-3 animate-spin" />
-                  Rendering…
-                </Button>
-              )}
-              {job.stage === "done" && job.videoUrl && (
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 gradient-primary rounded-lg text-primary-foreground font-semibold text-xs px-2.5"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(job.videoUrl!);
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${job.topic || "video"}.mp4`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
-                    } catch {
-                      window.open(job.videoUrl!, "_blank");
-                    }
-                  }}
-                >
-                  <Download className="size-3" />
-                  Download
-                </Button>
-              )}
-              {job.stage === "done" && onExport && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-7 gap-1 rounded-lg text-xs px-2.5"
-                  onClick={onExport}
-                >
-                  <RefreshCw className="size-3" />
-                  Re-render
-                </Button>
-              )}
+              {(job.stage === "preview" ||
+                job.stage === "rendering" ||
+                job.stage === "done") &&
+                onExport && (
+                  <SmartDownloadButton job={job} onExport={handleSmartExport} />
+                )}
               {(job.stage === "preview" || job.stage === "done") && (
                 <Button
                   variant="secondary"
@@ -733,7 +726,10 @@ export function VideoPreviewPage({
               playerRef={playerRefObj}
               playerContainerRef={playerContainerRef}
               fps={previewData.fps}
-              onCodeUpdated={refetch}
+              onCodeUpdated={async () => {
+                await refetch();
+                onRefresh?.();
+              }}
             />
           ) : (
             /* Empty state for chat when not in preview — just show a placeholder */

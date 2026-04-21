@@ -5,6 +5,7 @@ import { ValidationError } from "@/shared/domain/errors/validation.error.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
+import { computeCodeHash } from "@/pipeline/domain/services/compute-code-hash.js";
 
 interface GetJobStatusRequest {
   jobId: string;
@@ -50,6 +51,17 @@ function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
   }
   if (videoUrl) {
     dto.videoUrl = videoUrl;
+  }
+
+  if (job.stage.value === "preview" || job.stage.value === "done") {
+    if (!job.generatedCode) {
+      dto.codeChanged = false;
+    } else if (!job.lastRenderedCodeHash) {
+      dto.codeChanged = true;
+    } else {
+      dto.codeChanged =
+        computeCodeHash(job.generatedCode) !== job.lastRenderedCodeHash;
+    }
   }
 
   return dto;

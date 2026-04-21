@@ -15,6 +15,7 @@ import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export
 import type { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
 import type { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
 import type { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
+import type { ListShowcaseUseCase } from "@/pipeline/application/use-cases/list-showcase.use-case.js";
 
 type ThemeDto = {
   id: string;
@@ -41,6 +42,7 @@ export class PipelineController {
     private readonly listVoicesUseCase: ListVoicesUseCase,
     private readonly sendTweakUseCase: SendTweakUseCase,
     private readonly getTweakMessagesUseCase: GetTweakMessagesUseCase,
+    private readonly listShowcaseUseCase: ListShowcaseUseCase,
   ) {}
 
   async createJob(req: HttpRequest, res: HttpResponse): Promise<void> {
@@ -381,6 +383,26 @@ export class PipelineController {
         error: "internal_error",
         message: "Internal server error",
       });
+    }
+  }
+
+  async listShowcase(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 12;
+      const host = req.headers.host as string | undefined;
+      const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
+      const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
+
+      const result = await this.listShowcaseUseCase.execute({ page, limit, apiBaseUrl });
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      res.ok(result.getValue());
+    } catch {
+      res.serverError({ error: "internal_error", message: "Internal server error" });
     }
   }
 

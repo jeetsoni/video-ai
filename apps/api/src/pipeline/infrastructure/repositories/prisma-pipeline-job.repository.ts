@@ -43,4 +43,20 @@ export class PrismaPipelineJobRepository implements PipelineJobRepository {
     const where = browserId ? { browserId } : {};
     return this.prisma.pipelineJob.count({ where });
   }
+
+  async findAllCompleted(page: number, limit: number): Promise<PipelineJob[]> {
+    const records = await this.prisma.pipelineJob.findMany({
+      where: { status: "completed", videoPath: { not: null } },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
+    return records.map(PipelineJobMapper.toDomain);
+  }
+
+  async countCompleted(): Promise<number> {
+    return this.prisma.pipelineJob.count({
+      where: { status: "completed", videoPath: { not: null } },
+    });
+  }
 }

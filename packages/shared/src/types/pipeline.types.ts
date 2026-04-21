@@ -138,6 +138,7 @@ export interface PipelineJobDto {
   approvedScenes?: SceneBoundary[];
   scenePlan?: SceneBoundary[];
   videoUrl?: string;
+  codeChanged?: boolean;
   createdAt: string;
   updatedAt: string;
 }

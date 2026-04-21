@@ -4,6 +4,7 @@ import type { VideoRenderer } from "@/pipeline/application/interfaces/video-rend
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import { ANIMATION_THEMES } from "@video-ai/shared";
+import { computeCodeHash } from "@/pipeline/domain/services/compute-code-hash.js";
 
 export class VideoRenderingWorker {
   private seq = 0;
@@ -24,49 +25,113 @@ export class VideoRenderingWorker {
 
     const code = pipelineJob.generatedCode;
     if (!code) {
-      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no generated code`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Pipeline job ${jobId} has no generated code`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no generated code`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Pipeline job ${jobId} has no generated code`,
+      );
       throw new Error(`Pipeline job ${jobId} has no generated code`);
     }
 
     const audioPath = pipelineJob.audioPath;
     if (!audioPath) {
-      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no audio path`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Pipeline job ${jobId} has no audio path`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no audio path`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Pipeline job ${jobId} has no audio path`,
+      );
       throw new Error(`Pipeline job ${jobId} has no audio path`);
     }
 
     const sceneDirections = pipelineJob.sceneDirections;
     if (!sceneDirections) {
-      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no scene directions`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Pipeline job ${jobId} has no scene directions`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no scene directions`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Pipeline job ${jobId} has no scene directions`,
+      );
       throw new Error(`Pipeline job ${jobId} has no scene directions`);
     }
 
     const transcript = pipelineJob.transcript;
     if (!transcript) {
-      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has no transcript`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Pipeline job ${jobId} has no transcript`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has no transcript`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Pipeline job ${jobId} has no transcript`,
+      );
       throw new Error(`Pipeline job ${jobId} has no transcript`);
     }
 
-    const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
+    const theme = ANIMATION_THEMES.find(
+      (t) => t.id === pipelineJob.themeId.value,
+    );
     if (!theme) {
-      pipelineJob.markFailed("rendering_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Animation theme not found: ${pipelineJob.themeId.value}`);
-      throw new Error(`Animation theme not found: ${pipelineJob.themeId.value}`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
+      throw new Error(
+        `Animation theme not found: ${pipelineJob.themeId.value}`,
+      );
     }
 
     const lastWord = transcript[transcript.length - 1];
     if (!lastWord) {
-      pipelineJob.markFailed("rendering_failed", `Pipeline job ${jobId} has an empty transcript`);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        `Pipeline job ${jobId} has an empty transcript`,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", `Pipeline job ${jobId} has an empty transcript`);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        `Pipeline job ${jobId} has an empty transcript`,
+      );
       throw new Error(`Pipeline job ${jobId} has an empty transcript`);
     }
 
@@ -96,7 +161,14 @@ export class VideoRenderingWorker {
     if (result.isFailure) {
       pipelineJob.markFailed("rendering_failed", result.getError().message);
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", result.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        result.getError().message,
+      );
       throw result.getError();
     }
 
@@ -104,22 +176,50 @@ export class VideoRenderingWorker {
 
     const setVideoPathResult = pipelineJob.setVideoPath(videoPath);
     if (setVideoPathResult.isFailure) {
-      pipelineJob.markFailed("rendering_failed", setVideoPathResult.getError().message);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        setVideoPathResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", setVideoPathResult.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        setVideoPathResult.getError().message,
+      );
       throw setVideoPathResult.getError();
     }
 
+    const codeHash = computeCodeHash(code);
+    pipelineJob.setLastRenderedCodeHash(codeHash);
+
     const transitionResult = pipelineJob.transitionTo("done");
     if (transitionResult.isFailure) {
-      pipelineJob.markFailed("rendering_failed", transitionResult.getError().message);
+      pipelineJob.markFailed(
+        "rendering_failed",
+        transitionResult.getError().message,
+      );
       await this.jobRepository.save(pipelineJob);
-      await this.publishProgressEvent(jobId, pipelineJob.stage.value, "failed", pipelineJob.progressPercent, "rendering_failed", transitionResult.getError().message);
+      await this.publishProgressEvent(
+        jobId,
+        pipelineJob.stage.value,
+        "failed",
+        pipelineJob.progressPercent,
+        "rendering_failed",
+        transitionResult.getError().message,
+      );
       throw transitionResult.getError();
     }
 
     await this.jobRepository.save(pipelineJob);
-    await this.publishProgressEvent(jobId, pipelineJob.stage.value, pipelineJob.status.value, pipelineJob.progressPercent);
+    await this.publishProgressEvent(
+      jobId,
+      pipelineJob.stage.value,
+      pipelineJob.status.value,
+      pipelineJob.progressPercent,
+    );
   }
 
   private async publishProgressEvent(

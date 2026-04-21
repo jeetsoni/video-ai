@@ -54,6 +54,7 @@ export interface PipelineRepository {
   autofixCode(params: AutofixCodeParams): Promise<AutofixCodeResponse>;
   retryJob(jobId: string): Promise<ActionResponse>;
   listJobs(page: number, limit: number): Promise<ListJobsResponse>;
+  listShowcase(page: number, limit: number): Promise<ListJobsResponse>;
   getThemes(): Promise<ListThemesResponse>;
   getPreviewData(jobId: string): Promise<PreviewDataResponse>;
   exportVideo(jobId: string): Promise<ActionResponse>;

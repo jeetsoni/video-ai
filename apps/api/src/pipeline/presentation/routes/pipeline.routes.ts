@@ -13,6 +13,12 @@ export function createPipelineRouter(
 ): Router {
   const router = Router();
 
+  router.get("/showcase", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.listShowcase(httpReq, httpRes);
+  });
+
   router.post("/jobs", async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);

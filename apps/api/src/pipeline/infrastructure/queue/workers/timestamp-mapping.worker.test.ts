@@ -94,6 +94,7 @@ function createPipelineJobAtTimestampMappingStage(id: string): PipelineJob {
     generatedCode: null,
     codePath: null,
     videoPath: null,
+    lastRenderedCodeHash: null,
     progressPercent: 55,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -110,7 +111,11 @@ describe("TimestampMappingWorker", () => {
     count: AnyMockFn;
   };
   let mockQueueService: { enqueue: AnyMockFn };
-  let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
+  let mockEventPublisher: {
+    publish: AnyMockFn;
+    buffer: AnyMockFn;
+    markComplete: AnyMockFn;
+  };
 
   beforeEach(() => {
     mockTimestampMapper = {
@@ -199,6 +204,7 @@ describe("TimestampMappingWorker", () => {
       generatedCode: null,
       codePath: null,
       videoPath: null,
+      lastRenderedCodeHash: null,
       progressPercent: 55,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -234,6 +240,7 @@ describe("TimestampMappingWorker", () => {
       generatedCode: null,
       codePath: null,
       videoPath: null,
+      lastRenderedCodeHash: null,
       progressPercent: 55,
       createdAt: new Date(),
       updatedAt: new Date(),

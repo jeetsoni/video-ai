@@ -8,6 +8,7 @@ import { useAppDependencies } from "@/shared/providers/app-dependencies-context"
 import { DraftHero } from "@/features/pipeline/components/draft-hero";
 import { ProjectCard } from "@/features/pipeline/components/project-card";
 import { ProjectCardSkeleton } from "@/features/pipeline/components/project-card-skeleton";
+import { ShowcaseWall } from "@/features/pipeline/components/showcase-wall";
 
 const PAGE_LIMIT = 8;
 
@@ -70,6 +71,8 @@ export default function Home() {
           </p>
         )}
       </section>
+
+      <ShowcaseWall />
     </main>
   );
 }

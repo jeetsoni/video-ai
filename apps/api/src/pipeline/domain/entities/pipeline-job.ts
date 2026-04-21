@@ -62,6 +62,7 @@ interface PipelineJobProps {
   generatedCode: string | null;
   codePath: string | null;
   videoPath: string | null;
+  lastRenderedCodeHash: string | null;
   progressPercent: number;
   createdAt: Date;
   updatedAt: Date;
@@ -133,6 +134,9 @@ export class PipelineJob {
   get videoPath(): string | null {
     return this.props.videoPath;
   }
+  get lastRenderedCodeHash(): string | null {
+    return this.props.lastRenderedCodeHash;
+  }
   get progressPercent(): number {
     return this.props.progressPercent;
   }
@@ -175,6 +179,7 @@ export class PipelineJob {
       generatedCode: null,
       codePath: null,
       videoPath: null,
+      lastRenderedCodeHash: null,
       progressPercent: 0,
       createdAt: now,
       updatedAt: now,
@@ -203,6 +208,7 @@ export class PipelineJob {
     generatedCode: string | null;
     codePath: string | null;
     videoPath: string | null;
+    lastRenderedCodeHash: string | null;
     progressPercent: number;
     createdAt: Date;
     updatedAt: Date;
@@ -429,6 +435,11 @@ export class PipelineJob {
    */
   clearVideoUrl(): void {
     this.props.videoPath = null;
+    this.props.updatedAt = new Date();
+  }
+
+  setLastRenderedCodeHash(hash: string): void {
+    this.props.lastRenderedCodeHash = hash;
     this.props.updatedAt = new Date();
   }
 }

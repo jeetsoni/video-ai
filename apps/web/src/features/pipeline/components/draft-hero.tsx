@@ -4,8 +4,6 @@ import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
-  Smartphone,
-  Monitor,
   ChevronDown,
   Check,
   Palette,
@@ -18,18 +16,6 @@ import {
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-
-type AspectOption = {
-  format: VideoFormat;
-  label: string;
-  ratio: string;
-  icon: typeof Smartphone;
-};
-
-const ASPECT_OPTIONS: AspectOption[] = [
-  { format: "reel", label: "Vertical", ratio: "9:16", icon: Smartphone },
-  { format: "longform", label: "Horizontal", ratio: "16:9", icon: Monitor },
-];
 
 function ThemeSwatches({ theme }: { theme: AnimationTheme }) {
   const colors = [
@@ -56,7 +42,7 @@ export function DraftHero() {
   const { pipelineRepository } = useAppDependencies();
 
   const [topic, setTopic] = useState("");
-  const [format, setFormat] = useState<VideoFormat>("reel");
+  const [format] = useState<VideoFormat>("reel");
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -155,30 +141,6 @@ export function DraftHero() {
 
         {/* Options row */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Format toggle pills */}
-          <div className="flex items-center gap-1 rounded-xl bg-surface-container-high p-1">
-            {ASPECT_OPTIONS.map((opt) => {
-              const isActive = format === opt.format;
-              return (
-                <button
-                  key={opt.format}
-                  type="button"
-                  onClick={() => setFormat(opt.format)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                    isActive
-                      ? "gradient-primary text-primary-foreground shadow-sm"
-                      : "text-on-surface-variant hover:text-on-surface",
-                  )}
-                >
-                  <opt.icon className="size-3.5" />
-                  <span>{opt.ratio}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Theme picker dropdown */}
           <div className="relative">
             <button
               type="button"

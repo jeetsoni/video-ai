@@ -81,6 +81,7 @@ model PipelineJob {
   generatedCode   String? @db.Text
   codePath        String?
   videoPath       String?
+  lastRenderedCodeHash String?
 
   // Progress tracking
   progressPercent Int @default(0)

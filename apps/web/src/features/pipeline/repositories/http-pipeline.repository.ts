@@ -97,6 +97,13 @@ export class HttpPipelineRepository implements PipelineRepository {
     });
   }
 
+  listShowcase(page: number, limit: number): Promise<ListJobsResponse> {
+    return this.http.get<ListJobsResponse>({
+      path: `${BASE}/showcase`,
+      queryParams: { page: String(page), limit: String(limit) },
+    });
+  }
+
   getThemes(): Promise<ListThemesResponse> {
     return this.http.get<ListThemesResponse>({
       path: `${BASE}/themes`,

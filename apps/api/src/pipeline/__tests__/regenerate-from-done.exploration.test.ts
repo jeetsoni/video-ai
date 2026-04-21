@@ -84,6 +84,7 @@ function reconstituteDoneJob(params: {
     generatedCode: "export const Main = () => <div/>;",
     codePath: "code/test.tsx",
     videoPath: "videos/test.mp4",
+    lastRenderedCodeHash: null,
     progressPercent: 100,
     createdAt: now,
     updatedAt: now,
