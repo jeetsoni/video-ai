@@ -5,6 +5,7 @@ import {
   History,
   RefreshCw,
   ArrowRight,
+  ArrowLeft,
   Clock,
   BarChart3,
   Gauge,
@@ -26,6 +27,7 @@ interface ScriptReviewEditorProps {
   format: VideoFormat;
   onApprove: (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => void;
   onRegenerate: () => void;
+  onBack?: () => void;
   isLoading?: boolean;
   statusMessage?: string | null;
   topic?: string;
@@ -440,6 +442,7 @@ export function ScriptReviewEditor({
   format,
   onApprove,
   onRegenerate,
+  onBack,
   isLoading = false,
   statusMessage,
   topic,
@@ -590,6 +593,16 @@ export function ScriptReviewEditor({
       {/* Header */}
       <div className="mb-6 flex items-end justify-between">
         <div>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-3 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </button>
+          )}
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded bg-secondary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-secondary">
               {format}

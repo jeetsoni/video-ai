@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AppDependenciesProvider } from "@/shared/providers/app-dependencies-context";
 import { AppHeader } from "@/shared/components/layout/app-header";
-import { AppSidebar } from "@/shared/components/layout/app-sidebar";
 import { MobileNav } from "@/shared/components/layout/mobile-nav";
 import "./globals.css";
 
@@ -26,8 +25,7 @@ export default function RootLayout({
       <body className={inter.variable}>
         <AppDependenciesProvider>
           <AppHeader />
-          <AppSidebar />
-          <div className="min-h-screen pt-16 md:ml-64">{children}</div>
+          <div className="min-h-screen pt-16">{children}</div>
           <MobileNav />
         </AppDependenciesProvider>
       </body>

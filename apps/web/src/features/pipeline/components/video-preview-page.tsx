@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import type { PlayerRef } from "@remotion/player";
 import {
   AlertTriangle,
+  ArrowLeft,
   Download,
   Info,
   Loader2,
@@ -35,6 +36,7 @@ interface VideoPreviewPageProps {
   job: PipelineJobDto;
   onRetry: () => void;
   onRetryJob?: () => void;
+  onBack?: () => void;
   pollingError?: Error | null;
   onRefresh?: () => void;
   onExport?: () => void;
@@ -155,6 +157,7 @@ export function VideoPreviewPage({
   job,
   onRetry,
   onRetryJob,
+  onBack,
   pollingError,
   onRefresh,
   onExport,
@@ -497,6 +500,17 @@ export function VideoPreviewPage({
         <section className="flex min-h-0 flex-col gap-2">
           {/* Top bar: info icon + action buttons */}
           <div className="flex items-center gap-2 shrink-0 px-1">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors mr-1"
+                aria-label="Back"
+              >
+                <ArrowLeft className="size-4" />
+                Back
+              </button>
+            )}
             {/* Info icon with hover tooltip */}
             <div className="group relative">
               <button

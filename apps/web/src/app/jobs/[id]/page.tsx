@@ -1,12 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { SceneBoundary, VoiceEntry, VoiceSettings } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { usePipelineProgress } from "@/features/pipeline/hooks/use-pipeline-progress";
 import { useStreamingScript } from "@/features/pipeline/hooks/use-streaming-script";
-import { RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { JobStatusTracker } from "@/features/pipeline/components/job-status-tracker";
 import { ScriptReviewEditor } from "@/features/pipeline/components/script-review-editor";
@@ -14,7 +14,10 @@ import { VideoPreviewPage } from "@/features/pipeline/components/video-preview-p
 
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { pipelineRepository, configService } = useAppDependencies();
+
+  const handleBack = useCallback(() => router.push("/"), [router]);
 
   const { job, isLoading, error, refetch, reconnect, sceneProgress, completedSceneCodes } = usePipelineProgress({
     repository: pipelineRepository,
@@ -97,6 +100,10 @@ export default function JobDetailPage() {
   if (isLoading) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
+        <button type="button" onClick={handleBack} className="mb-6 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
         <p className="text-on-surface-variant">Loading job…</p>
       </main>
     );
@@ -105,6 +112,10 @@ export default function JobDetailPage() {
   if (error || !job) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
+        <button type="button" onClick={handleBack} className="mb-6 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
         <p className="text-destructive">
           {error?.message ?? "Job not found"}
         </p>
@@ -117,6 +128,10 @@ export default function JobDetailPage() {
     return (
       <main className="flex h-[calc(100vh-4rem)] items-center justify-center p-10">
         <div className="w-full max-w-md rounded-xl bg-destructive/10 p-8 text-center">
+          <button type="button" onClick={handleBack} className="mb-4 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+            <ArrowLeft className="size-4" />
+            Back
+          </button>
           <h2 className="text-lg font-semibold text-destructive">
             Script generation failed
           </h2>
@@ -171,6 +186,7 @@ export default function JobDetailPage() {
           scenes={scenes}
           onApprove={handleApproveScript}
           onRegenerate={handleRegenerateScript}
+          onBack={handleBack}
           isLoading={isStreaming}
           statusMessage={streamingStatusMessage}
           voices={voices}
@@ -194,6 +210,7 @@ export default function JobDetailPage() {
           job={job}
           onRetry={handleRegenerateScript}
           onRetryJob={handleRetryJob}
+          onBack={handleBack}
           pollingError={error}
           onRefresh={reconnect}
           onExport={handleExport}
@@ -208,6 +225,10 @@ export default function JobDetailPage() {
   // Generic fallback for early stages (e.g. script_generation before streaming kicks in)
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-6 py-16">
+      <button type="button" onClick={handleBack} className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+        <ArrowLeft className="size-4" />
+        Back
+      </button>
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-on-surface">{job.topic}</h1>
         <p className="mt-1 text-sm text-on-surface-variant">
