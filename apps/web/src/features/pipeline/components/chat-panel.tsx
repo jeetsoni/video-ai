@@ -3,31 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { PlayerRef } from "@remotion/player";
-import {
-  ChevronDown,
-  ChevronUp,
-  Download,
-  Loader2,
-  Mic,
-  RefreshCw,
-  Send,
-} from "lucide-react";
-import {
-  FORMAT_RESOLUTIONS,
-  FEATURED_VOICES,
-  type PipelineJobDto,
-} from "@video-ai/shared";
+import { Loader2, Send } from "lucide-react";
+import type { PipelineJobDto } from "@video-ai/shared";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import type { PipelineRepository } from "../interfaces/pipeline-repository";
-import { getStageDisplayInfo } from "../utils/stage-display-map";
 import { useTweakChat } from "../hooks/use-tweak-chat";
-
-const FORMAT_LABELS: Record<string, string> = {
-  reel: "Reel",
-  short: "Short",
-  longform: "Longform",
-};
 
 export interface ChatPanelProps {
   job: PipelineJobDto;
@@ -36,9 +17,6 @@ export interface ChatPanelProps {
   playerContainerRef: RefObject<HTMLElement | null>;
   fps: number;
   onCodeUpdated: () => void;
-  onExport?: () => void;
-  onRegenerate: () => void;
-  isRegenerating?: boolean;
 }
 
 export function ChatPanel({
@@ -48,9 +26,6 @@ export function ChatPanel({
   playerContainerRef,
   fps,
   onCodeUpdated,
-  onExport,
-  onRegenerate,
-  isRegenerating,
 }: ChatPanelProps) {
   const { messages, sendMessage, isLoading, isFetchingHistory } = useTweakChat({
     repository,
@@ -62,20 +37,8 @@ export function ChatPanel({
   });
 
   const [inputValue, setInputValue] = useState("");
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  const stageInfo = getStageDisplayInfo(job.stage);
-  const StageIcon = stageInfo.icon;
-  const resolution =
-    FORMAT_RESOLUTIONS[job.format as keyof typeof FORMAT_RESOLUTIONS];
-
-  // Resolve voice display name from featured registry
-  const voiceInfo = job.voiceId
-    ? FEATURED_VOICES.find((v) => v.voiceId === job.voiceId)
-    : null;
-  const voiceDisplayName = voiceInfo?.name ?? (job.voiceId ? "Custom Voice" : null);
 
   // Auto-scroll to bottom on new messages and initial load
   useEffect(() => {
@@ -106,18 +69,9 @@ export function ChatPanel({
     [handleSend],
   );
 
-  const stageColor =
-    job.status === "failed"
-      ? "stage-failed"
-      : job.stage === "done"
-        ? "stage-complete"
-        : "stage-active";
-
   return (
     <div className="flex h-full flex-col">
-      {/* ── Chat Section (primary — takes all available space) ── */}
-
-      {/* Scrollable Message List */}
+      {/* Scrollable Message List — takes all available space */}
       <div
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto space-y-3 p-3"
@@ -215,181 +169,6 @@ export function ChatPanel({
             <Send className="size-4" />
           )}
         </Button>
-      </div>
-
-      {/* ── Details Strip (compact, collapsible — bottom of panel) ── */}
-      <div className="border-t border-surface-container-high">
-        {/* Collapsible header row */}
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-surface-container-high/50 transition-colors"
-          onClick={() => setDetailsExpanded((prev) => !prev)}
-          aria-expanded={detailsExpanded}
-        >
-          {/* Stage icon */}
-          <div
-            className={cn(
-              "flex size-6 items-center justify-center rounded-md",
-              `bg-${stageColor}/20`,
-            )}
-          >
-            <StageIcon className={cn("size-3", `text-${stageColor}`)} />
-          </div>
-
-          {/* Inline summary */}
-          <div className="flex-1 min-w-0 flex items-center gap-1.5 text-xs text-on-surface-variant truncate">
-            <span className="font-medium text-on-surface">
-              {FORMAT_LABELS[job.format] ?? job.format}
-            </span>
-            <span className="text-on-surface-variant/40">·</span>
-            <span>
-              {resolution.width}×{resolution.height}
-            </span>
-            {job.themeId && (
-              <>
-                <span className="text-on-surface-variant/40">·</span>
-                <span className="truncate">{job.themeId}</span>
-              </>
-            )}
-            {voiceDisplayName && (
-              <>
-                <span className="text-on-surface-variant/40">·</span>
-                <Mic className="size-3 shrink-0" />
-                <span className="truncate">{voiceDisplayName}</span>
-              </>
-            )}
-          </div>
-
-          {/* Progress + expand toggle */}
-          <span className="text-[10px] tabular-nums text-on-surface-variant shrink-0">
-            {job.progressPercent}%
-          </span>
-          {detailsExpanded ? (
-            <ChevronDown className="size-3.5 text-on-surface-variant shrink-0" />
-          ) : (
-            <ChevronUp className="size-3.5 text-on-surface-variant shrink-0" />
-          )}
-        </button>
-
-        {/* Progress bar (always visible) */}
-        <div className="px-3">
-          <div
-            className="h-1 rounded-full bg-surface-container-high"
-            role="progressbar"
-            aria-valuenow={job.progressPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                job.status === "failed"
-                  ? "bg-stage-failed"
-                  : job.stage === "done"
-                    ? "bg-stage-complete"
-                    : "gradient-primary",
-              )}
-              style={{ width: `${job.progressPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Expanded details */}
-        {detailsExpanded && (
-          <div className="px-3 pt-2 pb-3 space-y-2">
-            {/* Voice info row */}
-            {voiceDisplayName && (
-              <div className="flex items-center gap-2 text-xs">
-                <Mic className="size-3.5 text-on-surface-variant shrink-0" />
-                <span className="text-on-surface">{voiceDisplayName}</span>
-                {job.voiceSettings && (
-                  <span className="text-on-surface-variant">
-                    {job.voiceSettings.speed}x · Stab{" "}
-                    {job.voiceSettings.stability} · Sim{" "}
-                    {job.voiceSettings.similarityBoost} · Style{" "}
-                    {job.voiceSettings.style}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex gap-2 pt-1">
-              {job.stage === "preview" && onExport && (
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5 gradient-primary rounded-lg text-primary-foreground font-semibold"
-                  onClick={onExport}
-                >
-                  <Download className="size-3.5" />
-                  Export
-                </Button>
-              )}
-              {job.stage === "rendering" && (
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5 gradient-primary rounded-lg text-primary-foreground font-semibold"
-                  disabled
-                >
-                  <Loader2 className="size-3.5 animate-spin" />
-                  Rendering…
-                </Button>
-              )}
-              {job.stage === "done" && job.videoUrl && (
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5 gradient-primary rounded-lg text-primary-foreground font-semibold"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(job.videoUrl!);
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${job.topic || "video"}.mp4`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
-                    } catch {
-                      window.open(job.videoUrl!, "_blank");
-                    }
-                  }}
-                >
-                  <Download className="size-3.5" />
-                  Download
-                </Button>
-              )}
-              {job.stage === "done" && onExport && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-1.5 rounded-lg"
-                  onClick={onExport}
-                >
-                  <RefreshCw className="size-3.5" />
-                  Re-render
-                </Button>
-              )}
-              {(job.stage === "preview" || job.stage === "done") && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-1.5 rounded-lg"
-                  onClick={onRegenerate}
-                  disabled={isRegenerating}
-                >
-                  {isRegenerating ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-3.5" />
-                  )}
-                  Regenerate
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
