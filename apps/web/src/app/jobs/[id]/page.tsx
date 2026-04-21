@@ -2,7 +2,11 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import type { SceneBoundary, VoiceEntry, VoiceSettings } from "@video-ai/shared";
+import type {
+  SceneBoundary,
+  VoiceEntry,
+  VoiceSettings,
+} from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { usePipelineProgress } from "@/features/pipeline/hooks/use-pipeline-progress";
 import { useStreamingScript } from "@/features/pipeline/hooks/use-streaming-script";
@@ -19,7 +23,15 @@ export default function JobDetailPage() {
 
   const handleBack = useCallback(() => router.push("/"), [router]);
 
-  const { job, isLoading, error, refetch, reconnect, sceneProgress, completedSceneCodes } = usePipelineProgress({
+  const {
+    job,
+    isLoading,
+    error,
+    refetch,
+    reconnect,
+    sceneProgress,
+    completedSceneCodes,
+  } = usePipelineProgress({
     repository: pipelineRepository,
     jobId: id,
     apiBaseUrl: configService.getApiBaseUrl(),
@@ -61,7 +73,12 @@ export default function JobDetailPage() {
   });
 
   const handleApproveScript = useCallback(
-    async (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => {
+    async (
+      editedScript?: string,
+      scenes?: SceneBoundary[],
+      voiceId?: string,
+      voiceSettings?: VoiceSettings,
+    ) => {
       await pipelineRepository.approveScript({
         jobId: id,
         script: editedScript,
@@ -100,11 +117,15 @@ export default function JobDetailPage() {
   if (isLoading) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <button type="button" onClick={handleBack} className="mb-6 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="mb-6 flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
+        >
           <ArrowLeft className="size-4" />
           Back
         </button>
-        <p className="text-on-surface-variant">Loading job…</p>
+        <p className="text-white/40">Loading job…</p>
       </main>
     );
   }
@@ -112,13 +133,15 @@ export default function JobDetailPage() {
   if (error || !job) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <button type="button" onClick={handleBack} className="mb-6 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="mb-6 flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
+        >
           <ArrowLeft className="size-4" />
           Back
         </button>
-        <p className="text-destructive">
-          {error?.message ?? "Job not found"}
-        </p>
+        <p className="text-destructive">{error?.message ?? "Job not found"}</p>
       </main>
     );
   }
@@ -128,7 +151,11 @@ export default function JobDetailPage() {
     return (
       <main className="flex h-[calc(100vh-4rem)] items-center justify-center p-10">
         <div className="w-full max-w-md rounded-xl bg-destructive/10 p-8 text-center">
-          <button type="button" onClick={handleBack} className="mb-4 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="mb-4 flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
+          >
             <ArrowLeft className="size-4" />
             Back
           </button>
@@ -138,10 +165,7 @@ export default function JobDetailPage() {
           {streamingError && (
             <p className="mt-2 text-sm text-destructive/80">{streamingError}</p>
           )}
-          <Button
-            className="mt-6 gap-2"
-            onClick={handleRegenerateScript}
-          >
+          <Button className="mt-6 gap-2" onClick={handleRegenerateScript}>
             <RefreshCw className="size-4" />
             Retry
           </Button>
@@ -156,7 +180,10 @@ export default function JobDetailPage() {
   // loading state instead of flashing the status tracker screen.
   const isStreamingActive =
     job.stage === "script_generation" &&
-    (streamingStatus === "loading" || streamingStatus === "researching" || streamingStatus === "streaming" || streamingStatus === "complete");
+    (streamingStatus === "loading" ||
+      streamingStatus === "researching" ||
+      streamingStatus === "streaming" ||
+      streamingStatus === "complete");
 
   // Also show the streaming-sourced editor when the hook completed and the
   // job is at script_review (just transitioned after streaming finished).
@@ -173,9 +200,14 @@ export default function JobDetailPage() {
   // the hook resolved from DB for a completed job.
   if (isStreamingActive || isStreamingComplete || isDbScriptReview) {
     // Prefer streaming data when available; fall back to DB-loaded data from usePipelineProgress
-    const script = streamedScript.length > 0 ? streamedScript : (job.generatedScript ?? "");
-    const scenes = streamedScenes.length > 0 ? streamedScenes : (job.generatedScenes ?? []);
-    const isStreaming = streamingStatus === "streaming" || streamingStatus === "loading" || streamingStatus === "researching";
+    const script =
+      streamedScript.length > 0 ? streamedScript : (job.generatedScript ?? "");
+    const scenes =
+      streamedScenes.length > 0 ? streamedScenes : (job.generatedScenes ?? []);
+    const isStreaming =
+      streamingStatus === "streaming" ||
+      streamingStatus === "loading" ||
+      streamingStatus === "researching";
 
     return (
       <main className="flex h-[calc(100vh-4rem)] flex-col p-10">
@@ -193,6 +225,7 @@ export default function JobDetailPage() {
           voicesLoading={voicesLoading}
           initialVoiceId={job.voiceId}
           initialVoiceSettings={job.voiceSettings}
+          jobId={job.id}
         />
       </main>
     );
@@ -225,13 +258,19 @@ export default function JobDetailPage() {
   // Generic fallback for early stages (e.g. script_generation before streaming kicks in)
   return (
     <main className="mx-auto max-w-3xl space-y-10 px-6 py-16">
-      <button type="button" onClick={handleBack} className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
+      >
         <ArrowLeft className="size-4" />
         Back
       </button>
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-on-surface">{job.topic}</h1>
-        <p className="mt-1 text-sm text-on-surface-variant">
+        <h1 className="text-3xl font-light tracking-tight text-white">
+          {job.topic}
+        </h1>
+        <p className="mt-1 text-sm text-white/40">
           {job.format} &middot; {job.themeId}
         </p>
       </div>
@@ -258,12 +297,11 @@ export default function JobDetailPage() {
         <section className="rounded-xl bg-destructive/10 p-5">
           <p className="font-medium text-destructive">Pipeline failed</p>
           {job.errorMessage && (
-            <p className="mt-1 text-sm text-destructive/80">{job.errorMessage}</p>
+            <p className="mt-1 text-sm text-destructive/80">
+              {job.errorMessage}
+            </p>
           )}
-          <Button
-            className="mt-4 gap-2"
-            onClick={handleRetryJob}
-          >
+          <Button className="mt-4 gap-2" onClick={handleRetryJob}>
             <RefreshCw className="size-4" />
             Retry
           </Button>

@@ -431,6 +431,19 @@ export class PipelineJob {
   }
 
   /**
+   * Updates the generated script without stage validation.
+   * Used during script tweak chat where the job remains in script_review stage.
+   * Optionally updates scene boundaries when the script structure changes.
+   */
+  updateGeneratedScript(script: string, scenes?: SceneBoundary[]): void {
+    this.props.generatedScript = script;
+    if (scenes !== undefined) {
+      this.props.generatedScenes = scenes;
+    }
+    this.props.updatedAt = new Date();
+  }
+
+  /**
    * Updates the generated code without stage validation.
    * Used for autofix operations where we need to update code
    * in preview or done stages.

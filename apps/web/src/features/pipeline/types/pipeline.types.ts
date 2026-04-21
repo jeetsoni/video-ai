@@ -78,3 +78,17 @@ export interface SendTweakResponse {
   updatedCode: string;
   explanation: string;
 }
+
+/** Params for POST /api/pipeline/jobs/:id/script-tweak */
+export interface SendScriptTweakParams {
+  jobId: string;
+  message: string;
+}
+
+/** Response shape from POST /api/pipeline/jobs/:id/script-tweak */
+export interface SendScriptTweakResponse {
+  status: "ok";
+  updatedScript: string;
+  explanation: string;
+  updatedScenes: import("@video-ai/shared").SceneBoundary[];
+}

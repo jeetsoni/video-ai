@@ -14,6 +14,8 @@ import type {
   PreviewDataResponse,
   SendTweakParams,
   SendTweakResponse,
+  SendScriptTweakParams,
+  SendScriptTweakResponse,
 } from "../types/pipeline.types";
 
 export interface CreateJobParams {
@@ -66,4 +68,8 @@ export interface PipelineRepository {
   }): Promise<Blob>;
   sendTweak(params: SendTweakParams): Promise<SendTweakResponse>;
   getTweakMessages(jobId: string): Promise<TweakMessageDto[]>;
+  sendScriptTweak(
+    params: SendScriptTweakParams,
+  ): Promise<SendScriptTweakResponse>;
+  getScriptTweakMessages(jobId: string): Promise<TweakMessageDto[]>;
 }

@@ -22,6 +22,8 @@ import type {
   PreviewDataResponse,
   SendTweakParams,
   SendTweakResponse,
+  SendScriptTweakParams,
+  SendScriptTweakResponse,
 } from "../types/pipeline.types";
 
 const BASE = "/api/pipeline";
@@ -169,6 +171,24 @@ export class HttpPipelineRepository implements PipelineRepository {
   async getTweakMessages(jobId: string): Promise<TweakMessageDto[]> {
     const response = await this.http.get<{ messages: TweakMessageDto[] }>({
       path: `${BASE}/jobs/${jobId}/tweak/messages`,
+    });
+    return response.messages;
+  }
+
+  sendScriptTweak(
+    params: SendScriptTweakParams,
+  ): Promise<SendScriptTweakResponse> {
+    return this.http.post<SendScriptTweakResponse>({
+      path: `${BASE}/jobs/${params.jobId}/script-tweak`,
+      body: {
+        message: params.message,
+      },
+    });
+  }
+
+  async getScriptTweakMessages(jobId: string): Promise<TweakMessageDto[]> {
+    const response = await this.http.get<{ messages: TweakMessageDto[] }>({
+      path: `${BASE}/jobs/${jobId}/script-tweak/messages`,
     });
     return response.messages;
   }

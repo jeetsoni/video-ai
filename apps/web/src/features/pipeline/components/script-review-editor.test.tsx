@@ -1,10 +1,8 @@
 import { jest } from "@jest/globals";
-import { render, screen, fireEvent } from "@testing-library/react";
 import type { SceneBoundary } from "@video-ai/shared";
-import { ScriptReviewEditor } from "./script-review-editor";
 
-// Mock the AppDependencies context to avoid provider requirement
-jest.mock("@/shared/providers/app-dependencies-context", () => ({
+// ESM-compatible mocks — must be declared before dynamic imports
+jest.unstable_mockModule("@/shared/providers/app-dependencies-context", () => ({
   useAppDependencies: () => ({
     httpClient: {},
     configService: {},
@@ -24,9 +22,20 @@ jest.mock("@/shared/providers/app-dependencies-context", () => ({
       previewVoice: jest.fn(),
       sendTweak: jest.fn(),
       getTweakMessages: jest.fn(),
+      sendScriptTweak: jest.fn(),
+      getScriptTweakMessages: jest
+        .fn<() => Promise<unknown[]>>()
+        .mockResolvedValue([]),
     },
   }),
 }));
+
+jest.unstable_mockModule("./script-chat-panel", () => ({
+  ScriptChatPanel: () => null,
+}));
+
+const { render, screen, fireEvent } = await import("@testing-library/react");
+const { ScriptReviewEditor } = await import("./script-review-editor");
 
 const LONG_SCRIPT =
   "This is a sample script that contains enough words to pass the minimum word count validation for testing purposes. " +
@@ -66,6 +75,7 @@ describe("ScriptReviewEditor", () => {
     format: "reel" as const,
     onApprove: jest.fn(),
     onRegenerate: jest.fn(),
+    jobId: "test-job-id",
   };
 
   beforeEach(() => {
@@ -75,7 +85,6 @@ describe("ScriptReviewEditor", () => {
   it("renders the script in an inline-editable scene block", () => {
     render(<ScriptReviewEditor {...defaultProps} />);
 
-    // Single scene block — the textarea has an aria-label like "Edit Scene 01"
     const textarea = screen.getByLabelText(/Edit Scene/);
     expect(textarea).toHaveValue(LONG_SCRIPT.trim());
     expect(textarea).not.toBeDisabled();
@@ -104,9 +113,9 @@ describe("ScriptReviewEditor", () => {
   it("shows validation warning when word count is below 10", () => {
     render(<ScriptReviewEditor {...defaultProps} script="too few words" />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Script must contain at least 10 words",
-    );
+    expect(
+      screen.getByText(/Script must contain at least 10 words/),
+    ).toBeInTheDocument();
   });
 
   it("disables Approve Script button when word count is below 10", () => {
@@ -148,10 +157,10 @@ describe("ScriptReviewEditor", () => {
     );
   });
 
-  it("calls onRegenerate when Regenerate button is clicked", () => {
+  it("calls onRegenerate when Draft button is clicked", () => {
     render(<ScriptReviewEditor {...defaultProps} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Regenerate/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Draft/ }));
 
     expect(defaultProps.onRegenerate).toHaveBeenCalled();
   });
@@ -183,12 +192,20 @@ describe("ScriptReviewEditor", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders insights sidebar with duration and tone", () => {
+  it("renders metrics in the toolbar with duration and tone", () => {
     render(<ScriptReviewEditor {...defaultProps} />);
 
-    expect(screen.getByText("Insights")).toBeInTheDocument();
-    expect(screen.getByText("Duration")).toBeInTheDocument();
-    expect(screen.getByText("Tone")).toBeInTheDocument();
+    // Duration and tone are now shown inline in the editor toolbar
+    expect(screen.getByText(/\d+:\d+/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Concise|Educational|In-Depth/),
+    ).toBeInTheDocument();
+  });
+
+  it("renders narration panel with voice controls", () => {
+    render(<ScriptReviewEditor {...defaultProps} />);
+
+    expect(screen.getByText("Narration")).toBeInTheDocument();
   });
 
   it("renders multiple editable scene blocks from parsed script", () => {
@@ -303,6 +320,22 @@ describe("ScriptReviewEditor", () => {
 
       const textarea = screen.getByLabelText(/Edit Scene/);
       expect(textarea).toBeInTheDocument();
+    });
+  });
+
+  describe("script chat panel integration", () => {
+    it("renders the Script Chat header", () => {
+      render(<ScriptReviewEditor {...defaultProps} />);
+
+      expect(screen.getByText("Script Chat")).toBeInTheDocument();
+    });
+
+    it("shows fallback message when no jobId is provided", () => {
+      render(<ScriptReviewEditor {...defaultProps} jobId={undefined} />);
+
+      expect(
+        screen.getByText("Chat is available after the script is generated"),
+      ).toBeInTheDocument();
     });
   });
 });

@@ -2,31 +2,21 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Sparkles,
-  ChevronDown,
-  Check,
-  Palette,
-} from "lucide-react";
+import { Sparkles, ChevronDown, Check, Palette } from "lucide-react";
 import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
-import {
-  ANIMATION_THEMES,
-  DEFAULT_THEME_ID,
-} from "@video-ai/shared";
+import { ANIMATION_THEMES, DEFAULT_THEME_ID } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
-import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
 function ThemeSwatches({ theme }: { theme: AnimationTheme }) {
-  const colors = [
-    theme.background,
-    theme.accents.techCode,
-    theme.accents.violet,
-    theme.accents.revelation,
-  ];
   return (
     <div className="flex gap-1">
-      {colors.map((c, i) => (
+      {[
+        theme.background,
+        theme.accents.techCode,
+        theme.accents.violet,
+        theme.accents.revelation,
+      ].map((c, i) => (
         <span
           key={i}
           className="size-3 rounded-full"
@@ -48,31 +38,12 @@ export function DraftHero() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const autoResize = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const maxHeight = 8 * 28;
-    const next = Math.min(el.scrollHeight, maxHeight);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, []);
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setTopic(e.target.value);
-      autoResize();
-    },
-    [autoResize],
-  );
-
   const selectedTheme =
     ANIMATION_THEMES.find((t) => t.id === themeId) ?? ANIMATION_THEMES[0]!;
 
   const handleDraft = useCallback(async () => {
     const trimmed = topic.trim();
     if (!trimmed || isSubmitting) return;
-
     setIsSubmitting(true);
     try {
       const res = await pipelineRepository.createJob({
@@ -84,14 +55,7 @@ export function DraftHero() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    topic,
-    format,
-    themeId,
-    isSubmitting,
-    pipelineRepository,
-    router,
-  ]);
+  }, [topic, format, themeId, isSubmitting, pipelineRepository, router]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -104,48 +68,42 @@ export function DraftHero() {
   );
 
   return (
-    <section className="max-w-3xl space-y-6">
-      <h1 className="text-4xl font-black tracking-tight text-on-surface">
-        Director&apos;s <span className="text-primary-dim">Draft</span>
-      </h1>
-      <p className="text-base leading-relaxed text-on-surface-variant">
-        Enter an educational topic to generate a professional cinematic video
-        using AI.
-      </p>
+    <section className="flex flex-col items-center text-center gap-10 w-full max-w-[820px] mx-auto mt-16">
+      {/* Heading */}
+      <div className="space-y-4">
+        <h1 className="text-[56px] md:text-[80px] font-light leading-[1.05] tracking-[-0.02em] text-white">
+          Create videos at
+          <br />
+          the speed of AI
+        </h1>
+        <p className="text-lg text-white/60">
+          Transform any topic into a cinematic AI-generated video
+        </p>
+      </div>
 
-      <div className="mt-8 space-y-3">
-        {/* Topic input bar */}
-        <div className="flex items-end rounded-2xl border border-outline-variant bg-surface-variant/40 p-2 shadow-ambient-lg backdrop-blur-xl transition-all focus-within:border-primary/40">
-          <div className="flex-1 px-4">
-            <textarea
-              ref={textareaRef}
-              value={topic}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              className="w-full resize-none overflow-hidden border-none bg-transparent p-2 text-lg text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0"
-              placeholder="e.g. The Quantum Physics of Black Holes"
-              disabled={isSubmitting}
-            />
-          </div>
-          <Button
-            onClick={handleDraft}
-            disabled={!topic.trim() || isSubmitting}
-            className="gap-2 rounded-xl px-6 py-3"
-            size="lg"
-          >
-            {isSubmitting ? "Creating…" : "Draft"}
-            <Sparkles className="size-4" />
-          </Button>
+      {/* Input card — Stitch style */}
+      <div className="w-full rounded-2xl border border-white/[0.1] bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-1 shadow-[0_8px_64px_rgba(100,94,251,0.12)] backdrop-blur-2xl">
+        <div className="px-5 pt-4 pb-2">
+          <textarea
+            ref={textareaRef}
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={5}
+            className="w-full resize-none border-none bg-transparent text-base text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-0"
+            placeholder="What topic should we turn into a video?"
+            disabled={isSubmitting}
+          />
         </div>
 
-        {/* Options row */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Bottom toolbar */}
+        <div className="flex items-center justify-between px-4 pb-3">
+          {/* Left — theme picker */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setThemeOpen((v) => !v)}
-              className="flex items-center gap-2 rounded-xl bg-surface-container-high px-3 py-2 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all"
+              className="flex items-center gap-2 rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/50 hover:text-white/70 hover:bg-white/[0.1] transition-all"
             >
               <Palette className="size-3.5" />
               <ThemeSwatches theme={selectedTheme} />
@@ -164,7 +122,7 @@ export function DraftHero() {
                   className="fixed inset-0 z-40"
                   onClick={() => setThemeOpen(false)}
                 />
-                <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-outline-variant bg-surface-container-highest p-2 shadow-ambient-lg backdrop-blur-xl">
+                <div className="absolute left-0 bottom-full z-50 mb-2 w-64 rounded-xl border border-white/[0.1] bg-[#1a1a2e]/95 p-2 shadow-2xl backdrop-blur-2xl">
                   {ANIMATION_THEMES.map((theme) => {
                     const isSelected = themeId === theme.id;
                     return (
@@ -178,8 +136,8 @@ export function DraftHero() {
                         className={cn(
                           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all",
                           isSelected
-                            ? "bg-primary/10 text-on-surface"
-                            : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
+                            ? "bg-white/[0.08] text-white"
+                            : "text-white/60 hover:bg-white/[0.05] hover:text-white/80",
                         )}
                       >
                         <ThemeSwatches theme={theme} />
@@ -187,7 +145,7 @@ export function DraftHero() {
                           <p className="text-xs font-medium truncate">
                             {theme.name}
                           </p>
-                          <p className="text-[10px] text-on-surface-variant truncate">
+                          <p className="text-[10px] text-white/40 truncate">
                             {theme.description ?? theme.name}
                           </p>
                         </div>
@@ -201,6 +159,17 @@ export function DraftHero() {
               </>
             )}
           </div>
+
+          {/* Right — submit */}
+          <button
+            type="button"
+            onClick={handleDraft}
+            disabled={!topic.trim() || isSubmitting}
+            className="flex items-center gap-2 rounded-full bg-white/[0.08] px-4 py-2 text-sm font-medium text-white/70 hover:bg-white/[0.14] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <Sparkles className="size-4" />
+            {isSubmitting ? "Creating…" : "Create"}
+          </button>
         </div>
       </div>
     </section>

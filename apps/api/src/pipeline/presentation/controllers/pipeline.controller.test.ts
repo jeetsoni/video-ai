@@ -51,6 +51,11 @@ function buildController(
     listVoicesUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     sendTweakUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     getTweakMessagesUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    sendScriptTweakUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    getScriptTweakMessagesUseCase: {
+      execute: jest.fn<(...args: any[]) => any>(),
+    },
+    listShowcaseUseCase: { execute: jest.fn<(...args: any[]) => any>() },
   };
   const merged = { ...defaults, ...overrides };
   return new PipelineController(
@@ -68,6 +73,9 @@ function buildController(
     merged.listVoicesUseCase as any,
     merged.sendTweakUseCase as any,
     merged.getTweakMessagesUseCase as any,
+    merged.sendScriptTweakUseCase as any,
+    merged.getScriptTweakMessagesUseCase as any,
+    merged.listShowcaseUseCase as any,
   );
 }
 
@@ -329,6 +337,163 @@ describe("PipelineController", () => {
       expect(res.conflict).toHaveBeenCalledWith({
         error: "CONFLICT",
         message: "Wrong status",
+      });
+    });
+  });
+
+  describe("sendScriptTweak", () => {
+    it("returns 400 when message is missing", async () => {
+      const ctrl = buildController();
+      const req = makeReq({ params: { id: "job-1" }, body: {} });
+      const res = mockRes();
+
+      await ctrl.sendScriptTweak(req, res);
+
+      expect(res.badRequest).toHaveBeenCalledWith({
+        error: "INVALID_INPUT",
+        message: "message is required",
+      });
+    });
+
+    it("returns 200 with updatedScript and explanation on success", async () => {
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.ok({ updatedScript: "new script", explanation: "changed it" }),
+        );
+      const ctrl = buildController({ sendScriptTweakUseCase: { execute } });
+      const req = makeReq({
+        params: { id: "job-1" },
+        body: { message: "make it shorter" },
+      });
+      const res = mockRes();
+
+      await ctrl.sendScriptTweak(req, res);
+
+      expect(execute).toHaveBeenCalledWith({
+        jobId: "job-1",
+        message: "make it shorter",
+      });
+      expect(res.ok).toHaveBeenCalledWith({
+        status: "ok",
+        updatedScript: "new script",
+        explanation: "changed it",
+      });
+    });
+
+    it("returns 404 when use case returns NOT_FOUND", async () => {
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Not found", "NOT_FOUND")),
+        );
+      const ctrl = buildController({ sendScriptTweakUseCase: { execute } });
+      const req = makeReq({
+        params: { id: "job-1" },
+        body: { message: "tweak" },
+      });
+      const res = mockRes();
+
+      await ctrl.sendScriptTweak(req, res);
+
+      expect(res.notFound).toHaveBeenCalledWith({
+        error: "NOT_FOUND",
+        message: "Not found",
+      });
+    });
+
+    it("returns 409 when use case returns CONFLICT", async () => {
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Wrong stage", "CONFLICT")),
+        );
+      const ctrl = buildController({ sendScriptTweakUseCase: { execute } });
+      const req = makeReq({
+        params: { id: "job-1" },
+        body: { message: "tweak" },
+      });
+      const res = mockRes();
+
+      await ctrl.sendScriptTweak(req, res);
+
+      expect(res.conflict).toHaveBeenCalledWith({
+        error: "CONFLICT",
+        message: "Wrong stage",
+      });
+    });
+
+    it("returns 500 on unexpected error", async () => {
+      const execute = jest.fn<AnyFn>().mockRejectedValue(new Error("boom"));
+      const ctrl = buildController({ sendScriptTweakUseCase: { execute } });
+      const req = makeReq({
+        params: { id: "job-1" },
+        body: { message: "tweak" },
+      });
+      const res = mockRes();
+
+      await ctrl.sendScriptTweak(req, res);
+
+      expect(res.serverError).toHaveBeenCalledWith({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    });
+  });
+
+  describe("getScriptTweakMessages", () => {
+    it("returns 200 with messages on success", async () => {
+      const messages = [
+        { id: "m1", role: "user", content: "hi", createdAt: "2024-01-01" },
+      ];
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(Result.ok({ messages }));
+      const ctrl = buildController({
+        getScriptTweakMessagesUseCase: { execute },
+      });
+      const req = makeReq({ params: { id: "job-1" } });
+      const res = mockRes();
+
+      await ctrl.getScriptTweakMessages(req, res);
+
+      expect(execute).toHaveBeenCalledWith({ jobId: "job-1" });
+      expect(res.ok).toHaveBeenCalledWith({ messages });
+    });
+
+    it("returns 404 when use case returns NOT_FOUND", async () => {
+      const execute = jest
+        .fn<AnyFn>()
+        .mockResolvedValue(
+          Result.fail(new ValidationError("Not found", "NOT_FOUND")),
+        );
+      const ctrl = buildController({
+        getScriptTweakMessagesUseCase: { execute },
+      });
+      const req = makeReq({ params: { id: "missing" } });
+      const res = mockRes();
+
+      await ctrl.getScriptTweakMessages(req, res);
+
+      expect(res.notFound).toHaveBeenCalledWith({
+        error: "NOT_FOUND",
+        message: "Not found",
+      });
+    });
+
+    it("returns 500 on unexpected error", async () => {
+      const execute = jest.fn<AnyFn>().mockRejectedValue(new Error("boom"));
+      const ctrl = buildController({
+        getScriptTweakMessagesUseCase: { execute },
+      });
+      const req = makeReq({ params: { id: "job-1" } });
+      const res = mockRes();
+
+      await ctrl.getScriptTweakMessages(req, res);
+
+      expect(res.serverError).toHaveBeenCalledWith({
+        error: "internal_error",
+        message: "Internal server error",
       });
     });
   });

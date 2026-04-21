@@ -35,6 +35,11 @@ import { PrismaTweakMessageRepository } from "@/pipeline/infrastructure/reposito
 import { AICodeTweaker } from "@/pipeline/infrastructure/services/ai-code-tweaker.js";
 import { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
 import { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
+import { SendScriptTweakUseCase } from "@/pipeline/application/use-cases/send-script-tweak.use-case.js";
+import { GetScriptTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-script-tweak-messages.use-case.js";
+import { PrismaScriptTweakMessageRepository } from "@/pipeline/infrastructure/repositories/prisma-script-tweak-message.repository.js";
+import { AIScriptTweaker } from "@/pipeline/infrastructure/services/ai-script-tweaker.js";
+import { NoOpWebSearchProvider } from "@/pipeline/infrastructure/services/noop-web-search-provider.js";
 import { ListShowcaseUseCase } from "@/pipeline/application/use-cases/list-showcase.use-case.js";
 
 export function createPipelineModule(deps: {
@@ -78,8 +83,29 @@ export function createPipelineModule(deps: {
   const autofixCodeUseCase = new AutofixCodeUseCase(repository, codeAutoFixer);
   const tweakMessageRepository = new PrismaTweakMessageRepository(deps.prisma);
   const codeTweaker = new AICodeTweaker();
-  const sendTweakUseCase = new SendTweakUseCase(repository, tweakMessageRepository, codeTweaker);
-  const getTweakMessagesUseCase = new GetTweakMessagesUseCase(repository, tweakMessageRepository);
+  const sendTweakUseCase = new SendTweakUseCase(
+    repository,
+    tweakMessageRepository,
+    codeTweaker,
+  );
+  const getTweakMessagesUseCase = new GetTweakMessagesUseCase(
+    repository,
+    tweakMessageRepository,
+  );
+  const scriptTweakMessageRepository = new PrismaScriptTweakMessageRepository(
+    deps.prisma,
+  );
+  const webSearchProvider = new NoOpWebSearchProvider();
+  const scriptTweaker = new AIScriptTweaker(webSearchProvider);
+  const sendScriptTweakUseCase = new SendScriptTweakUseCase(
+    repository,
+    scriptTweakMessageRepository,
+    scriptTweaker,
+  );
+  const getScriptTweakMessagesUseCase = new GetScriptTweakMessagesUseCase(
+    repository,
+    scriptTweakMessageRepository,
+  );
   const listShowcaseUseCase = new ListShowcaseUseCase(repository);
   const retryJobUseCase = new RetryJobUseCase(repository, queueService);
   const getPreviewDataUseCase = new GetPreviewDataUseCase(
@@ -112,6 +138,8 @@ export function createPipelineModule(deps: {
     listVoicesUseCase,
     sendTweakUseCase,
     getTweakMessagesUseCase,
+    sendScriptTweakUseCase,
+    getScriptTweakMessagesUseCase,
     listShowcaseUseCase,
   );
 
@@ -200,7 +228,9 @@ export function createPipelineModule(deps: {
   // 13. Thumbnail proxy route
   pipelineRouter.get("/jobs/:id/thumbnail", async (req, res) => {
     try {
-      const job = await deps.prisma.pipelineJob.findUnique({ where: { id: req.params.id } });
+      const job = await deps.prisma.pipelineJob.findUnique({
+        where: { id: req.params.id },
+      });
       if (!job || !job.thumbnailPath) {
         res.status(404).json({ error: "Thumbnail not found" });
         return;

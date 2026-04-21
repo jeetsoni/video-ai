@@ -24,8 +24,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={inter.variable}>
         <AppDependenciesProvider>
+          <div className="ambient-glow" />
           <AppHeader />
-          <div className="min-h-screen pt-16">{children}</div>
+          <div className="relative z-10 min-h-screen pt-14">{children}</div>
           <MobileNav />
         </AppDependenciesProvider>
       </body>

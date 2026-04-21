@@ -89,6 +89,7 @@ model PipelineJob {
 
   // Chat history for tweak conversations
   tweakMessages TweakMessage[]
+  scriptTweakMessages ScriptTweakMessage[]
 
   @@index([browserId])
   @@index([status])
@@ -107,6 +108,19 @@ model AnimationTheme {
 }
 
 model TweakMessage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  jobId String
+  job   PipelineJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  role    String   // "user" or "assistant"
+  content String   @db.Text
+
+  @@index([jobId, createdAt])
+}
+
+model ScriptTweakMessage {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 

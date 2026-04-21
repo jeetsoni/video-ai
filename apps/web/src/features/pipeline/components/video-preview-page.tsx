@@ -67,7 +67,7 @@ function PreviewSkeleton({ format }: { format: string }) {
   return (
     <div
       className={cn(
-        "w-full rounded-2xl bg-surface-container-high animate-pulse",
+        "w-full rounded-2xl bg-white/[0.04] animate-pulse",
         ASPECT_CLASSES[format] ?? "aspect-video",
       )}
       role="status"
@@ -96,15 +96,15 @@ function PreviewError({
     error.includes("Cannot read");
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl bg-stage-failed/20 p-8 text-center">
-      <div className="flex size-12 items-center justify-center rounded-xl bg-stage-failed/20">
+    <div className="flex flex-col items-center gap-4 rounded-xl bg-destructive/10 p-8 text-center">
+      <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10">
         <AlertTriangle className="size-6 text-stage-failed" />
       </div>
       <div className="space-y-1">
         <p className="text-sm font-semibold text-stage-failed">
           Preview Failed
         </p>
-        <p className="text-sm text-on-surface-variant max-w-md">{error}</p>
+        <p className="text-sm text-white/50 max-w-md">{error}</p>
         {autofixExplanation && (
           <p className="text-xs text-emerald-400 mt-2">
             ✓ {autofixExplanation}
@@ -144,9 +144,9 @@ function PreviewError({
 
 function RenderingProgress() {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-surface-container-high px-4 py-3">
+    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-4 py-3">
       <Loader2 className="size-4 animate-spin text-stage-active" />
-      <p className="text-sm text-on-surface-variant">
+      <p className="text-sm text-white/50">
         Rendering your video… This may take a few minutes.
       </p>
     </div>
@@ -375,13 +375,13 @@ export function VideoPreviewPage({
       job.stage === "code_generation"
     ) {
       return (
-        <div className="w-full h-full min-h-[300px] rounded-2xl bg-surface-container-high flex items-center justify-center">
+        <div className="w-full h-full min-h-[300px] rounded-2xl bg-white/[0.04] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-center p-8">
             <Loader2 className="size-6 animate-spin text-stage-active" />
-            <p className="text-sm text-on-surface-variant">
+            <p className="text-sm text-white/50">
               Generating scene animations…
             </p>
-            <p className="text-xs text-on-surface-variant/60">
+            <p className="text-xs text-white/30">
               Preview will appear as each scene completes
             </p>
           </div>
@@ -404,7 +404,7 @@ export function VideoPreviewPage({
       }
       // Show stage progress inside the player area
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8 bg-surface-container-high rounded-2xl">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8 bg-white/[0.04] rounded-2xl">
           <div
             className={cn(
               "flex size-12 items-center justify-center rounded-xl",
@@ -414,17 +414,17 @@ export function VideoPreviewPage({
             <StageIcon className="size-6 text-stage-active" />
           </div>
           <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-on-surface">
+            <p className="text-sm font-semibold text-white">
               {stageInfo.label}
             </p>
-            <p className="text-xs text-on-surface-variant">
+            <p className="text-xs text-white/50">
               {stageInfo.description}
             </p>
           </div>
           {/* Progress bar */}
           <div className="w-full max-w-[200px]">
             <div
-              className="h-1.5 rounded-full bg-surface-container-highest"
+              className="h-1.5 rounded-full bg-white/[0.06]"
               role="progressbar"
               aria-valuenow={job.progressPercent}
               aria-valuemin={0}
@@ -435,7 +435,7 @@ export function VideoPreviewPage({
                 style={{ width: `${job.progressPercent}%` }}
               />
             </div>
-            <p className="text-[10px] tabular-nums text-on-surface-variant text-center mt-1">
+            <p className="text-[10px] tabular-nums text-white/40 text-center mt-1">
               {job.progressPercent}%
             </p>
           </div>
@@ -540,7 +540,7 @@ export function VideoPreviewPage({
               <button
                 type="button"
                 onClick={onBack}
-                className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors mr-1"
+                className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors mr-1"
                 aria-label="Back"
               >
                 <ArrowLeft className="size-4" />
@@ -551,10 +551,10 @@ export function VideoPreviewPage({
             <div className="group relative">
               <button
                 type="button"
-                className="flex size-7 items-center justify-center rounded-lg hover:bg-surface-container-high transition-colors"
+                className="flex size-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
                 aria-label="Video details"
               >
-                <Info className="size-4 text-on-surface-variant" />
+                <Info className="size-4 text-white/50" />
               </button>
               {/* Tooltip on hover */}
               <div className="absolute left-0 top-full mt-1 z-30 hidden group-hover:block">
@@ -702,7 +702,7 @@ export function VideoPreviewPage({
           {job.stage === "rendering" && <RenderingProgress />}
 
           {isCompletedWithoutVideo && (
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+            <div className="flex items-center gap-2 text-xs text-white/40">
               <LifeBuoy className="size-3.5" />
               <span>
                 Video file not available.{" "}
@@ -718,7 +718,7 @@ export function VideoPreviewPage({
         </section>
 
         {/* ── Right Column: Chat panel (always chat, no fallback info panel) ── */}
-        <section className="flex flex-col min-h-0 rounded-2xl bg-surface-container-high/30 overflow-hidden">
+        <section className="flex flex-col min-h-0 rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
           {isPreviewEligible && evaluatedComponent && previewData ? (
             <ChatPanel
               job={job}
@@ -740,15 +740,15 @@ export function VideoPreviewPage({
                     "size-8 mx-auto",
                     job.status === "failed"
                       ? "text-stage-failed"
-                      : "text-on-surface-variant/40",
+                      : "text-white/20",
                   )}
                 />
-                <p className="text-sm text-on-surface-variant">
+                <p className="text-sm text-white/50">
                   {job.status === "failed"
                     ? "Processing failed"
                     : "Chat will be available once the preview is ready"}
                 </p>
-                <p className="text-xs text-on-surface-variant/60">
+                <p className="text-xs text-white/30">
                   {job.status === "failed"
                     ? (job.errorMessage ?? "An error occurred")
                     : stageInfo.description}

@@ -12,7 +12,7 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Pending",
-    className: "bg-on-surface-variant/20 text-on-surface-variant",
+    className: "bg-white/[0.1] text-white/50",
   },
   processing: {
     label: "Processing",
@@ -61,9 +61,9 @@ export function ProjectCard({ job, onClick }: ProjectCardProps) {
     <button
       type="button"
       onClick={() => onClick(job.id)}
-      className="group w-full rounded-xl bg-surface-container-low text-left transition-all duration-300 hover:bg-surface-container border border-outline-variant hover:border-primary/20 overflow-hidden"
+      className="group w-full rounded-xl bg-white/[0.03] text-left transition-all duration-300 hover:bg-white/[0.05] border border-white/[0.08] hover:border-white/[0.15] overflow-hidden"
     >
-      <div className="relative h-56 overflow-hidden bg-surface-container-high flex items-center justify-center">
+      <div className="relative h-56 overflow-hidden bg-black/40 flex items-center justify-center">
         {job.videoUrl ? (
           <video
             src={job.videoUrl}
@@ -77,7 +77,7 @@ export function ProjectCard({ job, onClick }: ProjectCardProps) {
             className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <Film className="size-8 text-on-surface-variant/30" />
+          <Film className="size-8 text-white/20" />
         )}
 
         <div className="absolute top-3 left-3">
@@ -97,19 +97,19 @@ export function ProjectCard({ job, onClick }: ProjectCardProps) {
       </div>
 
       <div className="space-y-2 p-4">
-        <h3 className="text-sm font-bold text-on-surface line-clamp-1">
+        <h3 className="text-sm font-bold text-white line-clamp-1">
           {job.topic}
         </h3>
 
         {isProcessing ? (
           <div className="space-y-1">
             <Progress value={job.progressPercent} className="h-1" />
-            <p className="text-[10px] text-on-surface-variant">
+            <p className="text-[10px] text-white/40">
               {formatStage(job.stage)} · {job.progressPercent}%
             </p>
           </div>
         ) : (
-          <p className="text-[10px] text-on-surface-variant font-medium">
+          <p className="text-[10px] text-white/40 font-medium">
             {formatDate(job.createdAt)}
             {job.format && ` · ${job.format}`}
           </p>

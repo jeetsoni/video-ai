@@ -2,30 +2,38 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
-  History,
-  RefreshCw,
   ArrowRight,
   ArrowLeft,
   Clock,
-  BarChart3,
-  Gauge,
   Volume2,
   Square,
   Loader2,
 } from "lucide-react";
-import type { VideoFormat, SceneBoundary, VoiceEntry, VoiceSettings } from "@video-ai/shared";
+import type {
+  VideoFormat,
+  SceneBoundary,
+  VoiceEntry,
+  VoiceSettings,
+  PipelineJobDto,
+} from "@video-ai/shared";
 import { FORMAT_WORD_RANGES, DEFAULT_VOICE_SETTINGS } from "@video-ai/shared";
 import { useAppDependencies } from "@/shared/providers/app-dependencies-context";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 import { VoiceSelector } from "./voice-selector";
 import { VoiceSettingsControls } from "./voice-settings-controls";
+import { ScriptChatPanel } from "./script-chat-panel";
 import { useVoiceSettingsPreview } from "../hooks/use-voice-settings-preview";
 
 interface ScriptReviewEditorProps {
   script: string;
   format: VideoFormat;
-  onApprove: (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => void;
+  onApprove: (
+    editedScript?: string,
+    scenes?: SceneBoundary[],
+    voiceId?: string,
+    voiceSettings?: VoiceSettings,
+  ) => void;
   onRegenerate: () => void;
   onBack?: () => void;
   isLoading?: boolean;
@@ -37,6 +45,8 @@ interface ScriptReviewEditorProps {
   voicesLoading?: boolean;
   initialVoiceId?: string;
   initialVoiceSettings?: VoiceSettings;
+  /** Job ID needed for the script chat panel */
+  jobId?: string;
 }
 
 function countWords(text: string): number {
@@ -216,7 +226,7 @@ function EditableSceneBlock({
 
   return (
     <div className="group relative">
-      <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-primary/60">
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-primary/50">
         {heading}
       </h3>
       <textarea
@@ -228,7 +238,7 @@ function EditableSceneBlock({
         }}
         disabled={disabled}
         rows={1}
-        className="w-full resize-none border-none bg-transparent text-lg font-medium leading-relaxed text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0"
+        className="w-full resize-none border-none bg-transparent text-lg font-medium leading-relaxed text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-0"
         aria-label={`Edit ${heading}`}
       />
       {scene.tags.length > 0 && (
@@ -236,64 +246,13 @@ function EditableSceneBlock({
           {scene.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded bg-secondary/5 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-secondary/70"
+              className="rounded bg-secondary/5 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-white/40"
             >
               {tag}
             </span>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-/* ─── Density Bar ─── */
-function DensityBar({
-  label,
-  value,
-  maxValue,
-  duration,
-}: {
-  label: string;
-  value: number;
-  maxValue: number;
-  duration: string;
-}) {
-  const pct = Math.min(100, Math.round((value / maxValue) * 100));
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-[10px] font-bold text-on-surface-variant/80">
-        <span>{label}</span>
-        <span>{duration}</span>
-      </div>
-      <div className="h-1 overflow-hidden rounded-full bg-surface-container-high">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${pct}%`, opacity: 0.4 + (pct / 100) * 0.6 }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function MetricItem({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Clock;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="group cursor-default">
-      <p className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-        <Icon className="size-3" />
-        {label}
-      </p>
-      <p className="text-lg font-bold tracking-tight text-on-surface">
-        {value}
-      </p>
     </div>
   );
 }
@@ -316,13 +275,13 @@ function NarrationPanel({
 }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
+      <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
         Narration
       </h2>
 
       {/* Voice selector — constrained height */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/80">
+        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
           Voice
         </label>
         <div className="**:[[role=listbox]]:max-h-36">
@@ -337,7 +296,7 @@ function NarrationPanel({
 
       {/* Voice settings — compact mode */}
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant/80">
+        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
           Tuning
         </label>
         <VoiceSettingsControls
@@ -348,88 +307,6 @@ function NarrationPanel({
           showPreview={false}
         />
       </div>
-    </div>
-  );
-}
-
-/* ─── Insights Panel ─── */
-function InsightsPanel({
-  wordCount,
-  scenes,
-  format,
-}: {
-  wordCount: number;
-  scenes: SceneBlock[];
-  format: VideoFormat;
-}) {
-  const duration = estimateDuration(wordCount);
-  const tone = getToneLabel(wordCount);
-  const complexity = getComplexityLabel(wordCount);
-  const range = FORMAT_WORD_RANGES[format];
-
-  const totalWords = wordCount || 1;
-  const sceneDensity = scenes.map((scene, i) => {
-    const words = countWords(scene.body);
-    const dur = estimateDuration(words);
-    return {
-      label: scene.heading || `Scene ${i + 1}`,
-      words,
-      duration: dur,
-    };
-  });
-
-  return (
-    <div className="space-y-5">
-      <h2 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
-        Insights
-      </h2>
-
-      <div className="space-y-4">
-        <MetricItem icon={Clock} label="Duration" value={duration} />
-        <MetricItem icon={BarChart3} label="Tone" value={tone} />
-        <MetricItem icon={Gauge} label="Complexity" value={complexity} />
-        <div className="group cursor-default">
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-            Word Count
-          </p>
-          <p
-            className={cn(
-              "text-lg font-bold tracking-tight",
-              wordCount < range.min || wordCount > range.max
-                ? "text-destructive"
-                : "text-on-surface",
-            )}
-          >
-            {wordCount}{" "}
-            <span className="text-sm font-normal text-on-surface-variant">
-              / {range.min}–{range.max}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      {sceneDensity.length > 1 && (
-        <div className="space-y-3 pt-4">
-          <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
-            Density
-          </h3>
-          <div className="space-y-3">
-            {sceneDensity.map((s) => (
-              <DensityBar
-                key={s.label}
-                label={
-                  s.label
-                    .replace(/^Scene\s*\d+\s*[:\-–—•]\s*/i, "")
-                    .trim() || s.label
-                }
-                value={s.words}
-                maxValue={totalWords}
-                duration={s.duration}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -451,10 +328,18 @@ export function ScriptReviewEditor({
   voicesLoading = false,
   initialVoiceId,
   initialVoiceSettings,
+  jobId,
 }: ScriptReviewEditorProps) {
   const [editedScript, setEditedScript] = useState(script);
   /** Track edited scene bodies when using API scenes */
-  const [editedSceneBodies, setEditedSceneBodies] = useState<Map<number, string>>(new Map());
+  const [editedSceneBodies, setEditedSceneBodies] = useState<
+    Map<number, string>
+  >(new Map());
+  /** When the chat tweaker returns updated scenes, store them here so the
+   *  scenes memo uses them instead of the stale apiScenes prop. */
+  const [chatOverrideScenes, setChatOverrideScenes] = useState<
+    SceneBoundary[] | null
+  >(null);
   const [voiceId, setVoiceId] = useState(initialVoiceId ?? "");
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(
     initialVoiceSettings ?? DEFAULT_VOICE_SETTINGS,
@@ -485,9 +370,20 @@ export function ScriptReviewEditor({
     if (previewPlaying) {
       stopPlayback();
     } else {
-      requestPreview({ voiceId: voiceId || undefined, voiceSettings, text: previewText });
+      requestPreview({
+        voiceId: voiceId || undefined,
+        voiceSettings,
+        text: previewText,
+      });
     }
-  }, [previewPlaying, stopPlayback, requestPreview, voiceId, voiceSettings, previewText]);
+  }, [
+    previewPlaying,
+    stopPlayback,
+    requestPreview,
+    voiceId,
+    voiceSettings,
+    previewText,
+  ]);
 
   const previewDisabled = previewLoading || cooldownRemaining > 0;
 
@@ -510,9 +406,20 @@ export function ScriptReviewEditor({
   useEffect(() => {
     setEditedScript(script);
     setEditedSceneBodies(new Map());
+    setChatOverrideScenes(null);
   }, [script]);
 
   const scenes = useMemo(() => {
+    // After a chat tweak, use the rebuilt scenes from the backend
+    if (chatOverrideScenes !== null && chatOverrideScenes.length > 0) {
+      return chatOverrideScenes.map((s, i) => ({
+        heading: s.name,
+        body: editedSceneBodies.has(i) ? editedSceneBodies.get(i)! : s.text,
+        tags: [s.type],
+        bodyStart: 0,
+        bodyEnd: 0,
+      }));
+    }
     if (apiScenes && apiScenes.length > 0) {
       return apiScenes.map((s, i) => ({
         heading: s.name,
@@ -523,14 +430,16 @@ export function ScriptReviewEditor({
       }));
     }
     return parseScenes(editedScript);
-  }, [apiScenes, editedSceneBodies, editedScript]);
+  }, [apiScenes, editedSceneBodies, editedScript, chatOverrideScenes]);
   const wordCount = useMemo(() => {
+    if (chatOverrideScenes !== null && chatOverrideScenes.length > 0) {
+      return scenes.reduce((sum, s) => sum + countWords(s.body), 0);
+    }
     if (apiScenes && apiScenes.length > 0) {
-      // Derive word count from the actual displayed scene bodies
       return scenes.reduce((sum, s) => sum + countWords(s.body), 0);
     }
     return countWords(editedScript);
-  }, [apiScenes, scenes, editedScript]);
+  }, [apiScenes, scenes, editedScript, chatOverrideScenes]);
   const range = FORMAT_WORD_RANGES[format];
   const isUnderMinimum = wordCount < 10;
   const isEdited = editedScript !== script;
@@ -538,6 +447,9 @@ export function ScriptReviewEditor({
   /** Replace a single scene's body text within the full script string */
   const handleSceneChange = useCallback(
     (sceneIndex: number, newBody: string) => {
+      // Clear chat override since the user is now manually editing
+      setChatOverrideScenes(null);
+
       if (apiScenes && apiScenes.length > 0) {
         setEditedSceneBodies((prev) => {
           const next = new Map(prev);
@@ -555,9 +467,7 @@ export function ScriptReviewEditor({
           const scene = parsed[sceneIndex];
           if (!scene) return prev;
           return (
-            prev.slice(0, scene.bodyStart) +
-            newBody +
-            prev.slice(scene.bodyEnd)
+            prev.slice(0, scene.bodyStart) + newBody + prev.slice(scene.bodyEnd)
           );
         });
       }
@@ -566,7 +476,8 @@ export function ScriptReviewEditor({
   );
 
   const handleApprove = useCallback(() => {
-    const scriptToSend = isEdited && editedScript.trim() ? editedScript : undefined;
+    const scriptToSend =
+      isEdited && editedScript.trim() ? editedScript : undefined;
     if (apiScenes && apiScenes.length > 0) {
       // Only send scenes if the user actually edited any scene body
       const hasEditedScenes = editedSceneBodies.size > 0;
@@ -578,15 +489,59 @@ export function ScriptReviewEditor({
               type: s.type,
               startTime: s.startTime,
               endTime: s.endTime,
-              text: editedSceneBodies.has(i) ? editedSceneBodies.get(i)! : s.text,
+              text: editedSceneBodies.has(i)
+                ? editedSceneBodies.get(i)!
+                : s.text,
             }))
             .filter((s) => s.text.trim().length > 0)
         : undefined;
-      onApprove(scriptToSend, reconstructedScenes, voiceId || undefined, voiceSettings);
+      onApprove(
+        scriptToSend,
+        reconstructedScenes,
+        voiceId || undefined,
+        voiceSettings,
+      );
     } else {
       onApprove(scriptToSend, undefined, voiceId || undefined, voiceSettings);
     }
-  }, [onApprove, isEdited, editedScript, apiScenes, editedSceneBodies, voiceId, voiceSettings]);
+  }, [
+    onApprove,
+    isEdited,
+    editedScript,
+    apiScenes,
+    editedSceneBodies,
+    voiceId,
+    voiceSettings,
+  ]);
+
+  /** Called by ScriptChatPanel when the AI tweaker returns an updated script */
+  const handleScriptUpdated = useCallback(
+    (newScript: string, newScenes: SceneBoundary[]) => {
+      setEditedScript(newScript);
+      setEditedSceneBodies(new Map());
+      setChatOverrideScenes(newScenes);
+    },
+    [],
+  );
+
+  /** Minimal job object for ScriptChatPanel (only job.id is used by the hook) */
+  const chatJob = useMemo<PipelineJobDto | null>(() => {
+    if (!jobId) return null;
+    return {
+      id: jobId,
+      topic: topic ?? "",
+      format,
+      themeId: "",
+      status: "awaiting_script_review" as const,
+      stage: "script_review" as const,
+      progressPercent: 0,
+      createdAt: "",
+      updatedAt: "",
+    };
+  }, [jobId, topic, format]);
+
+  const duration = estimateDuration(wordCount);
+  const tone = getToneLabel(wordCount);
 
   return (
     <div className="flex h-full flex-col">
@@ -597,14 +552,14 @@ export function ScriptReviewEditor({
             <button
               type="button"
               onClick={onBack}
-              className="mb-3 flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors"
+              className="mb-3 flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
             >
               <ArrowLeft className="size-4" />
               Back
             </button>
           )}
           <div className="mb-2 flex items-center gap-2">
-            <span className="rounded bg-secondary/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-secondary">
+            <span className="rounded bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
               {format}
             </span>
             {isEdited && (
@@ -613,46 +568,81 @@ export function ScriptReviewEditor({
               </span>
             )}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-on-surface">
+          <h1 className="text-3xl font-light tracking-tight text-white">
             {topic || "Script Review"}
           </h1>
         </div>
         <div className="flex gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="gap-2"
-            disabled={isLoading}
-            onClick={() => setEditedScript(script)}
-          >
-            <History className="size-3.5" />
-            Reset
+          <Button variant="ghost" disabled={isLoading} onClick={onRegenerate}>
+            Draft
           </Button>
           <Button
-            variant="secondary"
-            size="sm"
-            className="gap-2 bg-primary/10 text-primary hover:bg-primary/20"
-            disabled={isLoading}
-            onClick={onRegenerate}
+            disabled={isLoading || isUnderMinimum}
+            onClick={handleApprove}
+            className="gap-2 shadow-lg shadow-primary/10"
           >
-            <RefreshCw className="size-3.5" />
-            Regenerate
+            Approve Script
+            <ArrowRight className="size-4" />
           </Button>
         </div>
       </div>
 
-      {/* 3-column Layout: Editor | Narration | Insights */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        {/* Left: Script Editor (50%) */}
-        <div className="flex w-1/2 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low shadow-ambient-lg">
-          {/* Editor toolbar */}
-          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-high/30 px-6 py-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-on-surface-variant">
-              Script
+      {/* 3-column Layout: Chat | Editor | Narration */}
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        {/* Chat Panel — 25% */}
+        <div className="flex w-1/4 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
+          <div className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
+              Script Chat
             </span>
+          </div>
+          {chatJob ? (
+            <ScriptChatPanel
+              job={chatJob}
+              repository={pipelineRepository}
+              onScriptUpdated={handleScriptUpdated}
+            />
+          ) : (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <p className="text-sm text-white/40">
+                Chat is available after the script is generated
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Script Editor — 50% */}
+        <div className="flex w-1/2 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
+          {/* Editor toolbar with metrics */}
+          <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-6 py-2.5">
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
+                Script
+              </span>
+              <div className="flex items-center gap-3 text-[11px] text-white/30">
+                <span className="flex items-center gap-1">
+                  <Clock className="size-3" />
+                  {duration}
+                </span>
+                <span>·</span>
+                <span>{tone}</span>
+                <span>·</span>
+                <span
+                  className={cn(
+                    wordCount < range.min || wordCount > range.max
+                      ? "text-destructive"
+                      : "",
+                  )}
+                >
+                  {wordCount} words
+                </span>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               {previewError && (
-                <span className="text-[10px] text-destructive">{previewError}</span>
+                <span className="text-[10px] text-destructive">
+                  {previewError}
+                </span>
               )}
               <Button
                 type="button"
@@ -683,15 +673,19 @@ export function ScriptReviewEditor({
                     <span>Stop</span>
                   </>
                 )}
-                {!previewLoading && !previewPlaying && cooldownRemaining > 0 && (
-                  <span>Wait {cooldownRemaining}s</span>
-                )}
-                {!previewLoading && !previewPlaying && cooldownRemaining === 0 && (
-                  <>
-                    <Volume2 className="size-3" />
-                    <span>Preview</span>
-                  </>
-                )}
+                {!previewLoading &&
+                  !previewPlaying &&
+                  cooldownRemaining > 0 && (
+                    <span>Wait {cooldownRemaining}s</span>
+                  )}
+                {!previewLoading &&
+                  !previewPlaying &&
+                  cooldownRemaining === 0 && (
+                    <>
+                      <Volume2 className="size-3" />
+                      <span>Preview</span>
+                    </>
+                  )}
               </Button>
             </div>
           </div>
@@ -711,50 +705,24 @@ export function ScriptReviewEditor({
             </div>
           </div>
 
-          {/* Word count status bar */}
-          <div className="border-t border-outline-variant bg-surface-container-high/30 px-8 py-3">
-            <div className="flex items-center justify-between text-xs">
-              <span
-                className={cn(
-                  "text-on-surface-variant",
-                  !isLoading && isUnderMinimum && "text-destructive",
-                )}
-              >
-                {wordCount} words
-              </span>
-              <span className="text-on-surface-variant">
-                {range.min}–{range.max} recommended for {format}
-              </span>
-            </div>
-            {!isLoading && isUnderMinimum && (
-              <p role="alert" className="mt-1 text-sm text-destructive">
-                Script must contain at least 10 words
-              </p>
-            )}
-          </div>
-
-          {/* Footer Actions */}
-          <div className="flex justify-end gap-4 border-t border-outline-variant bg-surface-container-high/50 px-8 py-5">
-            <Button
-              variant="ghost"
-              disabled={isLoading}
-              onClick={onRegenerate}
+          {/* Footer info */}
+          <div className="flex items-center border-t border-white/[0.06] bg-white/[0.02] px-8 py-3">
+            <span
+              className={cn(
+                "text-xs text-white/30",
+                !isLoading && isUnderMinimum && "text-destructive",
+              )}
             >
-              Draft
-            </Button>
-            <Button
-              disabled={isLoading || isUnderMinimum}
-              onClick={handleApprove}
-              className="gap-2 shadow-lg shadow-primary/10"
-            >
-              Approve Script
-              <ArrowRight className="size-4" />
-            </Button>
+              {range.min}–{range.max} recommended for {format}
+              {!isLoading &&
+                isUnderMinimum &&
+                " · Script must contain at least 10 words"}
+            </span>
           </div>
         </div>
 
-        {/* Middle: Narration (25%) */}
-        <div className="flex w-1/4 flex-col overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-low p-5 shadow-ambient-lg">
+        {/* Narration Panel — 25% */}
+        <div className="w-1/4 shrink-0 overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl">
           <NarrationPanel
             voices={voices}
             voicesLoading={voicesLoading}
@@ -762,15 +730,6 @@ export function ScriptReviewEditor({
             voiceSettings={voiceSettings}
             onVoiceChange={setVoiceId}
             onSettingsChange={setVoiceSettings}
-          />
-        </div>
-
-        {/* Right: Insights (25%) */}
-        <div className="flex w-1/4 flex-col overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-low p-6 shadow-ambient-lg">
-          <InsightsPanel
-            wordCount={wordCount}
-            scenes={scenes}
-            format={format}
           />
         </div>
       </div>

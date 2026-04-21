@@ -64,23 +64,17 @@ export function createPipelineRouter(
     },
   );
 
-  router.post(
-    "/jobs/:id/autofix-code",
-    async (req: Request, res: Response) => {
-      const httpReq = HttpRequest.fromExpress(req);
-      const httpRes = HttpResponse.fromExpress(res);
-      await controller.autofixCode(httpReq, httpRes);
-    },
-  );
+  router.post("/jobs/:id/autofix-code", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.autofixCode(httpReq, httpRes);
+  });
 
-  router.post(
-    "/jobs/:id/retry",
-    async (req: Request, res: Response) => {
-      const httpReq = HttpRequest.fromExpress(req);
-      const httpRes = HttpResponse.fromExpress(res);
-      await controller.retryJob(httpReq, httpRes);
-    },
-  );
+  router.post("/jobs/:id/retry", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.retryJob(httpReq, httpRes);
+  });
 
   router.get("/jobs/:id/stream", async (req: Request, res: Response) => {
     await streamController.streamScriptGeneration(req, res);
@@ -120,11 +114,29 @@ export function createPipelineRouter(
     await controller.sendTweak(httpReq, httpRes);
   });
 
-  router.get("/jobs/:id/tweak/messages", async (req: Request, res: Response) => {
+  router.get(
+    "/jobs/:id/tweak/messages",
+    async (req: Request, res: Response) => {
+      const httpReq = HttpRequest.fromExpress(req);
+      const httpRes = HttpResponse.fromExpress(res);
+      await controller.getTweakMessages(httpReq, httpRes);
+    },
+  );
+
+  router.post("/jobs/:id/script-tweak", async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
-    await controller.getTweakMessages(httpReq, httpRes);
+    await controller.sendScriptTweak(httpReq, httpRes);
   });
+
+  router.get(
+    "/jobs/:id/script-tweak/messages",
+    async (req: Request, res: Response) => {
+      const httpReq = HttpRequest.fromExpress(req);
+      const httpRes = HttpResponse.fromExpress(res);
+      await controller.getScriptTweakMessages(httpReq, httpRes);
+    },
+  );
 
   return router;
 }

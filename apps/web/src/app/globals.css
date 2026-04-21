@@ -296,3 +296,46 @@
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--background); }
 ::-webkit-scrollbar-thumb { background: var(--surface-container-highest); border-radius: 10px; }
+
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Ambient glow background */
+.ambient-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient-glow::before,
+.ambient-glow::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  opacity: 0.25;
+}
+.ambient-glow::before {
+  width: 700px;
+  height: 700px;
+  background: #645efb;
+  top: -15%;
+  left: -10%;
+  animation: glow-drift 20s ease-in-out infinite alternate;
+}
+.ambient-glow::after {
+  width: 600px;
+  height: 600px;
+  background: #a855f7;
+  bottom: -15%;
+  right: -10%;
+  animation: glow-drift 15s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes glow-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.1); }
+  100% { transform: translate(-30px, 60px) scale(0.95); }
+}

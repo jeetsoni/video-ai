@@ -15,6 +15,8 @@ import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export
 import type { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
 import type { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
 import type { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
+import type { SendScriptTweakUseCase } from "@/pipeline/application/use-cases/send-script-tweak.use-case.js";
+import type { GetScriptTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-script-tweak-messages.use-case.js";
 import type { ListShowcaseUseCase } from "@/pipeline/application/use-cases/list-showcase.use-case.js";
 
 type ThemeDto = {
@@ -42,6 +44,8 @@ export class PipelineController {
     private readonly listVoicesUseCase: ListVoicesUseCase,
     private readonly sendTweakUseCase: SendTweakUseCase,
     private readonly getTweakMessagesUseCase: GetTweakMessagesUseCase,
+    private readonly sendScriptTweakUseCase: SendScriptTweakUseCase,
+    private readonly getScriptTweakMessagesUseCase: GetScriptTweakMessagesUseCase,
     private readonly listShowcaseUseCase: ListShowcaseUseCase,
   ) {}
 
@@ -49,7 +53,10 @@ export class PipelineController {
     try {
       const browserId = req.headers["x-browser-id"] as string | undefined;
       if (!browserId) {
-        res.badRequest({ error: "MISSING_BROWSER_ID", message: "X-Browser-Id header is required" });
+        res.badRequest({
+          error: "MISSING_BROWSER_ID",
+          message: "X-Browser-Id header is required",
+        });
         return;
       }
 
@@ -85,7 +92,10 @@ export class PipelineController {
       const host = req.headers.host as string | undefined;
       const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
       const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
-      const result = await this.getJobStatusUseCase.execute({ jobId: id, apiBaseUrl });
+      const result = await this.getJobStatusUseCase.execute({
+        jobId: id,
+        apiBaseUrl,
+      });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;
@@ -393,6 +403,64 @@ export class PipelineController {
     }
   }
 
+  async sendScriptTweak(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const body = req.body as { message?: string };
+
+      if (!body.message) {
+        res.badRequest({
+          error: "INVALID_INPUT",
+          message: "message is required",
+        });
+        return;
+      }
+
+      const result = await this.sendScriptTweakUseCase.execute({
+        jobId: id,
+        message: body.message,
+      });
+
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      const { updatedScript, explanation, updatedScenes } = result.getValue();
+      res.ok({ status: "ok", updatedScript, explanation, updatedScenes });
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async getScriptTweakMessages(
+    req: HttpRequest,
+    res: HttpResponse,
+  ): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.getScriptTweakMessagesUseCase.execute({
+        jobId: id,
+      });
+
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      const { messages } = result.getValue();
+      res.ok({ messages });
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
   async listShowcase(req: HttpRequest, res: HttpResponse): Promise<void> {
     try {
       const page = Number(req.query.page) || 1;
@@ -401,7 +469,11 @@ export class PipelineController {
       const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
       const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
 
-      const result = await this.listShowcaseUseCase.execute({ page, limit, apiBaseUrl });
+      const result = await this.listShowcaseUseCase.execute({
+        page,
+        limit,
+        apiBaseUrl,
+      });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;
@@ -409,7 +481,10 @@ export class PipelineController {
 
       res.ok(result.getValue());
     } catch {
-      res.serverError({ error: "internal_error", message: "Internal server error" });
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
     }
   }
 
