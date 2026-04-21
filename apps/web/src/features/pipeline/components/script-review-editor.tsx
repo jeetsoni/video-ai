@@ -265,6 +265,7 @@ function NarrationPanel({
   voiceSettings,
   onVoiceChange,
   onSettingsChange,
+  onVoiceSelect,
 }: {
   voices: VoiceEntry[];
   voicesLoading: boolean;
@@ -272,6 +273,7 @@ function NarrationPanel({
   voiceSettings: VoiceSettings;
   onVoiceChange: (id: string) => void;
   onSettingsChange: (settings: VoiceSettings) => void;
+  onVoiceSelect: (id: string) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -284,11 +286,11 @@ function NarrationPanel({
         <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
           Voice
         </label>
-        <div className="**:[[role=listbox]]:max-h-36">
+        <div>
           <VoiceSelector
             voices={voices}
             selectedVoiceId={voiceId}
-            onSelect={onVoiceChange}
+            onSelect={(id) => { onVoiceChange(id); onVoiceSelect(id); }}
             isLoading={voicesLoading}
           />
         </div>
@@ -723,6 +725,7 @@ export function ScriptReviewEditor({
             voiceId={voiceId}
             voiceSettings={voiceSettings}
             onVoiceChange={setVoiceId}
+            onVoiceSelect={(id) => requestPreview({ voiceId: id, voiceSettings, text: previewText })}
             onSettingsChange={setVoiceSettings}
           />
         </div>
