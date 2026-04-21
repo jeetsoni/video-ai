@@ -1,12 +1,28 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useMemo, useRef, useEffect, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  useState,
+} from "react";
 import { Player, type PlayerRef, type ErrorFallback } from "@remotion/player";
 
 export type { PlayerRef } from "@remotion/player";
 import { AbsoluteFill, Audio, prefetch } from "remotion";
-import { AlertTriangle, Wand2, RefreshCw, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Wand2,
+  RefreshCw,
+  Loader2,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize2,
+} from "lucide-react";
 import type { ScenePlan } from "@video-ai/shared";
 
 // Load Google Fonts for consistent rendering between preview and export
@@ -106,14 +122,8 @@ function RuntimeErrorDisplay({
     errorMessage.includes("TypeError") ||
     errorMessage.includes("Cannot read");
 
-  // Calculate scale factor - the error UI is rendered at composition size
-  // but we want it to appear at a readable size in the player viewport
-  // Use inverse scaling to counteract the player's scaling
   const aspectRatio = width / height;
   const isVertical = aspectRatio < 1;
-
-  // For vertical videos (reels), the player width is constrained
-  // We need to scale up the UI to be readable
   const scaleFactor = isVertical
     ? Math.max(width / 400, 2.5)
     : Math.max(height / 400, 2);
@@ -264,6 +274,241 @@ function RuntimeErrorDisplay({
   );
 }
 
+/** Format frame count as mm:ss */
+function formatTime(frame: number, fps: number): string {
+  const totalSeconds = Math.floor(frame / fps);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+/** Custom glass overlay controls matching the reference design */
+function OverlayControls({
+  playerRef,
+  fps,
+  totalFrames,
+}: {
+  playerRef: React.RefObject<PlayerRef | null>;
+  fps: number;
+  totalFrames: number;
+}) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const isDraggingRef = useRef(false);
+  const currentFrameRef = useRef(0);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const progressFillRef = useRef<HTMLDivElement>(null);
+  const progressThumbRef = useRef<HTMLDivElement>(null);
+  const timeDisplayRef = useRef<HTMLSpanElement>(null);
+
+  const totalTimeStr = useMemo(() => formatTime(totalFrames, fps), [totalFrames, fps]);
+
+  // Direct DOM update for frame — no React state, no re-renders
+  const updateFrameDisplay = useCallback(
+    (frame: number) => {
+      currentFrameRef.current = frame;
+      const pct = totalFrames > 1 ? (frame / (totalFrames - 1)) * 100 : 0;
+      if (progressFillRef.current) {
+        progressFillRef.current.style.width = `${pct}%`;
+      }
+      if (progressThumbRef.current) {
+        progressThumbRef.current.style.left = `calc(${pct}% - 6px)`;
+      }
+      if (timeDisplayRef.current) {
+        timeDisplayRef.current.textContent = `${formatTime(frame, fps)} / ${totalTimeStr}`;
+      }
+    },
+    [fps, totalFrames, totalTimeStr],
+  );
+
+  // Subscribe to player events — only play/pause/mute use React state
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onFrameUpdate = (e: { detail: { frame: number } }) => {
+      if (!isDraggingRef.current) updateFrameDisplay(e.detail.frame);
+    };
+    const onMuteChange = (e: { detail: { isMuted: boolean } }) =>
+      setIsMuted(e.detail.isMuted);
+
+    player.addEventListener("play", onPlay);
+    player.addEventListener("pause", onPause);
+    player.addEventListener("frameupdate", onFrameUpdate);
+    player.addEventListener("mutechange", onMuteChange);
+
+    // Sync initial state
+    setIsPlaying(player.isPlaying());
+    setIsMuted(player.isMuted());
+    updateFrameDisplay(player.getCurrentFrame());
+
+    return () => {
+      player.removeEventListener("play", onPlay);
+      player.removeEventListener("pause", onPause);
+      player.removeEventListener("frameupdate", onFrameUpdate);
+      player.removeEventListener("mutechange", onMuteChange);
+    };
+  }, [playerRef, updateFrameDisplay]);
+
+  const handleTogglePlay = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      playerRef.current?.toggle(e);
+    },
+    [playerRef],
+  );
+
+  const handleToggleMute = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const player = playerRef.current;
+      if (!player) return;
+      if (player.isMuted()) {
+        player.unmute();
+      } else {
+        player.mute();
+      }
+    },
+    [playerRef],
+  );
+
+  const handleFullscreen = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      playerRef.current?.requestFullscreen();
+    },
+    [playerRef],
+  );
+
+  const seekToPosition = useCallback(
+    (clientX: number) => {
+      const bar = progressRef.current;
+      if (!bar) return;
+      const rect = bar.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const frame = Math.round(ratio * (totalFrames - 1));
+      updateFrameDisplay(frame);
+      playerRef.current?.seekTo(frame);
+    },
+    [playerRef, totalFrames, updateFrameDisplay],
+  );
+
+  const handleProgressMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isDraggingRef.current = true;
+      seekToPosition(e.clientX);
+
+      const onMouseMove = (ev: MouseEvent) => seekToPosition(ev.clientX);
+      const onMouseUp = () => {
+        isDraggingRef.current = false;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [seekToPosition],
+  );
+
+  return (
+    <div
+      className="absolute inset-x-0 bottom-0 z-20 flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Glass control bar */}
+      <div
+        className="mx-2 mb-2 rounded-xl px-3 py-2 flex flex-col gap-2"
+        style={{
+          background: "rgba(0, 0, 0, 0.55)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+        }}
+      >
+        {/* Top row: play, duration label, time, mute, fullscreen */}
+        <div className="flex items-center gap-2">
+          {/* Play/Pause */}
+          <button
+            type="button"
+            onClick={handleTogglePlay}
+            className="flex size-7 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <Pause className="size-3.5 text-white" />
+            ) : (
+              <Play className="size-3.5 text-white ml-0.5" />
+            )}
+          </button>
+
+          {/* Duration label + time */}
+          <div className="flex flex-col leading-none">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-white/50">
+              Duration
+            </span>
+            <span ref={timeDisplayRef} className="text-xs tabular-nums text-white/90">
+              {formatTime(0, fps)} / {totalTimeStr}
+            </span>
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Mute */}
+          <button
+            type="button"
+            onClick={handleToggleMute}
+            className="flex size-7 items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            aria-label={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? (
+              <VolumeX className="size-3.5 text-white/70" />
+            ) : (
+              <Volume2 className="size-3.5 text-white/70" />
+            )}
+          </button>
+
+          {/* Fullscreen */}
+          <button
+            type="button"
+            onClick={handleFullscreen}
+            className="flex size-7 items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+            aria-label="Fullscreen"
+          >
+            <Maximize2 className="size-3.5 text-white/70" />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div
+          ref={progressRef}
+          className="group relative h-1.5 cursor-pointer rounded-full bg-white/20"
+          onMouseDown={handleProgressMouseDown}
+          role="slider"
+          aria-valuenow={0}
+          aria-valuemin={0}
+          aria-valuemax={totalFrames}
+          tabIndex={0}
+        >
+          <div
+            ref={progressFillRef}
+            className="h-full rounded-full bg-white"
+            style={{ width: "0%" }}
+          />
+          {/* Thumb */}
+          <div
+            ref={progressThumbRef}
+            className="absolute top-1/2 -translate-y-1/2 size-3 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ left: "-6px" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RemotionPreviewPlayer({
   component,
   scenePlan,
@@ -396,8 +641,7 @@ export function RemotionPreviewPlayer({
         ref={containerRef}
         style={{
           width: "100%",
-          maxHeight: "70vh",
-          aspectRatio: `${compositionWidth}/${compositionHeight}`,
+          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -418,7 +662,7 @@ export function RemotionPreviewPlayer({
   }
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} className="relative" style={{ width: "100%", height: "100%" }}>
       <Player
         ref={playerRef}
         component={Composition}
@@ -427,10 +671,16 @@ export function RemotionPreviewPlayer({
         fps={fps}
         compositionWidth={compositionWidth}
         compositionHeight={compositionHeight}
-        controls
+        controls={false}
+        clickToPlay
         numberOfSharedAudioTags={40}
-        style={{ width: "100%", maxHeight: "70vh" }}
+        style={{ width: "100%", height: "100%" }}
         errorFallback={errorFallback}
+      />
+      <OverlayControls
+        playerRef={playerRef}
+        fps={fps}
+        totalFrames={Math.max(1, totalFrames)}
       />
     </div>
   );
