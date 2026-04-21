@@ -122,7 +122,7 @@ export function DraftHero() {
                   className="fixed inset-0 z-40"
                   onClick={() => setThemeOpen(false)}
                 />
-                <div className="absolute left-0 bottom-full z-50 mb-2 w-64 rounded-xl border border-white/[0.1] bg-[#1a1a2e]/95 p-2 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute left-0 top-full z-50 mt-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1a1a2e]/95 p-2 shadow-2xl backdrop-blur-2xl">
                   {ANIMATION_THEMES.map((theme) => {
                     const isSelected = themeId === theme.id;
                     return (
