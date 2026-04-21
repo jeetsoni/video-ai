@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import type { PlayerRef } from "@remotion/player";
 import {
   AlertTriangle,
   Download,
@@ -26,6 +27,7 @@ import { getStageDisplayInfo } from "../utils/stage-display-map";
 import { VideoPreviewSection } from "./video-preview-section";
 import { RemotionPreviewPlayer } from "./remotion-preview-player";
 import { ProgressiveScenePreview } from "./progressive-scene-preview";
+import { ChatPanel } from "./chat-panel";
 
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
@@ -187,6 +189,14 @@ export function VideoPreviewPage({
   const [autofixExplanation, setAutofixExplanation] = useState<string | null>(
     null,
   );
+
+  // Refs for ChatPanel integration — player ref for frame/time, container ref for screenshots
+  const playerRefObj = useRef<PlayerRef | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  const handlePlayerRef = useCallback((ref: PlayerRef | null) => {
+    playerRefObj.current = ref;
+  }, []);
 
   const handleRegenerateCode = useCallback(async () => {
     setIsRegenerating(true);
@@ -407,6 +417,8 @@ export function VideoPreviewPage({
             onAutofix={handleAutofixForPlayer}
             onRegenerate={handleRegenerateCode}
             isAutofixing={isAutofixing}
+            onPlayerRef={handlePlayerRef}
+            containerRef={playerContainerRef}
           />
         </div>
       );
@@ -454,227 +466,243 @@ export function VideoPreviewPage({
           <div className="min-h-0 flex-1">{renderPreviewArea()}</div>
         </section>
 
-        {/* Info Panel */}
-        <section className="flex flex-col gap-4">
-          {/* Compact Stage Indicator */}
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "flex size-8 items-center justify-center rounded-lg",
-                job.status === "failed"
-                  ? "bg-stage-failed/20"
-                  : job.stage === "done"
-                    ? "bg-stage-complete/20"
-                    : "bg-stage-active/20",
-              )}
-            >
-              <StageIcon
-                className={cn(
-                  "size-4",
-                  job.status === "failed"
-                    ? "text-stage-failed"
-                    : job.stage === "done"
-                      ? "text-stage-complete"
-                      : "text-stage-active",
-                )}
-              />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-on-surface">
-                {job.status === "failed"
-                  ? `${stageInfo.label} — Failed`
-                  : stageInfo.label}
-              </p>
-              <p className="text-xs text-on-surface-variant">
-                {job.status === "failed"
-                  ? (job.errorMessage ?? "An error occurred during processing")
-                  : stageInfo.description}
-              </p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div
-            className="h-1.5 rounded-full bg-surface-container-high"
-            role="progressbar"
-            aria-valuenow={job.progressPercent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                job.status === "failed"
-                  ? "bg-stage-failed"
-                  : job.stage === "done"
-                    ? "bg-stage-complete"
-                    : "gradient-primary",
-              )}
-              style={{ width: `${job.progressPercent}%` }}
+        {/* Info Panel / Chat Panel */}
+        <section className="flex flex-col gap-4 min-h-0">
+          {isPreviewEligible && evaluatedComponent && previewData ? (
+            <ChatPanel
+              job={job}
+              repository={repository}
+              playerRef={playerRefObj}
+              playerContainerRef={playerContainerRef}
+              fps={previewData.fps}
+              onCodeUpdated={refetch}
+              onExport={onExport}
+              onRegenerate={handleRegenerateCode}
+              isRegenerating={isRegenerating}
             />
-          </div>
-
-          {/* Summary Card */}
-          <div className="glass rounded-xl shadow-ambient p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="label-caps">Format</p>
-                <p className="text-sm text-on-surface">
-                  {FORMAT_LABELS[job.format] ?? job.format}
-                </p>
-              </div>
-              <div>
-                <p className="label-caps">Resolution</p>
-                <p className="text-sm text-on-surface">
-                  {resolution.width} × {resolution.height}
-                </p>
-              </div>
-              {job.themeId && (
+          ) : (
+            <>
+              {/* Compact Stage Indicator */}
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-lg",
+                    job.status === "failed"
+                      ? "bg-stage-failed/20"
+                      : job.stage === "done"
+                        ? "bg-stage-complete/20"
+                        : "bg-stage-active/20",
+                  )}
+                >
+                  <StageIcon
+                    className={cn(
+                      "size-4",
+                      job.status === "failed"
+                        ? "text-stage-failed"
+                        : job.stage === "done"
+                          ? "text-stage-complete"
+                          : "text-stage-active",
+                    )}
+                  />
+                </div>
                 <div>
-                  <p className="label-caps">Theme</p>
-                  <p className="text-sm text-on-surface">{job.themeId}</p>
+                  <p className="text-sm font-semibold text-on-surface">
+                    {job.status === "failed"
+                      ? `${stageInfo.label} — Failed`
+                      : stageInfo.label}
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    {job.status === "failed"
+                      ? (job.errorMessage ?? "An error occurred during processing")
+                      : stageInfo.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div
+                className="h-1.5 rounded-full bg-surface-container-high"
+                role="progressbar"
+                aria-valuenow={job.progressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    job.status === "failed"
+                      ? "bg-stage-failed"
+                      : job.stage === "done"
+                        ? "bg-stage-complete"
+                        : "gradient-primary",
+                  )}
+                  style={{ width: `${job.progressPercent}%` }}
+                />
+              </div>
+
+              {/* Summary Card */}
+              <div className="glass rounded-xl shadow-ambient p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="label-caps">Format</p>
+                    <p className="text-sm text-on-surface">
+                      {FORMAT_LABELS[job.format] ?? job.format}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label-caps">Resolution</p>
+                    <p className="text-sm text-on-surface">
+                      {resolution.width} × {resolution.height}
+                    </p>
+                  </div>
+                  {job.themeId && (
+                    <div>
+                      <p className="label-caps">Theme</p>
+                      <p className="text-sm text-on-surface">{job.themeId}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="label-caps">Created</p>
+                    <p className="text-sm text-on-surface">
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {isPreviewEligible && evaluatedComponent && (
+                <div className="flex flex-col gap-2">
+                  {/* CTA Download / Rendering button */}
+                  {job.stage === "preview" && onExport && (
+                    <Button
+                      className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
+                      onClick={onExport}
+                    >
+                      <Download className="size-4" />
+                      Download MP4
+                    </Button>
+                  )}
+                  {job.stage === "rendering" && (
+                    <Button
+                      className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
+                      disabled
+                    >
+                      <Loader2 className="size-4 animate-spin" />
+                      Rendering…
+                    </Button>
+                  )}
+                  {job.stage === "done" && job.videoUrl && (
+                    <Button
+                      className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(job.videoUrl!);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `${job.topic || "video"}.mp4`;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          URL.revokeObjectURL(url);
+                        } catch {
+                          window.open(job.videoUrl!, "_blank");
+                        }
+                      }}
+                    >
+                      <Download className="size-4" />
+                      Download Video
+                    </Button>
+                  )}
+                  {job.stage === "done" && onExport && (
+                    <Button
+                      variant="secondary"
+                      className="w-full rounded-xl gap-2"
+                      onClick={onExport}
+                    >
+                      <RefreshCw className="size-4" />
+                      Re-render Video
+                    </Button>
+                  )}
+
+                  {/* Regenerate button */}
+                  {(job.stage === "preview" || job.stage === "done") && (
+                    <Button
+                      variant="secondary"
+                      className="w-full gap-2"
+                      onClick={handleRegenerateCode}
+                      disabled={isRegenerating}
+                    >
+                      {isRegenerating ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="size-4" />
+                      )}
+                      {isRegenerating ? "Regenerating…" : "Regenerate"}
+                    </Button>
+                  )}
                 </div>
               )}
-              <div>
-                <p className="label-caps">Created</p>
-                <p className="text-sm text-on-surface">
-                  {new Date(job.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          {/* Action Buttons */}
-          {isPreviewEligible && evaluatedComponent && (
-            <div className="flex flex-col gap-2">
-              {/* CTA Download / Rendering button */}
-              {job.stage === "preview" && onExport && (
-                <Button
-                  className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
-                  onClick={onExport}
-                >
-                  <Download className="size-4" />
-                  Download MP4
-                </Button>
-              )}
-              {job.stage === "rendering" && (
-                <Button
-                  className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
-                  disabled
-                >
-                  <Loader2 className="size-4 animate-spin" />
-                  Rendering…
-                </Button>
-              )}
-              {job.stage === "done" && job.videoUrl && (
-                <Button
-                  className="gradient-primary w-full rounded-xl text-primary-foreground font-semibold gap-2"
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(job.videoUrl!);
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `${job.topic || "video"}.mp4`;
-                      document.body.appendChild(a);
-                      a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
-                    } catch {
-                      window.open(job.videoUrl!, "_blank");
-                    }
-                  }}
-                >
-                  <Download className="size-4" />
-                  Download Video
-                </Button>
-              )}
-              {job.stage === "done" && onExport && (
-                <Button
-                  variant="secondary"
-                  className="w-full rounded-xl gap-2"
-                  onClick={onExport}
-                >
-                  <RefreshCw className="size-4" />
-                  Re-render Video
-                </Button>
-              )}
-
-              {/* Regenerate button */}
-              {(job.stage === "preview" || job.stage === "done") && (
-                <Button
-                  variant="secondary"
-                  className="w-full gap-2"
-                  onClick={handleRegenerateCode}
-                  disabled={isRegenerating}
-                >
-                  {isRegenerating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
+              {/* Retry button for failed or stuck non-preview jobs */}
+              {!isPreviewEligible &&
+                (job.status === "failed" || job.status === "processing") &&
+                onRetryJob && (
+                  <Button
+                    variant="secondary"
+                    className="w-full gap-2"
+                    onClick={() => {
+                      onRetryJob();
+                    }}
+                  >
                     <RefreshCw className="size-4" />
-                  )}
-                  {isRegenerating ? "Regenerating…" : "Regenerate"}
-                </Button>
+                    Retry
+                  </Button>
+                )}
+
+              {/* Status messages */}
+              {isPreviewEligible && previewData?.audioError && (
+                <div className="flex items-center gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant">
+                  <Volume2 className="size-4 shrink-0" />
+                  <span>Audio unavailable.</span>
+                </div>
               )}
-            </div>
-          )}
 
-          {/* Retry button for failed or stuck non-preview jobs */}
-          {!isPreviewEligible &&
-            (job.status === "failed" || job.status === "processing") &&
-            onRetryJob && (
-              <Button
-                variant="secondary"
-                className="w-full gap-2"
-                onClick={() => {
-                  onRetryJob();
-                }}
-              >
-                <RefreshCw className="size-4" />
-                Retry
-              </Button>
-            )}
+              {isPreviewEligible && audioLoadError && (
+                <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-sm text-stage-failed">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>Voiceover audio failed to load</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-stage-failed"
+                    onClick={refreshAudioUrl}
+                  >
+                    <RefreshCw className="size-3.5" />
+                    Retry
+                  </Button>
+                </div>
+              )}
 
-          {/* Status messages */}
-          {isPreviewEligible && previewData?.audioError && (
-            <div className="flex items-center gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant">
-              <Volume2 className="size-4 shrink-0" />
-              <span>Audio unavailable.</span>
-            </div>
-          )}
+              {job.stage === "rendering" && <RenderingProgress />}
 
-          {isPreviewEligible && audioLoadError && (
-            <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-sm text-stage-failed">
-              <AlertTriangle className="size-4 shrink-0" />
-              <span>Voiceover audio failed to load</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-stage-failed"
-                onClick={refreshAudioUrl}
-              >
-                <RefreshCw className="size-3.5" />
-                Retry
-              </Button>
-            </div>
-          )}
-
-          {job.stage === "rendering" && <RenderingProgress />}
-
-          {isCompletedWithoutVideo && (
-            <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-              <LifeBuoy className="size-4" />
-              <span>
-                Video file not available.{" "}
-                <button
-                  type="button"
-                  className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-                >
-                  Contact Support
-                </button>
-              </span>
-            </div>
+              {isCompletedWithoutVideo && (
+                <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <LifeBuoy className="size-4" />
+                  <span>
+                    Video file not available.{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
+                    >
+                      Contact Support
+                    </button>
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

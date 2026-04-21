@@ -43,6 +43,11 @@ export class ScriptGenerationWorker {
         const event: ScriptStreamEvent = { type: "scene", seq, data: scene };
         void publishEvent(event);
       },
+      onStatus: (message: string) => {
+        seq++;
+        const event: ScriptStreamEvent = { type: "status", seq, data: { message } };
+        void publishEvent(event);
+      },
       onDone: (genResult) => {
         seq++;
         const event: ScriptStreamEvent = {

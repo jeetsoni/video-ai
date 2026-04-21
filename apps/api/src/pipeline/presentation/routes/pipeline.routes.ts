@@ -108,5 +108,17 @@ export function createPipelineRouter(
     await controller.exportVideo(httpReq, httpRes);
   });
 
+  router.post("/jobs/:id/tweak", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.sendTweak(httpReq, httpRes);
+  });
+
+  router.get("/jobs/:id/tweak/messages", async (req: Request, res: Response) => {
+    const httpReq = HttpRequest.fromExpress(req);
+    const httpRes = HttpResponse.fromExpress(res);
+    await controller.getTweakMessages(httpReq, httpRes);
+  });
+
   return router;
 }

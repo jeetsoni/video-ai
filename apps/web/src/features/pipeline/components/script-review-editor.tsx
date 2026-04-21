@@ -27,6 +27,7 @@ interface ScriptReviewEditorProps {
   onApprove: (editedScript?: string, scenes?: SceneBoundary[], voiceId?: string, voiceSettings?: VoiceSettings) => void;
   onRegenerate: () => void;
   isLoading?: boolean;
+  statusMessage?: string | null;
   topic?: string;
   scenes?: SceneBoundary[];
   /** Voice data for the compact voice panel */
@@ -166,18 +167,18 @@ function getComplexityLabel(wordCount: number): string {
 }
 
 /* ─── Typing Indicator ─── */
-function TypingIndicator() {
+function TypingIndicator({ message }: { message?: string | null }) {
   return (
     <div
       role="status"
-      aria-label="Generating script content"
+      aria-label={message || "Generating script content"}
       className="flex items-center gap-1.5 py-2"
     >
       <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:0ms]" />
       <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:150ms]" />
       <span className="size-1.5 animate-pulse rounded-full bg-primary/60 [animation-delay:300ms]" />
       <span className="ml-2 text-xs font-medium text-primary/60 animate-pulse">
-        Generating…
+        {message || "Generating…"}
       </span>
     </div>
   );
@@ -440,6 +441,7 @@ export function ScriptReviewEditor({
   onApprove,
   onRegenerate,
   isLoading = false,
+  statusMessage,
   topic,
   scenes: apiScenes,
   voices = [],
@@ -692,7 +694,7 @@ export function ScriptReviewEditor({
                   onChange={(newBody) => handleSceneChange(i, newBody)}
                 />
               ))}
-              {isLoading && <TypingIndicator />}
+              {isLoading && <TypingIndicator message={statusMessage} />}
             </div>
           </div>
 

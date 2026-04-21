@@ -7,6 +7,12 @@ export const chunkEventSchema = z.object({
   data: z.object({ text: z.string() }),
 });
 
+export const statusEventSchema = z.object({
+  type: z.literal("status"),
+  seq: z.number().int().nonnegative(),
+  data: z.object({ message: z.string() }),
+});
+
 export const sceneEventSchema = z.object({
   type: z.literal("scene"),
   seq: z.number().int().nonnegative(),
@@ -33,6 +39,7 @@ export const errorEventSchema = z.object({
 
 export const scriptStreamEventSchema = z.discriminatedUnion("type", [
   chunkEventSchema,
+  statusEventSchema,
   sceneEventSchema,
   doneEventSchema,
   errorEventSchema,
@@ -40,6 +47,7 @@ export const scriptStreamEventSchema = z.discriminatedUnion("type", [
 
 export type ScriptStreamEvent = z.infer<typeof scriptStreamEventSchema>;
 export type ChunkEvent = z.infer<typeof chunkEventSchema>;
+export type StatusEvent = z.infer<typeof statusEventSchema>;
 export type SceneEvent = z.infer<typeof sceneEventSchema>;
 export type DoneEvent = z.infer<typeof doneEventSchema>;
 export type ErrorEvent = z.infer<typeof errorEventSchema>;

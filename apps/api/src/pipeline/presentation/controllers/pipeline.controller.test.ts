@@ -49,6 +49,8 @@ function buildController(
     getPreviewDataUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     exportVideoUseCase: { execute: jest.fn<(...args: any[]) => any>() },
     listVoicesUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    sendTweakUseCase: { execute: jest.fn<(...args: any[]) => any>() },
+    getTweakMessagesUseCase: { execute: jest.fn<(...args: any[]) => any>() },
   };
   const merged = { ...defaults, ...overrides };
   return new PipelineController(
@@ -64,6 +66,8 @@ function buildController(
     merged.getPreviewDataUseCase as any,
     merged.exportVideoUseCase as any,
     merged.listVoicesUseCase as any,
+    merged.sendTweakUseCase as any,
+    merged.getTweakMessagesUseCase as any,
   );
 }
 

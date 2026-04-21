@@ -85,6 +85,9 @@ model PipelineJob {
   // Progress tracking
   progressPercent Int @default(0)
 
+  // Chat history for tweak conversations
+  tweakMessages TweakMessage[]
+
   @@index([browserId])
   @@index([status])
   @@index([createdAt(sort: Desc)])
@@ -99,4 +102,17 @@ model AnimationTheme {
   sortOrder   Int     @default(0)
 
   @@index([sortOrder])
+}
+
+model TweakMessage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  jobId String
+  job   PipelineJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  role    String   // "user" or "assistant"
+  content String   @db.Text
+
+  @@index([jobId, createdAt])
 }

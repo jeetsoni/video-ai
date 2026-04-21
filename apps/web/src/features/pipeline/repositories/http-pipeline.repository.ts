@@ -2,6 +2,7 @@ import type {
   PipelineJobDto,
   ListVoicesResponse,
   VoiceSettings,
+  TweakMessageDto,
 } from "@video-ai/shared";
 import type { HttpClient } from "@/shared/interfaces/http-client";
 import type { ConfigClient } from "@/shared/interfaces/config-client";
@@ -19,6 +20,8 @@ import type {
   ListThemesResponse,
   ActionResponse,
   PreviewDataResponse,
+  SendTweakParams,
+  SendTweakResponse,
 } from "../types/pipeline.types";
 
 const BASE = "/api/pipeline";
@@ -142,5 +145,24 @@ export class HttpPipelineRepository implements PipelineRepository {
     }
 
     return response.blob();
+  }
+
+  sendTweak(params: SendTweakParams): Promise<SendTweakResponse> {
+    return this.http.post<SendTweakResponse>({
+      path: `${BASE}/jobs/${params.jobId}/tweak`,
+      body: {
+        message: params.message,
+        screenshot: params.screenshot,
+        frame: params.frame,
+        timeSeconds: params.timeSeconds,
+      },
+    });
+  }
+
+  async getTweakMessages(jobId: string): Promise<TweakMessageDto[]> {
+    const response = await this.http.get<{ messages: TweakMessageDto[] }>({
+      path: `${BASE}/jobs/${jobId}/tweak/messages`,
+    });
+    return response.messages;
   }
 }

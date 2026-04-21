@@ -9,6 +9,7 @@ export interface StreamingScriptGenerator {
     format: VideoFormat;
     onChunk: (text: string) => void;
     onScene: (scene: SceneBoundary) => void;
+    onStatus: (message: string) => void;
     onDone: (result: ScriptGenerationResult) => void;
     onError: (error: PipelineError) => void;
   }): Promise<Result<ScriptGenerationResult, PipelineError>>;

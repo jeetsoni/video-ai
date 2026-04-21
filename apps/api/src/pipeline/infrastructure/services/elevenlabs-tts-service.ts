@@ -16,7 +16,7 @@ export interface ElevenLabsTTSConfig {
 }
 
 const DEFAULTS = {
-  modelId: "eleven_multilingual_v2",
+  modelId: "eleven_v3",
   defaultVoiceId: "21m00Tcm4TlvDq8ikWAM",
   maxRetries: 3,
 } as const;

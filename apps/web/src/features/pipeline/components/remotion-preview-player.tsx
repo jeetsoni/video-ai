@@ -3,6 +3,8 @@
 import type React from "react";
 import { useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { Player, type PlayerRef, type ErrorFallback } from "@remotion/player";
+
+export type { PlayerRef } from "@remotion/player";
 import { AbsoluteFill, Audio, prefetch } from "remotion";
 import { AlertTriangle, Wand2, RefreshCw, Loader2 } from "lucide-react";
 import type { ScenePlan } from "@video-ai/shared";
@@ -50,6 +52,10 @@ export interface RemotionPreviewPlayerProps {
   onAutofix?: (errorMessage: string, errorType: string) => Promise<void>;
   onRegenerate?: () => void;
   isAutofixing?: boolean;
+  /** Callback invoked with the Remotion PlayerRef once the player mounts. */
+  onPlayerRef?: (ref: PlayerRef | null) => void;
+  /** Ref attached to the outermost container div, useful for screenshot capture. */
+  containerRef?: React.Ref<HTMLDivElement>;
 }
 
 interface CompositionProps {
@@ -270,9 +276,23 @@ export function RemotionPreviewPlayer({
   onAutofix,
   onRegenerate,
   isAutofixing,
+  onPlayerRef,
+  containerRef,
 }: RemotionPreviewPlayerProps) {
   const playerRef = useRef<PlayerRef>(null);
   const [audioReady, setAudioReady] = useState(!audioUrl);
+
+  // Expose the PlayerRef to the parent via callback whenever it becomes available
+  useEffect(() => {
+    if (onPlayerRef) {
+      onPlayerRef(playerRef.current);
+    }
+    return () => {
+      if (onPlayerRef) {
+        onPlayerRef(null);
+      }
+    };
+  }, [onPlayerRef, audioReady]);
 
   // Prefetch voiceover audio so it's buffered before playback
   useEffect(() => {
@@ -373,6 +393,7 @@ export function RemotionPreviewPlayer({
   if (!audioReady) {
     return (
       <div
+        ref={containerRef}
         style={{
           width: "100%",
           maxHeight: "70vh",
@@ -397,18 +418,20 @@ export function RemotionPreviewPlayer({
   }
 
   return (
-    <Player
-      ref={playerRef}
-      component={Composition}
-      inputProps={inputProps}
-      durationInFrames={Math.max(1, totalFrames)}
-      fps={fps}
-      compositionWidth={compositionWidth}
-      compositionHeight={compositionHeight}
-      controls
-      numberOfSharedAudioTags={20}
-      style={{ width: "100%", maxHeight: "70vh" }}
-      errorFallback={errorFallback}
-    />
+    <div ref={containerRef}>
+      <Player
+        ref={playerRef}
+        component={Composition}
+        inputProps={inputProps}
+        durationInFrames={Math.max(1, totalFrames)}
+        fps={fps}
+        compositionWidth={compositionWidth}
+        compositionHeight={compositionHeight}
+        controls
+        numberOfSharedAudioTags={40}
+        style={{ width: "100%", maxHeight: "70vh" }}
+        errorFallback={errorFallback}
+      />
+    </div>
   );
 }

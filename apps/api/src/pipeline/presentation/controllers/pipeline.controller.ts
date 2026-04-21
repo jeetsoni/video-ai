@@ -13,6 +13,8 @@ import type { RetryJobUseCase } from "@/pipeline/application/use-cases/retry-job
 import type { GetPreviewDataUseCase } from "@/pipeline/application/use-cases/get-preview-data.use-case.js";
 import type { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-video.use-case.js";
 import type { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
+import type { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
+import type { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
 
 type ThemeDto = {
   id: string;
@@ -37,6 +39,8 @@ export class PipelineController {
     private readonly getPreviewDataUseCase: GetPreviewDataUseCase,
     private readonly exportVideoUseCase: ExportVideoUseCase,
     private readonly listVoicesUseCase: ListVoicesUseCase,
+    private readonly sendTweakUseCase: SendTweakUseCase,
+    private readonly getTweakMessagesUseCase: GetTweakMessagesUseCase,
   ) {}
 
   async createJob(req: HttpRequest, res: HttpResponse): Promise<void> {
@@ -311,6 +315,67 @@ export class PipelineController {
         return;
       }
       res.ok(result.getValue());
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async sendTweak(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const body = req.body as {
+        message?: string;
+        screenshot?: string;
+        frame?: number;
+        timeSeconds?: number;
+      };
+
+      if (!body.message) {
+        res.badRequest({
+          error: "INVALID_INPUT",
+          message: "message is required",
+        });
+        return;
+      }
+
+      const result = await this.sendTweakUseCase.execute({
+        jobId: id,
+        message: body.message,
+        screenshot: body.screenshot,
+        frame: body.frame,
+        timeSeconds: body.timeSeconds,
+      });
+
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      const { updatedCode, explanation } = result.getValue();
+      res.ok({ status: "ok", updatedCode, explanation });
+    } catch {
+      res.serverError({
+        error: "internal_error",
+        message: "Internal server error",
+      });
+    }
+  }
+
+  async getTweakMessages(req: HttpRequest, res: HttpResponse): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const result = await this.getTweakMessagesUseCase.execute({ jobId: id });
+
+      if (result.isFailure) {
+        this.handleValidationError(res, result.getError());
+        return;
+      }
+
+      const { messages } = result.getValue();
+      res.ok({ messages });
     } catch {
       res.serverError({
         error: "internal_error",

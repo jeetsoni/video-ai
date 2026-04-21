@@ -267,7 +267,7 @@ export function ProgressiveScenePreview({
             compositionWidth={1080}
             compositionHeight={1920}
             controls
-            numberOfSharedAudioTags={20}
+            numberOfSharedAudioTags={40}
             style={{ width: "100%", maxHeight: "70vh" }}
           />
         </div>

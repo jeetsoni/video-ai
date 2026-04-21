@@ -50,6 +50,7 @@ export default function JobDetailPage() {
     script: streamedScript,
     scenes: streamedScenes,
     status: streamingStatus,
+    statusMessage: streamingStatusMessage,
     error: streamingError,
   } = useStreamingScript({
     jobId: id,
@@ -140,7 +141,7 @@ export default function JobDetailPage() {
   // loading state instead of flashing the status tracker screen.
   const isStreamingActive =
     job.stage === "script_generation" &&
-    (streamingStatus === "loading" || streamingStatus === "streaming" || streamingStatus === "complete");
+    (streamingStatus === "loading" || streamingStatus === "researching" || streamingStatus === "streaming" || streamingStatus === "complete");
 
   // Also show the streaming-sourced editor when the hook completed and the
   // job is at script_review (just transitioned after streaming finished).
@@ -159,7 +160,7 @@ export default function JobDetailPage() {
     // Prefer streaming data when available; fall back to DB-loaded data from usePipelineProgress
     const script = streamedScript.length > 0 ? streamedScript : (job.generatedScript ?? "");
     const scenes = streamedScenes.length > 0 ? streamedScenes : (job.generatedScenes ?? []);
-    const isStreaming = streamingStatus === "streaming" || streamingStatus === "loading";
+    const isStreaming = streamingStatus === "streaming" || streamingStatus === "loading" || streamingStatus === "researching";
 
     return (
       <main className="flex h-[calc(100vh-4rem)] flex-col p-10">
@@ -171,6 +172,7 @@ export default function JobDetailPage() {
           onApprove={handleApproveScript}
           onRegenerate={handleRegenerateScript}
           isLoading={isStreaming}
+          statusMessage={streamingStatusMessage}
           voices={voices}
           voicesLoading={voicesLoading}
           initialVoiceId={job.voiceId}

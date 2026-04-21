@@ -41,6 +41,7 @@ export {
 
 export {
   chunkEventSchema,
+  statusEventSchema,
   sceneEventSchema,
   doneEventSchema,
   errorEventSchema,
@@ -50,6 +51,7 @@ export {
 export type {
   ScriptStreamEvent,
   ChunkEvent,
+  StatusEvent,
   SceneEvent,
   DoneEvent,
   ErrorEvent,
@@ -99,6 +101,8 @@ export type {
   ProgressEventData,
   SceneProgressInfo,
 } from "./types/pipeline-progress.types.js";
+
+export type { TweakMessageDto } from "./types/tweak-message.types.js";
 
 export { isTerminalStatus } from "./types/pipeline-progress.types.js";
 

@@ -4,6 +4,7 @@ import type {
   SceneBoundary,
   ListVoicesResponse,
   VoiceSettings,
+  TweakMessageDto,
 } from "@video-ai/shared";
 import type {
   CreateJobResponse,
@@ -11,6 +12,8 @@ import type {
   ListThemesResponse,
   ActionResponse,
   PreviewDataResponse,
+  SendTweakParams,
+  SendTweakResponse,
 } from "../types/pipeline.types";
 
 export interface CreateJobParams {
@@ -60,4 +63,6 @@ export interface PipelineRepository {
     voiceSettings: VoiceSettings;
     text?: string;
   }): Promise<Blob>;
+  sendTweak(params: SendTweakParams): Promise<SendTweakResponse>;
+  getTweakMessages(jobId: string): Promise<TweakMessageDto[]>;
 }

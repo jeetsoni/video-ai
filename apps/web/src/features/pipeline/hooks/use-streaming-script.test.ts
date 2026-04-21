@@ -1,7 +1,16 @@
 import { jest } from "@jest/globals";
 import { TextEncoder, TextDecoder } from "util";
+import { randomUUID } from "crypto";
 
 Object.assign(globalThis, { TextEncoder, TextDecoder });
+
+// Polyfill crypto.randomUUID for jsdom
+if (!globalThis.crypto?.randomUUID) {
+  Object.defineProperty(globalThis, "crypto", {
+    value: { ...globalThis.crypto, randomUUID },
+    writable: true,
+  });
+}
 
 import { renderHook, waitFor } from "@testing-library/react";
 import { useStreamingScript } from "./use-streaming-script";
@@ -72,7 +81,9 @@ describe("useStreamingScript", () => {
     expect(result.current.error).toBeNull();
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "http://localhost:3001/api/pipeline/jobs/job-1/stream",
-      expect.objectContaining({ headers: { Accept: "text/event-stream" } }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "text/event-stream" }),
+      }),
     );
   });
 

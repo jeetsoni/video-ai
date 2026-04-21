@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import React from "react";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, waitFor } from "@testing-library/react";
 import { RemotionPreviewPlayer } from "./remotion-preview-player";
 import type { ScenePlan } from "@video-ai/shared";
 
@@ -100,7 +100,7 @@ describe("RemotionPreviewPlayer — Bug Condition Exploration", () => {
    * This test MUST FAIL on unfixed code — no onError handler exists on <Audio>,
    * and RemotionPreviewPlayer does not accept an onAudioError prop.
    */
-  it("should invoke onAudioError callback when the audio element fires an error event", () => {
+  it("should invoke onAudioError callback when the audio element fires an error event", async () => {
     const onAudioError = jest.fn();
 
     const { getByTestId } = render(
@@ -116,6 +116,11 @@ describe("RemotionPreviewPlayer — Bug Condition Exploration", () => {
         onAudioError: onAudioError,
       } as any),
     );
+
+    // Wait for audio prefetch to complete and player to render
+    await waitFor(() => {
+      expect(getByTestId("remotion-audio")).toBeInTheDocument();
+    });
 
     // Find the audio element rendered by the mocked Audio component
     const audioElement = getByTestId("remotion-audio");
@@ -139,13 +144,13 @@ describe("RemotionPreviewPlayer — Preservation Property Tests", () => {
    *
    * **Validates: Requirements 3.1, 3.2**
    */
-  it("renders <Audio> element with correct src for all valid audioUrl values (property)", () => {
+  it("renders <Audio> element with correct src for all valid audioUrl values (property)", async () => {
     const validAudioUrlArb = fc
       .webUrl()
       .map((url) => `${url}/audio.mp3?X-Amz-Expires=3600`);
 
-    fc.assert(
-      fc.property(validAudioUrlArb, (audioUrl) => {
+    await fc.assert(
+      fc.asyncProperty(validAudioUrlArb, async (audioUrl) => {
         const { getByTestId, unmount } = render(
           React.createElement(RemotionPreviewPlayer, {
             component: MockMainComponent,
@@ -157,6 +162,10 @@ describe("RemotionPreviewPlayer — Preservation Property Tests", () => {
             compositionHeight: 1920,
           }),
         );
+
+        await waitFor(() => {
+          expect(getByTestId("remotion-audio")).toBeInTheDocument();
+        });
 
         const audioElement = getByTestId("remotion-audio");
         expect(audioElement).toHaveAttribute("src", audioUrl);

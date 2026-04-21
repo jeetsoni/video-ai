@@ -3,6 +3,31 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import type { SceneBoundary } from "@video-ai/shared";
 import { ScriptReviewEditor } from "./script-review-editor";
 
+// Mock the AppDependencies context to avoid provider requirement
+jest.mock("@/shared/providers/app-dependencies-context", () => ({
+  useAppDependencies: () => ({
+    httpClient: {},
+    configService: {},
+    pipelineRepository: {
+      createJob: jest.fn(),
+      getJobStatus: jest.fn(),
+      approveScript: jest.fn(),
+      regenerateScript: jest.fn(),
+      regenerateCode: jest.fn(),
+      autofixCode: jest.fn(),
+      retryJob: jest.fn(),
+      listJobs: jest.fn(),
+      getThemes: jest.fn(),
+      getPreviewData: jest.fn(),
+      exportVideo: jest.fn(),
+      listVoices: jest.fn(),
+      previewVoice: jest.fn(),
+      sendTweak: jest.fn(),
+      getTweakMessages: jest.fn(),
+    },
+  }),
+}));
+
 const LONG_SCRIPT =
   "This is a sample script that contains enough words to pass the minimum word count validation for testing purposes. " +
   "We need at least fifty words to be within the reel format range so let us keep adding more words until we reach that threshold. " +
@@ -97,7 +122,12 @@ describe("ScriptReviewEditor", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Approve Script/ }));
 
-    expect(defaultProps.onApprove).toHaveBeenCalledWith(undefined);
+    expect(defaultProps.onApprove).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      expect.any(Object),
+    );
   });
 
   it("calls onApprove with edited text when script is modified", () => {
@@ -112,6 +142,9 @@ describe("ScriptReviewEditor", () => {
 
     expect(defaultProps.onApprove).toHaveBeenCalledWith(
       expect.stringContaining("Extra words added here."),
+      undefined,
+      undefined,
+      expect.any(Object),
     );
   });
 
@@ -259,7 +292,9 @@ describe("ScriptReviewEditor", () => {
 
       expect(defaultProps.onApprove).toHaveBeenCalledWith(
         undefined,
-        API_SCENES,
+        undefined,
+        undefined,
+        expect.any(Object),
       );
     });
 

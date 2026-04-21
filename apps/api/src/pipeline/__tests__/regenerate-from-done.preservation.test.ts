@@ -50,7 +50,7 @@ const VALID_TRANSITIONS: ReadonlyMap<
   ["code_generation", ["preview"]],
   ["preview", ["rendering", "done", "direction_generation"]],
   ["rendering", ["done"]],
-  ["done", ["direction_generation"]],
+  ["done", ["direction_generation", "rendering"]],
 ]);
 
 const STAGE_TO_STATUS_MAP: Record<PipelineStageType, string> = {
@@ -211,7 +211,7 @@ describe("Preservation Observations (unfixed code baseline)", () => {
     expect(job.stage.value).toBe("script_review");
   });
 
-  it("observation: done/completed → rendering is rejected by stage transition map (fixed code)", () => {
+  it("observation: done/completed → rendering succeeds (re-render support)", () => {
     const job = reconstituteJob({
       id: "obs-4",
       browserId: "browser-1",
@@ -223,14 +223,11 @@ describe("Preservation Observations (unfixed code baseline)", () => {
       status: PipelineStatus.completed(),
     });
 
-    // On fixed code, done is exempted from terminal guard, so the stage
-    // transition map rejects invalid targets with "Cannot transition from"
+    // done → rendering is a valid transition for video re-rendering
     const result = job.transitionTo("rendering");
-    expect(result.isFailure).toBe(true);
-    expect(result.getError().message).toContain(
-      'Cannot transition from "done" to "rendering"',
-    );
-    expect(result.getError().code).toBe("INVALID_TRANSITION");
+    expect(result.isSuccess).toBe(true);
+    expect(job.stage.value).toBe("rendering");
+    expect(job.status.value).toBe("processing");
   });
 });
 
@@ -439,9 +436,9 @@ describe("Preservation Property Tests", () => {
    *
    * **Validates: Requirements 3.4**
    */
-  it("Property: done stage rejects all targets except direction_generation", () => {
+  it("Property: done stage rejects all targets except direction_generation and rendering", () => {
     const invalidTargetsFromDone = ALL_STAGES.filter(
-      (s) => s !== "direction_generation",
+      (s) => s !== "direction_generation" && s !== "rendering",
     );
     const invalidTargetArb = fc.constantFrom(
       ...invalidTargetsFromDone,

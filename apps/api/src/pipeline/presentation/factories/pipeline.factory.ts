@@ -31,6 +31,10 @@ import { ExpressSSEResponseHelper } from "@/shared/infrastructure/streaming/sse-
 import { createPipelineRouter } from "@/pipeline/presentation/routes/pipeline.routes.js";
 import { createVoicePreviewRouter } from "@/pipeline/presentation/routes/voice-preview.routes.js";
 import { AICodeAutoFixer } from "@/pipeline/infrastructure/services/ai-code-autofixer.js";
+import { PrismaTweakMessageRepository } from "@/pipeline/infrastructure/repositories/prisma-tweak-message.repository.js";
+import { AICodeTweaker } from "@/pipeline/infrastructure/services/ai-code-tweaker.js";
+import { SendTweakUseCase } from "@/pipeline/application/use-cases/send-tweak.use-case.js";
+import { GetTweakMessagesUseCase } from "@/pipeline/application/use-cases/get-tweak-messages.use-case.js";
 
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
@@ -71,6 +75,10 @@ export function createPipelineModule(deps: {
   );
   const codeAutoFixer = new AICodeAutoFixer();
   const autofixCodeUseCase = new AutofixCodeUseCase(repository, codeAutoFixer);
+  const tweakMessageRepository = new PrismaTweakMessageRepository(deps.prisma);
+  const codeTweaker = new AICodeTweaker();
+  const sendTweakUseCase = new SendTweakUseCase(repository, tweakMessageRepository, codeTweaker);
+  const getTweakMessagesUseCase = new GetTweakMessagesUseCase(repository, tweakMessageRepository);
   const retryJobUseCase = new RetryJobUseCase(repository, queueService);
   const getPreviewDataUseCase = new GetPreviewDataUseCase(
     repository,
@@ -100,6 +108,8 @@ export function createPipelineModule(deps: {
     getPreviewDataUseCase,
     exportVideoUseCase,
     listVoicesUseCase,
+    sendTweakUseCase,
+    getTweakMessagesUseCase,
   );
 
   // 6. Streaming SSE infrastructure

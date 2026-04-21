@@ -6,12 +6,13 @@ import { scriptStreamEventSchema } from "@video-ai/shared";
 import { SSEClient } from "@/shared/services/sse-client";
 import { getBrowserId } from "@/shared/lib/browser-id";
 
-export type StreamingStatus = "loading" | "streaming" | "complete" | "error";
+export type StreamingStatus = "loading" | "researching" | "streaming" | "complete" | "error";
 
 export interface UseStreamingScriptResult {
   script: string;
   scenes: SceneBoundary[];
   status: StreamingStatus;
+  statusMessage: string | null;
   error: string | null;
 }
 
@@ -35,6 +36,7 @@ export function useStreamingScript(params: {
   // Track how many characters of chunkText are covered by completed scenes
   const coveredLengthRef = useRef(0);
   const [status, setStatus] = useState<StreamingStatus>("loading");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Final script from done event (may differ from chunkText)
   const [finalScript, setFinalScript] = useState<string | null>(null);
@@ -73,6 +75,12 @@ export function useStreamingScript(params: {
             case "chunk": {
               const text = (parsed.data as { text: string }).text;
               setChunkText((prev) => prev + text);
+              break;
+            }
+            case "status": {
+              const message = (parsed.data as { message: string }).message;
+              setStatusMessage(message);
+              setStatus("researching");
               break;
             }
             case "scene": {
@@ -156,5 +164,5 @@ export function useStreamingScript(params: {
     return [...completedScenes, inProgressScene];
   }, [status, completedScenes, chunkText]);
 
-  return { script, scenes, status, error };
+  return { script, scenes, status, statusMessage, error };
 }

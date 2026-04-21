@@ -12,6 +12,7 @@ export type {
   AnimationTheme,
   ScenePlan,
   PipelineJobDto,
+  TweakMessageDto,
 } from "@video-ai/shared";
 
 export { FORMAT_WORD_RANGES, FORMAT_RESOLUTIONS } from "@video-ai/shared";
@@ -60,4 +61,20 @@ export interface PreviewDataResponse {
   totalFrames: number;
   compositionWidth: number;
   compositionHeight: number;
+}
+
+/** Params for POST /api/pipeline/jobs/:id/tweak */
+export interface SendTweakParams {
+  jobId: string;
+  message: string;
+  screenshot?: string;
+  frame?: number;
+  timeSeconds?: number;
+}
+
+/** Response shape from POST /api/pipeline/jobs/:id/tweak */
+export interface SendTweakResponse {
+  status: "ok";
+  updatedCode: string;
+  explanation: string;
 }

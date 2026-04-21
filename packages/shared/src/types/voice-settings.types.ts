@@ -17,14 +17,14 @@ export const VOICE_SETTINGS_RANGES: Record<
   VoiceSettingRange
 > = {
   speed: { min: 0.7, max: 1.2, step: 0.1, default: 1.0 },
-  stability: { min: 0.0, max: 1.0, step: 0.05, default: 0.5 },
+  stability: { min: 0.0, max: 1.0, step: 0.05, default: 0.4 },
   similarityBoost: { min: 0.0, max: 1.0, step: 0.05, default: 0.75 },
-  style: { min: 0.0, max: 1.0, step: 0.05, default: 0.0 },
+  style: { min: 0.0, max: 1.0, step: 0.05, default: 0.25 },
 };
 
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   speed: 1.0,
-  stability: 0.5,
+  stability: 0.4,
   similarityBoost: 0.75,
-  style: 0.0,
+  style: 0.25,
 };
