@@ -106,6 +106,7 @@ export function createWorkerRegistry(
     jobRepository,
     objectStore,
     eventPublisher,
+    videoRenderer,
   );
   const videoRenderingWorker = new VideoRenderingWorker(
     videoRenderer,

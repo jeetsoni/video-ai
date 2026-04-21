@@ -63,12 +63,18 @@ export function ProjectCard({ job, onClick }: ProjectCardProps) {
       onClick={() => onClick(job.id)}
       className="group w-full rounded-xl bg-surface-container-low text-left transition-all duration-300 hover:bg-surface-container border border-outline-variant hover:border-primary/20 overflow-hidden"
     >
-      <div className="relative aspect-video overflow-hidden bg-surface-container-high flex items-center justify-center">
+      <div className="relative h-56 overflow-hidden bg-surface-container-high flex items-center justify-center">
         {job.videoUrl ? (
           <video
             src={job.videoUrl}
             className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
             muted
+          />
+        ) : job.thumbnailUrl ? (
+          <img
+            src={job.thumbnailUrl}
+            alt={job.topic}
+            className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
           <Film className="size-8 text-on-surface-variant/30" />

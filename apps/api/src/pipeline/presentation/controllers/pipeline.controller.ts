@@ -82,7 +82,10 @@ export class PipelineController {
   async getJobStatus(req: HttpRequest, res: HttpResponse): Promise<void> {
     try {
       const id = req.params.id as string;
-      const result = await this.getJobStatusUseCase.execute({ jobId: id });
+      const host = req.headers.host as string | undefined;
+      const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
+      const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
+      const result = await this.getJobStatusUseCase.execute({ jobId: id, apiBaseUrl });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());
         return;
@@ -102,11 +105,15 @@ export class PipelineController {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
       const browserId = req.headers["x-browser-id"] as string | undefined;
+      const host = req.headers.host as string | undefined;
+      const protocol = (req.headers["x-forwarded-proto"] as string) || "http";
+      const apiBaseUrl = host ? `${protocol}://${host}` : undefined;
 
       const result = await this.listPipelineJobsUseCase.execute({
         page,
         limit,
         browserId,
+        apiBaseUrl,
       });
       if (result.isFailure) {
         this.handleValidationError(res, result.getError());

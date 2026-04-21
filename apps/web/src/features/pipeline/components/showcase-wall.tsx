@@ -23,7 +23,7 @@ function ShowcaseCard({ job, muted, onToggleMute }: { job: PipelineJobDto; muted
     const v = videoRef.current;
     if (!v) return;
     v.pause();
-    v.currentTime = 0;
+    v.load(); // resets to poster frame
   }, []);
 
   return (
@@ -42,6 +42,7 @@ function ShowcaseCard({ job, muted, onToggleMute }: { job: PipelineJobDto; muted
               muted={muted}
               loop
               playsInline
+              poster={job.thumbnailUrl}
             />
 
             {!isHovered && (
@@ -62,6 +63,8 @@ function ShowcaseCard({ job, muted, onToggleMute }: { job: PipelineJobDto; muted
               </button>
             )}
           </>
+        ) : job.thumbnailUrl ? (
+          <img src={job.thumbnailUrl} alt={job.topic} className="size-full object-cover" />
         ) : (
           <Film className="size-8 text-on-surface-variant/30" />
         )}

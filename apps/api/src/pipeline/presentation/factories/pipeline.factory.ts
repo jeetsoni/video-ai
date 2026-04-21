@@ -197,7 +197,30 @@ export function createPipelineModule(deps: {
     }
   });
 
-  // 13. Video proxy route (avoids MinIO MetadataTooLarge on signed URLs)
+  // 13. Thumbnail proxy route
+  pipelineRouter.get("/jobs/:id/thumbnail", async (req, res) => {
+    try {
+      const job = await deps.prisma.pipelineJob.findUnique({ where: { id: req.params.id } });
+      if (!job || !job.thumbnailPath) {
+        res.status(404).json({ error: "Thumbnail not found" });
+        return;
+      }
+      const result = await deps.objectStore.getObject(job.thumbnailPath);
+      if (result.isFailure) {
+        res.status(500).json({ error: "Failed to retrieve thumbnail" });
+        return;
+      }
+      const { data, contentType, contentLength } = result.getValue();
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Content-Length", contentLength);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.send(data);
+    } catch {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // 14. Video proxy route (avoids MinIO MetadataTooLarge on signed URLs)
   pipelineRouter.get("/jobs/:id/video", async (req, res) => {
     try {
       const job = await deps.prisma.pipelineJob.findUnique({

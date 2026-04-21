@@ -1,5 +1,5 @@
 import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition } from "@remotion/renderer";
+import { renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { FORMAT_RESOLUTIONS, ALL_SFX_FILENAMES } from "@video-ai/shared";
 import type { ScenePlan, VideoFormat } from "@video-ai/shared";
 import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
@@ -303,6 +303,103 @@ export class RemotionVideoRenderer implements VideoRenderer {
       } catch {
         // Best-effort cleanup
       }
+    }
+  }
+
+  async renderStill(params: {
+    code: string;
+    scenePlan: ScenePlan;
+    format: VideoFormat;
+    jobId: string;
+  }): Promise<Result<{ thumbnailPath: string }, PipelineError>> {
+    const resolution = FORMAT_RESOLUTIONS[params.format];
+    const tmpDir = path.join(os.tmpdir(), `remotion-still-${crypto.randomUUID()}`);
+
+    try {
+      fs.mkdirSync(tmpDir, { recursive: true });
+
+      // Build entry without audio — use a silent placeholder filename
+      const entrySource = buildEntrySource(
+        params.code,
+        params.scenePlan,
+        resolution,
+        "silence.mp3",
+      );
+      const entryPath = path.join(tmpDir, "index.tsx");
+      fs.writeFileSync(entryPath, entrySource, "utf-8");
+
+      // Stage SFX files so staticFile() calls don't crash during still render
+      try {
+        const sfxDir = path.join(tmpDir, "public", "sfx");
+        fs.mkdirSync(sfxDir, { recursive: true });
+        for (const filename of ALL_SFX_FILENAMES) {
+          try {
+            const src = path.resolve(__dirname, "../../../../../../packages/shared/src/sfx/assets", filename);
+            fs.copyFileSync(src, path.join(sfxDir, filename));
+          } catch { /* skip missing sfx */ }
+        }
+      } catch { /* proceed without sfx */ }
+
+      const bundlePath = await bundle({
+        entryPoint: entryPath,
+        publicDir: path.join(tmpDir, "public"),
+        webpackOverride: (config: Configuration): Configuration => ({
+          ...config,
+          resolve: {
+            ...config.resolve,
+            modules: [NODE_MODULES_PATH, ...(config.resolve?.modules ?? ["node_modules"])],
+          },
+        }),
+        onProgress: () => {},
+      });
+
+      const composition = await selectComposition({
+        serveUrl: bundlePath,
+        id: this.config.compositionId,
+        inputProps: { scenePlan: params.scenePlan },
+      });
+
+      // Capture the midpoint frame
+      const frame = Math.floor(params.scenePlan.totalFrames / 2);
+      const outputPath = path.join(tmpDir, "thumbnail.png");
+
+      await renderStill({
+        composition: {
+          ...composition,
+          width: resolution.width,
+          height: resolution.height,
+          fps: this.config.fps,
+          durationInFrames: params.scenePlan.totalFrames,
+        },
+        serveUrl: bundlePath,
+        output: outputPath,
+        frame,
+        inputProps: { scenePlan: params.scenePlan },
+      });
+
+      const imageBuffer = fs.readFileSync(outputPath);
+      const thumbnailKey = `thumbnails/${params.jobId}.png`;
+
+      const uploadResult = await this.objectStore.upload({
+        key: thumbnailKey,
+        data: imageBuffer,
+        contentType: "image/png",
+      });
+
+      if (uploadResult.isFailure) {
+        return Result.fail(PipelineError.renderingFailed(
+          `Failed to upload thumbnail: ${uploadResult.getError().message}`,
+        ));
+      }
+
+      return Result.ok({ thumbnailPath: uploadResult.getValue() });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return Result.fail(PipelineError.renderingFailed(`Thumbnail generation failed: ${message}`));
+    } finally {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch { /* best-effort cleanup */ }
     }
   }
 }

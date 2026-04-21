@@ -9,9 +9,10 @@ import { computeCodeHash } from "@/pipeline/domain/services/compute-code-hash.js
 
 interface GetJobStatusRequest {
   jobId: string;
+  apiBaseUrl?: string;
 }
 
-function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
+function mapToDto(job: PipelineJob, videoUrl?: string, apiBaseUrl?: string): PipelineJobDto {
   const dto: PipelineJobDto = {
     id: job.id,
     topic: job.topic,
@@ -51,6 +52,9 @@ function mapToDto(job: PipelineJob, videoUrl?: string): PipelineJobDto {
   }
   if (videoUrl) {
     dto.videoUrl = videoUrl;
+  }
+  if (job.thumbnailPath && apiBaseUrl) {
+    dto.thumbnailUrl = `${apiBaseUrl}/api/pipeline/jobs/${job.id}/thumbnail`;
   }
 
   if (job.stage.value === "preview" || job.stage.value === "done") {
@@ -94,6 +98,6 @@ export class GetJobStatusUseCase implements UseCase<
       }
     }
 
-    return Result.ok(mapToDto(job, videoUrl));
+    return Result.ok(mapToDto(job, videoUrl, request.apiBaseUrl));
   }
 }

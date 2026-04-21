@@ -2,7 +2,9 @@ import type { Job } from "bullmq";
 import type { ProgressEvent, SceneDirection } from "@video-ai/shared";
 import type { SfxProfile } from "@video-ai/shared";
 import type { CodeGenerator } from "@/pipeline/application/interfaces/code-generator.js";
+import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/repositories/pipeline-job-repository.js";
+import type { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import {
@@ -20,6 +22,7 @@ export class CodeGenerationWorker {
     private readonly jobRepository: PipelineJobRepository,
     private readonly objectStore: ObjectStore,
     private readonly eventPublisher: StreamEventPublisher,
+    private readonly videoRenderer: VideoRenderer,
   ) {}
 
   async process(job: Job<{ jobId: string }>): Promise<void> {
@@ -209,6 +212,58 @@ export class CodeGenerationWorker {
       pipelineJob.status.value,
       pipelineJob.progressPercent,
     );
+
+    // Generate thumbnail in background — don't fail the job if this errors
+    this.generateThumbnail(pipelineJob.id, composedCode, pipelineJob).catch((err) => {
+      console.warn(`[code-generation] Thumbnail generation failed for ${jobId}:`, err);
+    });
+  }
+
+  private async generateThumbnail(
+    jobId: string,
+    code: string,
+    pipelineJob: PipelineJob | null,
+  ): Promise<void> {
+    if (!pipelineJob) return;
+    const scenePlan = pipelineJob.scenePlan;
+    if (!scenePlan) return;
+
+    // Build ScenePlan shape expected by renderStill
+    const sceneDirections = pipelineJob.sceneDirections ?? [];
+    const totalFrames = sceneDirections.length > 0
+      ? sceneDirections[sceneDirections.length - 1]!.startFrame + sceneDirections[sceneDirections.length - 1]!.durationFrames
+      : 300;
+
+    const theme = ANIMATION_THEMES.find((t) => t.id === pipelineJob.themeId.value);
+    if (!theme) return;
+
+    const fullScenePlan = {
+      title: pipelineJob.topic,
+      totalDuration: totalFrames / 30,
+      fps: 30 as const,
+      totalFrames,
+      designSystem: {
+        background: theme.background,
+        surface: theme.surface,
+        raised: theme.raised,
+        textPrimary: theme.textPrimary,
+        textMuted: theme.textMuted,
+        accents: theme.accents,
+      },
+      scenes: sceneDirections,
+    };
+
+    const result = await this.videoRenderer.renderStill({
+      code,
+      scenePlan: fullScenePlan,
+      format: pipelineJob.format.value,
+      jobId,
+    });
+
+    if (result.isSuccess) {
+      pipelineJob.setThumbnailPath(result.getValue().thumbnailPath);
+      await this.jobRepository.save(pipelineJob);
+    }
   }
 
   private async publishSceneProgress(

@@ -36,6 +36,10 @@ async function mapToDto(job: PipelineJob, apiBaseUrl?: string): Promise<Pipeline
     dto.videoUrl = `${base}/api/pipeline/jobs/${job.id}/video`;
   }
 
+  if (job.thumbnailPath && apiBaseUrl) {
+    dto.thumbnailUrl = `${apiBaseUrl}/api/pipeline/jobs/${job.id}/thumbnail`;
+  }
+
   return dto;
 }
 

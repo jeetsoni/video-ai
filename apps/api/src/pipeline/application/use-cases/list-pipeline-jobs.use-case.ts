@@ -9,6 +9,7 @@ interface ListPipelineJobsRequest {
   page: number;
   limit: number;
   browserId?: string;
+  apiBaseUrl?: string;
 }
 
 interface ListPipelineJobsResponse {
@@ -18,7 +19,7 @@ interface ListPipelineJobsResponse {
   limit: number;
 }
 
-function mapToDto(job: PipelineJob): PipelineJobDto {
+function mapToDto(job: PipelineJob, apiBaseUrl?: string): PipelineJobDto {
   const dto: PipelineJobDto = {
     id: job.id,
     topic: job.topic,
@@ -36,6 +37,10 @@ function mapToDto(job: PipelineJob): PipelineJobDto {
     dto.errorMessage = job.error.message;
   }
 
+  if (job.thumbnailPath && apiBaseUrl) {
+    dto.thumbnailUrl = `${apiBaseUrl}/api/pipeline/jobs/${job.id}/thumbnail`;
+  }
+
   return dto;
 }
 
@@ -47,7 +52,7 @@ export class ListPipelineJobsUseCase
   async execute(
     request: ListPipelineJobsRequest,
   ): Promise<Result<ListPipelineJobsResponse, ValidationError>> {
-    const { page, limit, browserId } = request;
+    const { page, limit, browserId, apiBaseUrl } = request;
 
     if (page < 1 || limit < 1) {
       return Result.fail(
@@ -61,7 +66,7 @@ export class ListPipelineJobsUseCase
     ]);
 
     return Result.ok({
-      jobs: jobs.map(mapToDto),
+      jobs: jobs.map((job) => mapToDto(job, apiBaseUrl)),
       total,
       page,
       limit,
