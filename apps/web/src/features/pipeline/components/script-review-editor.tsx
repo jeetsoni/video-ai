@@ -547,30 +547,24 @@ export function ScriptReviewEditor({
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="mb-6 flex items-end justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="mb-3 flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors"
+              className="text-white/50 hover:text-white transition-colors shrink-0"
             >
-              <ArrowLeft className="size-4" />
-              Back
+              <ArrowLeft className="size-6" />
             </button>
           )}
-          <div className="mb-2 flex items-center gap-2">
-            <span className="rounded bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
-              {format}
-            </span>
-            {isEdited && (
-              <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
-                Edited
-              </span>
-            )}
-          </div>
           <h1 className="text-3xl font-light tracking-tight text-white">
             {topic || "Script Review"}
           </h1>
+          {isEdited && (
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+              Edited
+            </span>
+          )}
         </div>
         <div className="flex gap-3">
           <Button variant="ghost" disabled={isLoading} onClick={onRegenerate}>
