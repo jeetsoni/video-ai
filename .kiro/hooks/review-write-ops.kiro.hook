@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Review Write Operations",
+  "description": "Before any file write, reminds the agent to follow project conventions including Clean Architecture layer boundaries, kebab-case file naming, and Result pattern usage.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Before writing this file, verify: 1) File uses kebab-case naming. 2) Backend code respects Clean Architecture layer boundaries (dependencies point inward only). 3) Error handling uses Result.ok()/Result.fail() instead of throwing. 4) No \"WHAT\" comments — only \"WHY\" comments when business logic is non-obvious."
+  }
+}

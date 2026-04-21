@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export function AppHeader() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-28 pointer-events-none bg-gradient-to-b from-background via-background/80 to-transparent backdrop-blur-2xl [mask-image:linear-gradient(to_bottom,black_60%,transparent)]">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 pointer-events-none bg-gradient-to-b from-background to-transparent">
       <div className="pointer-events-auto mx-auto flex h-14 max-w-7xl items-center justify-between px-6 pt-2">
         <Link href="/" className="text-lg font-bold tracking-tight text-white">
           KalpanaAI

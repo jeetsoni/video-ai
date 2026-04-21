@@ -5,17 +5,13 @@ import type { PlayerRef } from "@remotion/player";
 import {
   AlertTriangle,
   ArrowLeft,
-  Info,
   Loader2,
   LifeBuoy,
-  Mic,
-  Play,
   RefreshCw,
   Wand2,
 } from "lucide-react";
 import {
   FORMAT_RESOLUTIONS,
-  FEATURED_VOICES,
   type PipelineJobDto,
   type PipelineStage,
   type SceneProgressInfo,
@@ -27,10 +23,11 @@ import type { PipelineRepository } from "../interfaces/pipeline-repository";
 import { usePreviewData } from "../hooks/use-preview-data";
 import { getStageDisplayInfo } from "../utils/stage-display-map";
 import { VideoPreviewSection } from "./video-preview-section";
-import { RemotionPreviewPlayer } from "./remotion-preview-player";
+import { RemotionPreviewPlayer, OverlayControls } from "./remotion-preview-player";
 import { ProgressiveScenePreview } from "./progressive-scene-preview";
 import { ChatPanel } from "./chat-panel";
 import { SmartDownloadButton } from "./smart-download-button";
+import { SceneTimeline } from "./scene-timeline";
 
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
@@ -55,12 +52,6 @@ const ASPECT_CLASSES: Record<string, string> = {
   reel: "aspect-[9/16]",
   short: "aspect-[9/16]",
   longform: "aspect-[16/9]",
-};
-
-const FORMAT_LABELS: Record<string, string> = {
-  reel: "Reel",
-  short: "Short",
-  longform: "Longform",
 };
 
 function PreviewSkeleton({ format }: { format: string }) {
@@ -489,6 +480,7 @@ export function VideoPreviewPage({
           isAutofixing={isAutofixing}
           onPlayerRef={handlePlayerRef}
           containerRef={playerContainerRef}
+          hideControls
         />
       );
     }
@@ -498,227 +490,55 @@ export function VideoPreviewPage({
   }
 
   // Resolve voice name for the info tooltip
-  const voiceDisplayName = (() => {
-    if (!job.voiceId) return null;
-    const voice = FEATURED_VOICES.find((v) => v.voiceId === job.voiceId);
-    return voice?.name ?? "Custom Voice";
-  })();
+
+  const scenes = job.scenePlan ?? job.approvedScenes ?? [];
+  const totalDuration = previewData ? previewData.totalFrames / previewData.fps : 0;
 
   return (
-    <main className="flex h-[calc(100vh-4rem)] flex-col px-6 py-4">
+    <main className="flex h-[calc(100vh-4rem)] flex-col px-3 sm:px-6 py-3">
       {/* Polling error banner */}
       {pollingError && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 mb-4"
-        >
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 mb-3">
           <AlertTriangle className="size-4 shrink-0 text-stage-failed" />
-          <p className="flex-1 text-sm text-stage-failed">
-            Unable to fetch latest status. Retrying automatically…
-          </p>
+          <p className="flex-1 text-sm text-stage-failed">Unable to fetch latest status. Retrying automatically…</p>
           {onRefresh && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-stage-failed"
-              onClick={onRefresh}
-            >
-              <RefreshCw className="size-3.5" />
-              Refresh
+            <Button variant="ghost" size="sm" className="gap-1.5 text-stage-failed" onClick={onRefresh}>
+              <RefreshCw className="size-3.5" />Refresh
             </Button>
           )}
         </div>
       )}
 
-      {/* Main content: 9:16 optimized — narrow player left, wide panel right */}
-      <div className="min-h-0 flex-1 lg:grid lg:grid-cols-[minmax(280px,1fr)_minmax(400px,1.5fr)] gap-6">
-        {/* ── Left Column: Top bar + Player ── */}
-        <section className="flex min-h-0 flex-col gap-2">
-          {/* Top bar: info icon + action buttons */}
-          <div className="flex items-center gap-2 shrink-0 px-1">
-            {onBack && (
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors mr-1"
-                aria-label="Back"
-              >
-                <ArrowLeft className="size-4" />
-                Back
-              </button>
-            )}
-            {/* Info icon with hover tooltip */}
-            <div className="group relative">
-              <button
-                type="button"
-                className="flex size-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors"
-                aria-label="Video details"
-              >
-                <Info className="size-4 text-white/50" />
-              </button>
-              {/* Tooltip on hover */}
-              <div className="absolute left-0 top-full mt-1 z-30 hidden group-hover:block">
-                <div
-                  className="rounded-xl px-3 py-2.5 text-xs space-y-1.5 min-w-[200px] shadow-lg border border-white/10"
-                  style={{
-                    background: "rgba(15, 15, 20, 0.9)",
-                    backdropFilter: "blur(12px)",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/50">Format</span>
-                    <span className="text-white">
-                      {FORMAT_LABELS[job.format] ?? job.format}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/50">Resolution</span>
-                    <span className="text-white">
-                      {resolution.width}×{resolution.height}
-                    </span>
-                  </div>
-                  {job.themeId && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Theme</span>
-                      <span className="text-white">{job.themeId}</span>
-                    </div>
-                  )}
-                  {voiceDisplayName && (
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-white/50">Voice</span>
-                      <span className="text-white flex items-center gap-1">
-                        <Mic className="size-3" />
-                        {voiceDisplayName}
-                      </span>
-                    </div>
-                  )}
-                  {job.voiceSettings && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Settings</span>
-                      <span className="text-white/70">
-                        {job.voiceSettings.speed}x · Stab{" "}
-                        {job.voiceSettings.stability}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/50">Created</span>
-                    <span className="text-white">
-                      {new Date(job.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/50">Stage</span>
-                    <span className="text-white">{stageInfo.label}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* Action buttons */}
-            <div className="flex gap-1.5 shrink-0">
-              {(job.stage === "preview" ||
-                job.stage === "rendering" ||
-                job.stage === "done") &&
-                onExport && (
-                  <SmartDownloadButton job={job} onExport={handleSmartExport} />
-                )}
-              {(job.stage === "preview" || job.stage === "done") && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-7 gap-1 rounded-lg text-xs px-2.5"
-                  onClick={handleRegenerateCode}
-                  disabled={isRegenerating}
-                >
-                  {isRegenerating ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-3" />
-                  )}
-                  Regenerate
-                </Button>
-              )}
-              {!isPreviewEligible &&
-                (job.status === "failed" || job.status === "processing") &&
-                onRetryJob && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-7 gap-1 rounded-lg text-xs px-2.5"
-                    onClick={() => onRetryJob()}
-                  >
-                    <RefreshCw className="size-3" />
-                    Retry
-                  </Button>
-                )}
-            </div>
-          </div>
-
-          {/* Preview / video area — phone-frame style for 9:16 */}
-          <div className="min-h-0 flex-1 w-full flex justify-center">
-            <div
-              className={cn(
-                "relative rounded-2xl overflow-hidden shadow-ambient-lg border border-white/6",
-                ASPECT_CLASSES[job.format] ?? "aspect-video",
-              )}
-              style={{
-                height: "100%",
-                maxWidth: "min(100%, 420px)",
-              }}
-            >
-              {/* Live Preview badge */}
-              {isPreviewEligible && evaluatedComponent && previewData && (
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-1.5 glass rounded-lg px-2.5 py-1">
-                  <Play className="size-3 text-amber-400" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-400">
-                    Live Preview
-                  </span>
-                </div>
-              )}
-              {renderPreviewArea()}
-            </div>
-          </div>
-
-          {/* Status messages (compact, below player) */}
-          {isPreviewEligible && audioLoadError && (
-            <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-xs text-stage-failed">
-              <AlertTriangle className="size-3.5 shrink-0" />
-              <span>Audio failed to load</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 text-stage-failed h-6 px-2 text-xs"
-                onClick={refreshAudioUrl}
-              >
-                <RefreshCw className="size-3" />
-                Retry
-              </Button>
-            </div>
+      {/* Header */}
+      <div className="relative z-10 flex items-center gap-3 mb-3 shrink-0">
+        {onBack && (
+          <button type="button" onClick={onBack} className="text-white/50 hover:text-white transition-colors shrink-0" aria-label="Back">
+            <ArrowLeft className="size-6" />
+          </button>
+        )}
+        <h1 className="flex-1 text-lg sm:text-xl font-light text-white truncate">{job.topic}</h1>
+        <div className="flex gap-2 shrink-0">
+          {(job.stage === "preview" || job.stage === "rendering" || job.stage === "done") && onExport && (
+            <SmartDownloadButton job={job} onExport={handleSmartExport} />
           )}
-
-          {job.stage === "rendering" && <RenderingProgress />}
-
-          {isCompletedWithoutVideo && (
-            <div className="flex items-center gap-2 text-xs text-white/40">
-              <LifeBuoy className="size-3.5" />
-              <span>
-                Video file not available.{" "}
-                <button
-                  type="button"
-                  className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-                >
-                  Contact Support
-                </button>
-              </span>
-            </div>
+          {(job.stage === "preview" || job.stage === "done") && (
+            <Button variant="secondary" size="sm" className="h-8 gap-1.5 rounded-lg text-xs px-3" onClick={handleRegenerateCode} disabled={isRegenerating}>
+              {isRegenerating ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+              <span className="hidden sm:inline">Regenerate</span>
+            </Button>
           )}
-        </section>
+          {!isPreviewEligible && (job.status === "failed" || job.status === "processing") && onRetryJob && (
+            <Button variant="secondary" size="sm" className="h-8 gap-1.5 rounded-lg text-xs px-3" onClick={() => onRetryJob()}>
+              <RefreshCw className="size-3" />Retry
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* ── Right Column: Chat panel (always chat, no fallback info panel) ── */}
-        <section className="flex flex-col min-h-0 rounded-2xl bg-white/[0.03] border border-white/[0.08] overflow-hidden">
+      {/* 3-column layout: Chat | Phone Preview | Scene Timeline */}
+      <div className="min-h-0 flex-1 flex gap-4 overflow-hidden">
+        {/* Chat — 25% */}
+        <div className="hidden lg:flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
           {isPreviewEligible && evaluatedComponent && previewData ? (
             <ChatPanel
               job={job}
@@ -726,37 +546,79 @@ export function VideoPreviewPage({
               playerRef={playerRefObj}
               playerContainerRef={playerContainerRef}
               fps={previewData.fps}
-              onCodeUpdated={async () => {
-                await refetch();
-                onRefresh?.();
-              }}
+              onCodeUpdated={async () => { await refetch(); onRefresh?.(); }}
             />
           ) : (
-            /* Empty state for chat when not in preview — just show a placeholder */
             <div className="flex flex-1 items-center justify-center p-6 text-center">
               <div className="space-y-2">
-                <StageIcon
-                  className={cn(
-                    "size-8 mx-auto",
-                    job.status === "failed"
-                      ? "text-stage-failed"
-                      : "text-white/20",
-                  )}
-                />
+                <StageIcon className={cn("size-8 mx-auto", job.status === "failed" ? "text-stage-failed" : "text-white/20")} />
                 <p className="text-sm text-white/50">
-                  {job.status === "failed"
-                    ? "Processing failed"
-                    : "Chat will be available once the preview is ready"}
-                </p>
-                <p className="text-xs text-white/30">
-                  {job.status === "failed"
-                    ? (job.errorMessage ?? "An error occurred")
-                    : stageInfo.description}
+                  {job.status === "failed" ? "Processing failed" : "Chat available once preview is ready"}
                 </p>
               </div>
             </div>
           )}
-        </section>
+        </div>
+
+        {/* Phone Preview — center, auto-sized */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 min-h-0">
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              job.format === "reel" || job.format === "short"
+                ? "rounded-[2.8rem] border-[7px] border-white/[0.18] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_32px_80px_rgba(0,0,0,0.8)] bg-black"
+                : "rounded-2xl border border-white/[0.08] shadow-[0_8px_48px_rgba(0,0,0,0.5)]",
+            )}
+            style={
+              job.format === "reel" || job.format === "short"
+                ? { height: "calc(100vh - 12rem)", width: "calc((100vh - 12rem) * 9 / 16)", maxHeight: "720px", maxWidth: "405px" }
+                : { width: "min(100%, 560px)", aspectRatio: "16/9" }
+            }
+          >
+            {(job.format === "reel" || job.format === "short") && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-24 h-6 bg-black rounded-b-2xl" />
+            )}
+            {renderPreviewArea()}
+          </div>
+
+          {/* External player controls */}
+          {isPreviewEligible && evaluatedComponent && previewData && (
+            <div className="w-full" style={{ maxWidth: job.format === "reel" || job.format === "short" ? "calc((100vh - 12rem) * 9 / 16)" : "560px" }}>
+              <OverlayControls external playerRef={playerRefObj} fps={previewData.fps} totalFrames={previewData.totalFrames} />
+            </div>
+          )}
+
+                    {/* Status messages */}
+          {isPreviewEligible && audioLoadError && (
+            <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-xs text-stage-failed">
+              <AlertTriangle className="size-3.5 shrink-0" />
+              <span>Audio failed to load</span>
+              <Button variant="ghost" size="sm" className="gap-1 text-stage-failed h-6 px-2 text-xs" onClick={refreshAudioUrl}>
+                <RefreshCw className="size-3" />Retry
+              </Button>
+            </div>
+          )}
+          {job.stage === "rendering" && <RenderingProgress />}
+          {isCompletedWithoutVideo && (
+            <div className="flex items-center gap-2 text-xs text-white/40">
+              <LifeBuoy className="size-3.5" />
+              <span>Video file not available.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Scene Timeline — 25% */}
+        <div className="hidden lg:flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
+          <SceneTimeline
+            scenes={scenes}
+            format={job.format}
+            themeId={job.themeId}
+            voiceId={job.voiceId}
+            voiceSettings={job.voiceSettings}
+            createdAt={job.createdAt}
+            totalDuration={totalDuration}
+          />
+        </div>
       </div>
     </main>
   );

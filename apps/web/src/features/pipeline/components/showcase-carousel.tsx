@@ -144,7 +144,7 @@ export function ShowcaseCarousel() {
 
       <div
         ref={scrollRef}
-        className="flex gap-6 overflow-x-auto scrollbar-hide pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]"
+        className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide py-2 -my-2 pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]"
         onMouseEnter={() => { pausedRef.current = true; }}
         onMouseLeave={() => { pausedRef.current = false; }}
       >

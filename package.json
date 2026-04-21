@@ -1,6 +1,6 @@
 {
-  "name": "video-ai",
-  "private": true,
+  "name": "kalpana-ai",
+  "license": "MIT",
   "workspaces": [
     "apps/*",
     "packages/*"

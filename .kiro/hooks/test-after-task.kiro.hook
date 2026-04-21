@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Run Tests After Task Completion",
+  "description": "Automatically runs the test suite after a spec task is marked as completed, ensuring each implementation step passes before moving on.",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "npx turbo test"
+  }
+}

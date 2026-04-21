@@ -283,11 +283,13 @@ function formatTime(frame: number, fps: number): string {
 }
 
 /** Custom glass overlay controls matching the reference design */
-function OverlayControls({
+export function OverlayControls({
   playerRef,
   fps,
   totalFrames,
+  external,
 }: {
+  external?: boolean;
   playerRef: React.RefObject<PlayerRef | null>;
   fps: number;
   totalFrames: number;
@@ -321,6 +323,16 @@ function OverlayControls({
     [fps, totalFrames, totalTimeStr],
   );
 
+
+  const [playerReady, setPlayerReady] = useState(!!playerRef.current);
+  useEffect(() => {
+    if (playerRef.current) { setPlayerReady(true); return; }
+    const id = setInterval(() => {
+      if (playerRef.current) { setPlayerReady(true); clearInterval(id); }
+    }, 100);
+    return () => clearInterval(id);
+  }, [playerRef]);
+
   // Subscribe to player events — only play/pause/mute use React state
   useEffect(() => {
     const player = playerRef.current;
@@ -350,7 +362,7 @@ function OverlayControls({
       player.removeEventListener("frameupdate", onFrameUpdate);
       player.removeEventListener("mutechange", onMuteChange);
     };
-  }, [playerRef, updateFrameDisplay]);
+  }, [playerRef, playerReady, updateFrameDisplay]);
 
   const handleTogglePlay = useCallback(
     (e: React.MouseEvent) => {
@@ -416,12 +428,12 @@ function OverlayControls({
 
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 flex flex-col"
+      className={external ? "flex flex-col" : "absolute inset-x-0 bottom-0 z-20 flex flex-col"}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Glass control bar */}
       <div
-        className="mx-2 mb-2 rounded-xl px-3 py-2 flex flex-col gap-2"
+        className={external ? "rounded-xl px-3 py-2.5 flex flex-col gap-2" : "mx-2 mb-2 rounded-xl px-3 py-2 flex flex-col gap-2"}
         style={{
           background: "rgba(0, 0, 0, 0.55)",
           backdropFilter: "blur(16px)",
@@ -523,6 +535,7 @@ export function RemotionPreviewPlayer({
   isAutofixing,
   onPlayerRef,
   containerRef,
+  hideControls,
 }: RemotionPreviewPlayerProps) {
   const playerRef = useRef<PlayerRef>(null);
   const [audioReady, setAudioReady] = useState(!audioUrl);
@@ -677,11 +690,11 @@ export function RemotionPreviewPlayer({
         style={{ width: "100%", height: "100%" }}
         errorFallback={errorFallback}
       />
-      <OverlayControls
+      {!hideControls && (<OverlayControls
         playerRef={playerRef}
         fps={fps}
         totalFrames={Math.max(1, totalFrames)}
-      />
+      />)}
     </div>
   );
 }
