@@ -210,7 +210,7 @@ export default function JobDetailPage() {
       streamingStatus === "researching";
 
     return (
-      <main className="flex h-[calc(100vh-4rem)] flex-col p-10">
+      <main className="flex h-[calc(100vh-4rem)] flex-col p-3 sm:p-6 lg:p-10">
         <ScriptReviewEditor
           script={script}
           format={job.format}

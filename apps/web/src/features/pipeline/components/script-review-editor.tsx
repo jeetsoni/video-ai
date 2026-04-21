@@ -545,11 +545,13 @@ export function ScriptReviewEditor({
   const duration = estimateDuration(wordCount);
   const tone = getToneLabel(wordCount);
 
+  const [activeTab, setActiveTab] = useState<"chat" | "script" | "narration">("script");
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="mb-6 flex items-end justify-between">
-        <div className="flex items-center gap-3">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
           {onBack && (
             <button
               type="button"
@@ -559,34 +561,57 @@ export function ScriptReviewEditor({
               <ArrowLeft className="size-6" />
             </button>
           )}
-          <h1 className="text-3xl font-light tracking-tight text-white">
+          <h1 className="text-xl sm:text-3xl font-light tracking-tight text-white truncate">
             {topic || "Script Review"}
           </h1>
           {isEdited && (
-            <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+            <span className="hidden sm:inline rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary shrink-0">
               Edited
             </span>
           )}
         </div>
-        <div className="flex gap-3">
-          <Button variant="ghost" disabled={isLoading} onClick={onRegenerate}>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="ghost" disabled={isLoading} onClick={onRegenerate} className="hidden sm:flex">
             Draft
           </Button>
           <Button
             disabled={isLoading || isUnderMinimum}
             onClick={handleApprove}
-            className="gap-2 shadow-lg shadow-primary/10"
+            className="gap-2 shadow-lg shadow-primary/10 text-sm px-3"
           >
-            Approve Script
+            Approve
             <ArrowRight className="size-4" />
           </Button>
         </div>
       </div>
 
-      {/* 3-column Layout: Chat | Editor | Narration */}
+      {/* Mobile tab bar */}
+      <div className="flex lg:hidden mb-3 rounded-xl bg-white/[0.04] p-1 gap-1">
+        {(["chat", "script", "narration"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "flex-1 rounded-lg py-1.5 text-xs font-medium capitalize transition-all",
+              activeTab === tab
+                ? "bg-white/[0.1] text-white"
+                : "text-white/40 hover:text-white/60",
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Layout: stacked on mobile, 3-col on desktop */}
       <div className="flex flex-1 gap-4 overflow-hidden">
-        {/* Chat Panel — 25% */}
-        <div className="flex w-1/4 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
+        {/* Chat Panel */}
+        <div className={cn(
+          "flex flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl",
+          "lg:flex lg:w-1/4 lg:shrink-0",
+          activeTab === "chat" ? "flex flex-1" : "hidden lg:flex",
+        )}>
           <div className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
             <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
               Script Chat
@@ -607,21 +632,24 @@ export function ScriptReviewEditor({
           )}
         </div>
 
-        {/* Script Editor — 50% */}
-        <div className="flex w-1/2 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
-          {/* Editor toolbar with metrics */}
-          <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-6 py-2.5">
-            <div className="flex items-center gap-4">
+        {/* Script Editor */}
+        <div className={cn(
+          "flex flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl",
+          "lg:flex lg:w-1/2",
+          activeTab === "script" ? "flex flex-1" : "hidden lg:flex",
+        )}>
+          <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
+            <div className="flex items-center gap-3">
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
                 Script
               </span>
-              <div className="flex items-center gap-3 text-[11px] text-white/30">
+              <div className="flex items-center gap-2 text-[11px] text-white/30">
                 <span className="flex items-center gap-1">
                   <Clock className="size-3" />
                   {duration}
                 </span>
-                <span>·</span>
-                <span>{tone}</span>
+                <span className="hidden sm:inline">·</span>
+                <span className="hidden sm:inline">{tone}</span>
                 <span>·</span>
                 <span
                   className={cn(
@@ -636,7 +664,7 @@ export function ScriptReviewEditor({
             </div>
             <div className="flex items-center gap-2">
               {previewError && (
-                <span className="text-[10px] text-destructive">
+                <span className="hidden sm:inline text-[10px] text-destructive">
                   {previewError}
                 </span>
               )}
@@ -648,46 +676,22 @@ export function ScriptReviewEditor({
                 onClick={handlePreviewClick}
                 className="gap-1.5 text-xs h-7 px-3"
                 aria-label={
-                  previewPlaying
-                    ? "Stop preview"
-                    : previewLoading
-                      ? "Generating preview"
-                      : cooldownRemaining > 0
-                        ? `Wait ${cooldownRemaining} seconds`
-                        : "Preview narration"
+                  previewPlaying ? "Stop preview"
+                    : previewLoading ? "Generating preview"
+                    : cooldownRemaining > 0 ? `Wait ${cooldownRemaining} seconds`
+                    : "Preview narration"
                 }
               >
-                {previewLoading && (
-                  <>
-                    <Loader2 className="size-3 animate-spin" />
-                    <span>Generating…</span>
-                  </>
-                )}
-                {previewPlaying && (
-                  <>
-                    <Square className="size-3" />
-                    <span>Stop</span>
-                  </>
-                )}
-                {!previewLoading &&
-                  !previewPlaying &&
-                  cooldownRemaining > 0 && (
-                    <span>Wait {cooldownRemaining}s</span>
-                  )}
-                {!previewLoading &&
-                  !previewPlaying &&
-                  cooldownRemaining === 0 && (
-                    <>
-                      <Volume2 className="size-3" />
-                      <span>Preview</span>
-                    </>
-                  )}
+                {previewLoading && <><Loader2 className="size-3 animate-spin" /><span>Generating…</span></>}
+                {previewPlaying && <><Square className="size-3" /><span>Stop</span></>}
+                {!previewLoading && !previewPlaying && cooldownRemaining > 0 && <span>Wait {cooldownRemaining}s</span>}
+                {!previewLoading && !previewPlaying && cooldownRemaining === 0 && <><Volume2 className="size-3" /><span>Preview</span></>}
               </Button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            <div className="space-y-10 px-10 py-10">
+            <div className="space-y-10 px-4 sm:px-10 py-6 sm:py-10">
               {scenes.map((scene, i) => (
                 <EditableSceneBlock
                   key={i}
@@ -701,8 +705,7 @@ export function ScriptReviewEditor({
             </div>
           </div>
 
-          {/* Footer info */}
-          <div className="flex items-center border-t border-white/[0.06] bg-white/[0.02] px-8 py-3">
+          <div className="flex items-center border-t border-white/[0.06] bg-white/[0.02] px-4 sm:px-8 py-3">
             <span
               className={cn(
                 "text-xs text-white/30",
@@ -710,15 +713,17 @@ export function ScriptReviewEditor({
               )}
             >
               {range.min}–{range.max} recommended for {format}
-              {!isLoading &&
-                isUnderMinimum &&
-                " · Script must contain at least 10 words"}
+              {!isLoading && isUnderMinimum && " · Script must contain at least 10 words"}
             </span>
           </div>
         </div>
 
-        {/* Narration Panel — 25% */}
-        <div className="w-1/4 shrink-0 overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl">
+        {/* Narration Panel */}
+        <div className={cn(
+          "overflow-y-auto rounded-xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl",
+          "lg:block lg:w-1/4 lg:shrink-0",
+          activeTab === "narration" ? "block flex-1" : "hidden lg:block",
+        )}>
           <NarrationPanel
             voices={voices}
             voicesLoading={voicesLoading}

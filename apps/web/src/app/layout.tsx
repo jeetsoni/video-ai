@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AppDependenciesProvider } from "@/shared/providers/app-dependencies-context";
 import { AppHeader } from "@/shared/components/layout/app-header";
-import { MobileNav } from "@/shared/components/layout/mobile-nav";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,8 +25,7 @@ export default function RootLayout({
         <AppDependenciesProvider>
           <div className="ambient-glow" />
           <AppHeader />
-          <div className="relative z-10 min-h-screen pt-14">{children}</div>
-          <MobileNav />
+          <div className="relative z-10 min-h-screen pt-16">{children}</div>
         </AppDependenciesProvider>
       </body>
     </html>

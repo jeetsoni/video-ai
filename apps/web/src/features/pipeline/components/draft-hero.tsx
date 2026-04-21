@@ -68,15 +68,15 @@ export function DraftHero() {
   );
 
   return (
-    <section className="flex flex-col items-center text-center gap-10 w-full max-w-[820px] mx-auto mt-16">
+    <section className="flex flex-col items-center text-center gap-6 sm:gap-10 w-full max-w-[820px] mx-auto mt-6 sm:mt-16">
       {/* Heading */}
-      <div className="space-y-4">
-        <h1 className="text-[56px] md:text-[80px] font-light leading-[1.05] tracking-[-0.02em] text-white">
+      <div className="space-y-3">
+        <h1 className="text-[36px] sm:text-[56px] md:text-[80px] font-light leading-[1.05] tracking-[-0.02em] text-white">
           Create videos at
           <br />
           the speed of AI
         </h1>
-        <p className="text-lg text-white/60">
+        <p className="text-base sm:text-lg text-white/60">
           Transform any topic into a cinematic AI-generated video
         </p>
       </div>
