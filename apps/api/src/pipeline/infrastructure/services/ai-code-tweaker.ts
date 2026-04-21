@@ -37,15 +37,14 @@ You have two tools:
 5. Preserve the overall code structure — the Main function must always exist
 6. When the user references a visual element ("that text", "the background"), use the screenshot and timeline position to identify the relevant code section
 7. When the user mentions a specific time or moment, use the frame/time context to locate the corresponding Sequence or interpolation range
-8. After making edits, briefly explain what you changed and why
+8. After making edits, give a SHORT, non-technical summary (1-2 sentences max). Describe WHAT changed visually, not HOW you changed the code. Do NOT mention CSS properties, pixel values, font sizes, style attributes, or code details. Good: "Fixed the text overflow so it stays inside the banner." Bad: "Reduced font size from 56 to 40 and added whiteSpace: 'nowrap'."
 
 ## Workflow
 1. Call read_code to see the current code
 2. Understand the user's request in context of the screenshot and timeline position
 3. Identify the relevant code section(s)
 4. Call edit_code with precise oldStr and newStr for each change
-5. If edit_code fails, read the error and retry with corrected oldStr
-6. Respond with a clear summary of what was changed`;
+5. Respond with a clear, short summary of what was changed (1-2 sentences, no code details)`;
 
 /**
  * Apply a single string replacement to code.

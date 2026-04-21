@@ -19,7 +19,7 @@ export interface UseTweakChatOptions {
   /** Frames per second — used to compute time in seconds from the current frame. */
   fps: number;
   /** Callback invoked after a successful tweak so the caller can re-evaluate code. */
-  onCodeUpdated: () => void;
+  onCodeUpdated: () => void | Promise<void>;
 }
 
 export interface UseTweakChatResult {
@@ -35,16 +35,13 @@ export interface UseTweakChatResult {
   error: string | null;
 }
 
-let optimisticIdCounter = 0;
-
 function createOptimisticMessage(
   jobId: string,
   role: "user" | "assistant",
   content: string,
 ): TweakMessageDto {
-  optimisticIdCounter += 1;
   return {
-    id: `optimistic-${optimisticIdCounter}`,
+    id: `optimistic-${crypto.randomUUID()}`,
     jobId,
     role,
     content,
@@ -149,7 +146,39 @@ export function useTweakChat({
           response.explanation,
         );
         setMessages((prev) => [...prev, assistantMessage]);
-        onCodeUpdated();
+
+        // Save current frame position before re-evaluating code
+        let savedFrame: number | undefined;
+        try {
+          savedFrame = playerRef.current?.getCurrentFrame();
+        } catch {
+          // Player may not be ready
+        }
+
+        await onCodeUpdated();
+
+        // Restore timeline position after code re-evaluation.
+        // The Remotion Player remounts when the component prop changes,
+        // so we need to wait for the new Player to be ready before seeking.
+        if (savedFrame != null && savedFrame > 0) {
+          const seekToSavedFrame = (attempts = 0) => {
+            const player = playerRef.current;
+            if (player) {
+              try {
+                player.seekTo(savedFrame!);
+                return;
+              } catch {
+                // Player not ready yet
+              }
+            }
+            // Retry up to 10 times (500ms total) waiting for the Player to remount
+            if (attempts < 10) {
+              setTimeout(() => seekToSavedFrame(attempts + 1), 50);
+            }
+          };
+          // Start after a short delay to let React commit the new component
+          setTimeout(() => seekToSavedFrame(), 100);
+        }
       } catch (err) {
         if (!mountedRef.current) return;
 
