@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "PipelineJob" ALTER COLUMN "topic" SET DATA TYPE VARCHAR(5000);

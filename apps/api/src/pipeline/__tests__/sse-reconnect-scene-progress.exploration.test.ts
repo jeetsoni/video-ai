@@ -29,6 +29,7 @@ import type {
   SceneDirection,
   ProgressEvent,
 } from "@video-ai/shared";
+import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
@@ -237,6 +238,7 @@ describe("Bug Condition Exploration: Scene Progress Events Lost on Reconnect", (
       buffer: AnyMockFn;
       markComplete: AnyMockFn;
     };
+    let mockVideoRenderer: { render: AnyMockFn; renderStill: AnyMockFn };
 
     beforeEach(() => {
       mockCodeGenerator = {
@@ -259,11 +261,16 @@ describe("Bug Condition Exploration: Scene Progress Events Lost on Reconnect", (
         buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
         markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
       };
+      mockVideoRenderer = {
+        render: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ videoPath: "video.mp4" })),
+        renderStill: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ thumbnailPath: "thumb.png" })),
+      };
       worker = new CodeGenerationWorker(
         mockCodeGenerator as unknown as CodeGenerator,
         mockRepository as unknown as PipelineJobRepository,
         mockObjectStore as unknown as ObjectStore,
         mockEventPublisher as unknown as StreamEventPublisher,
+        mockVideoRenderer as unknown as VideoRenderer,
       );
     });
 

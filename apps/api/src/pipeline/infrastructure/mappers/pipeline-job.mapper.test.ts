@@ -31,6 +31,7 @@ describe("PipelineJobMapper", () => {
     generatedCode: null,
     codePath: null,
     videoPath: null,
+    thumbnailPath: null,
     lastRenderedCodeHash: null,
     progressPercent: 0,
     createdAt: new Date("2024-01-01T00:00:00Z"),

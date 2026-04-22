@@ -55,7 +55,7 @@ model PipelineJob {
   browser   BrowserUser @relation(fields: [browserId], references: [id])
 
   // User inputs
-  topic   String      @db.VarChar(500)
+  topic   String      @db.VarChar(5000)
   format  VideoFormat
   themeId String      // References AnimationTheme.id
   voiceId       String? // ElevenLabs voice ID, null = use default voice

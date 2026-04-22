@@ -1,6 +1,5 @@
 import { jest } from "@jest/globals";
 import { GetScriptTweakMessagesUseCase } from "./get-script-tweak-messages.use-case.js";
-import { Result } from "@/shared/domain/result.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
 import { AnimationThemeId } from "@/pipeline/domain/value-objects/animation-theme.js";

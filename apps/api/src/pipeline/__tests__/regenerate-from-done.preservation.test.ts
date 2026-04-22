@@ -148,6 +148,7 @@ function reconstituteJob(params: {
     generatedCode: "export const Main = () => <div/>;",
     codePath: "code/test.tsx",
     videoPath: "videos/test.mp4",
+    thumbnailPath: null,
     lastRenderedCodeHash: null,
     progressPercent: STAGE_TO_PROGRESS_MAP[params.stage],
     createdAt: now,

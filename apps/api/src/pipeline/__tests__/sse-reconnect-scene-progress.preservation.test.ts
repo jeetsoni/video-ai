@@ -25,11 +25,13 @@ import type {
   SSEResponseHelper,
 } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { PipelineStage as PipelineStageType } from "@video-ai/shared";
+import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { PipelineStage } from "@/pipeline/domain/value-objects/pipeline-stage.js";
 import { PipelineStatus } from "@/pipeline/domain/value-objects/pipeline-status.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
 import { AnimationThemeId } from "@/pipeline/domain/value-objects/animation-theme.js";
+import { Result } from "@/shared/domain/result.js";
 import { CodeGenerationWorker } from "@/pipeline/infrastructure/queue/workers/code-generation.worker.js";
 import { ProgressController } from "@/pipeline/presentation/controllers/progress.controller.js";
 
@@ -72,6 +74,7 @@ function createPipelineJobAtStage(
     generatedCode: null,
     codePath: null,
     videoPath: null,
+    thumbnailPath: null,
     lastRenderedCodeHash: null,
     progressPercent: 50,
     createdAt: new Date(),
@@ -361,6 +364,7 @@ describe("Preservation: Non-Code-Generation and Continuous-Connection Behavior U
       buffer: AnyMockFn;
       markComplete: AnyMockFn;
     };
+    let mockVideoRenderer: { render: AnyMockFn; renderStill: AnyMockFn };
 
     beforeEach(() => {
       mockCodeGenerator = {
@@ -381,11 +385,16 @@ describe("Preservation: Non-Code-Generation and Continuous-Connection Behavior U
         buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
         markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
       };
+      mockVideoRenderer = {
+        render: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ videoPath: "video.mp4" })),
+        renderStill: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ thumbnailPath: "thumb.png" })),
+      };
       worker = new CodeGenerationWorker(
         mockCodeGenerator as unknown as CodeGenerator,
         mockRepository as unknown as PipelineJobRepository,
         mockObjectStore as unknown as ObjectStore,
         mockEventPublisher as unknown as StreamEventPublisher,
+        mockVideoRenderer as unknown as VideoRenderer,
       );
     });
 
@@ -434,6 +443,7 @@ describe("Preservation: Non-Code-Generation and Continuous-Connection Behavior U
             generatedCode: null,
             codePath: null,
             videoPath: null,
+            thumbnailPath: null,
             lastRenderedCodeHash: null,
             progressPercent: 80,
             createdAt: new Date(),

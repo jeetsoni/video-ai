@@ -40,13 +40,6 @@ const uniqueSubstringScriptArb = fc
 /** Generates a replacement string. */
 const replacementArb = fc.string({ minLength: 0, maxLength: 200 });
 
-/** Generates a string that does NOT appear in the given script. */
-function nonExistentSubstringArb(script: string): fc.Arbitrary<string> {
-  return fc
-    .string({ minLength: 1, maxLength: 50 })
-    .filter((s) => !script.includes(s));
-}
-
 /** Generates a script containing a substring that appears at least twice. */
 const ambiguousSubstringScriptArb = fc
   .tuple(
@@ -55,7 +48,7 @@ const ambiguousSubstringScriptArb = fc
     scriptFragmentArb,
     scriptFragmentArb,
   )
-  .filter(([prefix, repeated, middle, suffix]) => {
+  .filter(([_prefix, repeated, _middle, _suffix]) => {
     // Ensure the repeated part doesn't accidentally appear in prefix/middle/suffix
     // beyond the two intentional occurrences
     return repeated.length > 0;

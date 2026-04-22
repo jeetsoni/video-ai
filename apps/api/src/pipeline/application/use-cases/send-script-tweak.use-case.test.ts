@@ -1,7 +1,6 @@
 import { jest } from "@jest/globals";
 import { SendScriptTweakUseCase } from "./send-script-tweak.use-case.js";
 import { Result } from "@/shared/domain/result.js";
-import { ValidationError } from "@/shared/domain/errors/validation.error.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
 import { VideoFormat } from "@/pipeline/domain/value-objects/video-format.js";
@@ -257,14 +256,14 @@ describe("SendScriptTweakUseCase", () => {
     expect(createCalls).toHaveLength(2);
 
     // First call: user message
-    expect(createCalls[0][0]).toEqual({
+    expect(createCalls[0]![0]).toEqual({
       jobId: "job-1",
       role: "user",
       content: "Fix intro",
     });
 
     // Second call: assistant message
-    expect(createCalls[1][0]).toEqual({
+    expect(createCalls[1]![0]).toEqual({
       jobId: "job-1",
       role: "assistant",
       content: "Done",

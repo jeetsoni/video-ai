@@ -8,7 +8,7 @@ export const voiceSettingsSchema = z.object({
 });
 
 export const createPipelineJobSchema = z.object({
-  topic: z.string().min(3).max(500),
+  topic: z.string().min(3).max(5000),
   format: z.enum(["reel", "short", "longform"]),
   themeId: z.string().min(1),
   voiceId: z.string().min(1).optional(),

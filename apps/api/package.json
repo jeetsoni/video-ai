@@ -8,6 +8,7 @@
     "build": "tsc && npm run db:generate",
     "start": "node --import tsx/esm src/shared/presentation/http/server.ts",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",

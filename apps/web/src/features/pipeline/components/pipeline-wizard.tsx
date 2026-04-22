@@ -11,7 +11,7 @@ import { VoiceSelector } from "./voice-selector";
 import { VoiceSettingsControls } from "./voice-settings-controls";
 
 const TOPIC_MIN = 3;
-const TOPIC_MAX = 500;
+const TOPIC_MAX = 5000;
 
 interface PipelineWizardProps {
   onSubmit: (data: {

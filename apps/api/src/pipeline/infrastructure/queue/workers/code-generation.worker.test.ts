@@ -5,6 +5,7 @@ import type { PipelineJobRepository } from "@/pipeline/domain/interfaces/reposit
 import type { ObjectStore } from "@/pipeline/application/interfaces/object-store.js";
 import type { StreamEventPublisher } from "@/shared/infrastructure/streaming/interfaces.js";
 import type { WordTimestamp, SceneBoundary, SceneDirection } from "@video-ai/shared";
+import type { VideoRenderer } from "@/pipeline/application/interfaces/video-renderer.js";
 import { Result } from "@/shared/domain/result.js";
 import { PipelineError } from "@/pipeline/domain/errors/pipeline-errors.js";
 import { PipelineJob } from "@/pipeline/domain/entities/pipeline-job.js";
@@ -120,6 +121,7 @@ describe("CodeGenerationWorker", () => {
   let mockRepository: { save: AnyMockFn; findById: AnyMockFn; findAll: AnyMockFn; count: AnyMockFn };
   let mockObjectStore: { upload: AnyMockFn; getSignedUrl: AnyMockFn };
   let mockEventPublisher: { publish: AnyMockFn; buffer: AnyMockFn; markComplete: AnyMockFn };
+  let mockVideoRenderer: { render: AnyMockFn; renderStill: AnyMockFn };
 
   beforeEach(() => {
     mockCodeGenerator = {
@@ -140,11 +142,16 @@ describe("CodeGenerationWorker", () => {
       buffer: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
       markComplete: (jest.fn() as AnyMockFn).mockResolvedValue(undefined),
     };
+    mockVideoRenderer = {
+      render: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ videoPath: "video.mp4" })),
+      renderStill: (jest.fn() as AnyMockFn).mockResolvedValue(Result.ok({ thumbnailPath: "thumb.png" })),
+    };
     worker = new CodeGenerationWorker(
       mockCodeGenerator as unknown as CodeGenerator,
       mockRepository as unknown as PipelineJobRepository,
       mockObjectStore as unknown as ObjectStore,
       mockEventPublisher as unknown as StreamEventPublisher,
+      mockVideoRenderer as unknown as VideoRenderer,
     );
   });
 

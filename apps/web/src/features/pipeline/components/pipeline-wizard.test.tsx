@@ -48,7 +48,7 @@ describe("PipelineWizard", () => {
     const textarea = screen.getByLabelText("Topic");
     fireEvent.change(textarea, { target: { value: "Hello world" } });
 
-    expect(screen.getByText("11/500")).toBeInTheDocument();
+    expect(screen.getByText("11/5000")).toBeInTheDocument();
   });
 
   it("shows validation error when topic is too short", () => {
@@ -60,7 +60,7 @@ describe("PipelineWizard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create Video" }));
 
     expect(
-      screen.getByText("Topic must be between 3 and 500 characters"),
+      screen.getByText("Topic must be between 3 and 5000 characters"),
     ).toBeInTheDocument();
     expect(mockOnSubmit).not.toHaveBeenCalled();
   });

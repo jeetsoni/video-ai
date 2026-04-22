@@ -58,8 +58,8 @@ export function useCreatePipeline({
     }
 
     const trimmed = topic.trim();
-    if (trimmed.length < 3 || trimmed.length > 500) {
-      const err = new Error("Topic must be between 3 and 500 characters");
+    if (trimmed.length < 3 || trimmed.length > 5000) {
+      const err = new Error("Topic must be between 3 and 5000 characters");
       setError(err);
       onError?.(err);
       return;
