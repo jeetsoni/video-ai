@@ -151,11 +151,49 @@ export function createWorkerRegistry(
     { connection: workerRedisClient },
   );
 
-  bullWorker.on("failed", (job, err) => {
+  bullWorker.on("failed", async (job, err) => {
     console.error(
       `[worker] FAILED stage: ${job?.name} for job: ${job?.data?.jobId}`,
       err.message,
     );
+
+    // Safety net: if the BullMQ job failed (including OOM SIGKILL) but the
+    // pipeline job in the DB is still in_progress, mark it failed so the
+    // frontend doesn't get stuck showing a spinner forever.
+    const jobId = job?.data?.jobId;
+    if (!jobId) return;
+
+    try {
+      const pipelineJob = await jobRepository.findById(jobId);
+      if (!pipelineJob) return;
+
+      // Only update if still in a non-terminal state
+      if (!pipelineJob.status.isTerminal()) {
+        pipelineJob.markFailed(
+          "rendering_failed",
+          err.message ?? "Worker process was killed (OOM or crash)",
+        );
+        await jobRepository.save(pipelineJob);
+
+        // Notify the frontend via SSE so the UI updates immediately
+        await eventPublisher.publish(`stream:progress:${jobId}`, {
+          type: "progress",
+          seq: 0,
+          data: {
+            stage: pipelineJob.stage.value,
+            status: "failed",
+            progressPercent: pipelineJob.progressPercent,
+            errorCode: "rendering_failed",
+            errorMessage: err.message ?? "Worker process was killed (OOM or crash)",
+          },
+        });
+      }
+    } catch (saveErr) {
+      console.error(
+        `[worker] Failed to mark pipeline job ${jobId} as failed:`,
+        saveErr,
+      );
+    }
   });
 
   bullWorker.on("error", (err) => {

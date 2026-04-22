@@ -117,9 +117,33 @@ export function usePipelineProgress({
       });
       sseClientRef.current = client;
 
+      // Stall watchdog: if no SSE event arrives for STALL_TIMEOUT_MS while the
+      // job is in a non-terminal state, the worker likely crashed (OOM/SIGKILL)
+      // without updating the DB. Refetch to get the real status.
+      const STALL_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+      let lastEventAt = Date.now();
+      const stallWatchdog = setInterval(async () => {
+        if (cancelled) {
+          clearInterval(stallWatchdog);
+          return;
+        }
+        if (Date.now() - lastEventAt > STALL_TIMEOUT_MS) {
+          clearInterval(stallWatchdog);
+          client.close();
+          sseClientRef.current = null;
+          await fetchJob();
+        }
+      }, 30_000); // check every 30 seconds
+
       try {
         for await (const event of client.connect()) {
-          if (cancelled) return;
+          if (cancelled) {
+            clearInterval(stallWatchdog);
+            return;
+          }
+
+          // Reset the stall watchdog on every received event
+          lastEventAt = Date.now();
 
           // Track per-scene progress during code generation
           if (event.data.sceneProgress) {
@@ -157,6 +181,7 @@ export function usePipelineProgress({
 
           // Close on terminal status and refetch to get complete job data (e.g., videoUrl)
           if (isTerminalStatus(event.data.status)) {
+            clearInterval(stallWatchdog);
             client.close();
             sseClientRef.current = null;
             await fetchJob();
@@ -164,6 +189,7 @@ export function usePipelineProgress({
           }
         }
       } catch (err) {
+        clearInterval(stallWatchdog);
         if (cancelled) return;
         if (mountedRef.current) {
           setError(err instanceof Error ? err : new Error(String(err)));

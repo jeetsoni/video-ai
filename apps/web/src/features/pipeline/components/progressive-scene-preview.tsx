@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { Player } from "@remotion/player";
+import type { PlayerRef } from "@remotion/player";
 import type { SceneBoundary, SceneProgressInfo } from "@video-ai/shared";
 import { cn } from "@/shared/lib/utils";
 import { evaluateComponentCode } from "../utils/code-evaluator";
@@ -13,6 +14,12 @@ interface ProgressiveScenePreviewProps {
   sceneProgress: Map<number, SceneProgressInfo>;
   format: string;
   themeBackground?: string;
+  /** Called with the Remotion PlayerRef once the player mounts, so external controls can drive it. */
+  onPlayerRef?: (ref: PlayerRef | null) => void;
+  /** Total frames for the current composition — reported back so external controls know the duration. */
+  onTotalFrames?: (frames: number) => void;
+  /** Hide the scene progress indicator (render it externally instead). */
+  hideProgressIndicator?: boolean;
 }
 
 const FPS = 30;
@@ -150,13 +157,27 @@ function SceneProgressIndicator({
   );
 }
 
+export { SceneProgressIndicator };
+
 export function ProgressiveScenePreview({
   sceneBoundaries,
   completedSceneCodes,
   sceneProgress,
   format,
   themeBackground = "#0F1117",
+  onPlayerRef,
+  onTotalFrames,
+  hideProgressIndicator = false,
 }: ProgressiveScenePreviewProps) {
+  const playerRef = useRef<PlayerRef | null>(null);
+
+  // Report playerRef to parent so external OverlayControls can drive it
+  useEffect(() => {
+    onPlayerRef?.(playerRef.current);
+    return () => onPlayerRef?.(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Compose available scene codes into a renderable component
   const { component, totalFrames, scenePlan } = useMemo(() => {
     const composedCode = composePartialScenes(
@@ -226,6 +247,17 @@ export function ProgressiveScenePreview({
     };
   }, [sceneBoundaries, completedSceneCodes, themeBackground]);
 
+  // Report totalFrames to parent whenever it changes
+  useEffect(() => {
+    if (totalFrames > 0) onTotalFrames?.(totalFrames);
+  }, [totalFrames, onTotalFrames]);
+
+  // Once the player mounts, report the ref to the parent
+  const handleRef = (ref: PlayerRef | null) => {
+    playerRef.current = ref;
+    onPlayerRef?.(ref);
+  };
+
   // Create a wrapper component for the Player
   const PlayerComponent = useMemo(() => {
     if (!component || !scenePlan) return null;
@@ -239,11 +271,13 @@ export function ProgressiveScenePreview({
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
       {/* Scene progress indicators */}
-      <SceneProgressIndicator
-        scenes={sceneBoundaries}
-        sceneProgress={sceneProgress}
-        completedSceneCodes={completedSceneCodes}
-      />
+      {!hideProgressIndicator && (
+        <SceneProgressIndicator
+          scenes={sceneBoundaries}
+          sceneProgress={sceneProgress}
+          completedSceneCodes={completedSceneCodes}
+        />
+      )}
 
       {/* Progressive Remotion preview */}
       {PlayerComponent && totalFrames > 0 ? (
@@ -260,13 +294,13 @@ export function ProgressiveScenePreview({
             </span>
           </div>
           <Player
+            ref={handleRef}
             component={PlayerComponent}
             inputProps={{}}
             durationInFrames={Math.max(1, totalFrames)}
             fps={30}
             compositionWidth={1080}
             compositionHeight={1920}
-            controls
             numberOfSharedAudioTags={40}
             style={{ width: "100%", maxHeight: "70vh" }}
           />

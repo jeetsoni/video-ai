@@ -35,7 +35,7 @@ function SmartDownloadButton({ job, onExport }: SmartDownloadButtonProps) {
     }
   }, [job.videoUrl, job.topic]);
 
-  if (job.stage === "rendering") {
+  if (job.stage === "rendering" && job.status !== "failed") {
     return (
       <Button
         size="sm"

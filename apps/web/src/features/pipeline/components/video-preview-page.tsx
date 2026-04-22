@@ -26,7 +26,7 @@ import { usePreviewData } from "../hooks/use-preview-data";
 import { getStageDisplayInfo } from "../utils/stage-display-map";
 import { VideoPreviewSection } from "./video-preview-section";
 import { RemotionPreviewPlayer, OverlayControls } from "./remotion-preview-player";
-import { ProgressiveScenePreview } from "./progressive-scene-preview";
+import { ProgressiveScenePreview, SceneProgressIndicator } from "./progressive-scene-preview";
 import { ChatPanel } from "./chat-panel";
 import { SmartDownloadButton } from "./smart-download-button";
 import { SceneTimeline } from "./scene-timeline";
@@ -187,6 +187,9 @@ export function VideoPreviewPage({
   const [autofixExplanation, setAutofixExplanation] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("preview");
 
+  // Progressive preview player state — used when scenes are being generated
+  const [progressiveTotalFrames, setProgressiveTotalFrames] = useState(0);
+
   // Track whether the smart download button initiated a render so we can auto-download on completion
   const pendingDownloadRef = useRef<boolean>(false);
 
@@ -318,6 +321,9 @@ export function VideoPreviewPage({
           completedSceneCodes={completedSceneCodes ?? new Map()}
           sceneProgress={sceneProgress}
           format={job.format}
+          onPlayerRef={handlePlayerRef}
+          onTotalFrames={setProgressiveTotalFrames}
+          hideProgressIndicator
         />
       );
     }
@@ -329,6 +335,9 @@ export function VideoPreviewPage({
           completedSceneCodes={completedSceneCodes ?? new Map()}
           sceneProgress={sceneProgress ?? new Map()}
           format={job.format}
+          onPlayerRef={handlePlayerRef}
+          onTotalFrames={setProgressiveTotalFrames}
+          hideProgressIndicator
         />
       );
     }
@@ -436,6 +445,23 @@ export function VideoPreviewPage({
   const scenes = job.scenePlan ?? job.approvedScenes ?? [];
   const totalDuration = previewData ? previewData.totalFrames / previewData.fps : 0;
   const isVerticalFormat = job.format === "reel" || job.format === "short";
+
+  // Compute progressive scene boundaries for the indicator rendered outside the phone frame
+  const progressiveSceneBoundaries: SceneBoundary[] | null =
+    (job.stage === "code_generation" && sceneProgress && sceneProgress.size > 0)
+      ? (job.scenePlan && job.scenePlan.length > 0
+          ? job.scenePlan
+          : Array.from(sceneProgress.values()).map((sp, index) => ({
+              id: sp.sceneId,
+              name: sp.sceneName,
+              type: "Bridge" as const,
+              startTime: index * 5,
+              endTime: (index + 1) * 5,
+              text: "",
+            })))
+      : (job.stage === "direction_generation" && job.scenePlan && job.scenePlan.length > 0)
+        ? job.scenePlan
+        : null;
 
   // Shared panel content
   const chatPanelContent = isPreviewEligible && evaluatedComponent && previewData ? (
@@ -596,6 +622,24 @@ export function VideoPreviewPage({
           "lg:flex",
           mobileTab !== "preview" && "hidden lg:flex",
         )}>
+          {/* Scene progress indicator — shown above the frame during generation */}
+          {progressiveSceneBoundaries && (
+            <div
+              className="w-full shrink-0"
+              style={{
+                maxWidth: isVerticalFormat
+                  ? "min(calc(min(calc(100dvh - 14rem), 680px) * 9 / 16), min(calc(100vw - 2rem), 360px))"
+                  : "min(100%, 560px)",
+              }}
+            >
+              <SceneProgressIndicator
+                scenes={progressiveSceneBoundaries}
+                sceneProgress={sceneProgress ?? new Map()}
+                completedSceneCodes={completedSceneCodes ?? new Map()}
+              />
+            </div>
+          )}
+
           {/* Preview container — phone frame for vertical, widescreen for horizontal */}
           <div
             className={cn(
@@ -623,7 +667,7 @@ export function VideoPreviewPage({
             {renderPreviewArea()}
           </div>
 
-          {/* External player controls */}
+          {/* External player controls — shown for full preview OR progressive generation with completed scenes */}
           {isPreviewEligible && evaluatedComponent && previewData && (
             <div
               className="w-full shrink-0"
@@ -641,6 +685,23 @@ export function VideoPreviewPage({
               />
             </div>
           )}
+          {!isPreviewEligible && progressiveTotalFrames > 0 && (
+            <div
+              className="w-full shrink-0"
+              style={{
+                maxWidth: isVerticalFormat
+                  ? "min(calc(min(calc(100dvh - 14rem), 680px) * 9 / 16), min(calc(100vw - 2rem), 360px))"
+                  : "min(100%, 560px)",
+              }}
+            >
+              <OverlayControls
+                external
+                playerRef={playerRefObj}
+                fps={30}
+                totalFrames={progressiveTotalFrames}
+              />
+            </div>
+          )}
 
           {/* Status messages */}
           {isPreviewEligible && audioLoadError && (
@@ -652,7 +713,20 @@ export function VideoPreviewPage({
               </Button>
             </div>
           )}
-          {job.stage === "rendering" && <RenderingProgress />}
+          {job.stage === "rendering" && job.status !== "failed" && <RenderingProgress />}
+          {job.stage === "rendering" && job.status === "failed" && (
+            <div className="flex items-center gap-3 rounded-xl bg-stage-failed/10 border border-stage-failed/30 px-4 py-3">
+              <AlertTriangle className="size-4 shrink-0 text-stage-failed" />
+              <p className="text-sm text-stage-failed flex-1">
+                {job.errorMessage || "Rendering failed"}
+              </p>
+              {onRetryJob && (
+                <Button variant="secondary" size="sm" className="gap-1.5 shrink-0 text-xs h-7" onClick={onRetryJob}>
+                  <RefreshCw className="size-3" />Retry
+                </Button>
+              )}
+            </div>
+          )}
           {isCompletedWithoutVideo && (
             <div className="flex items-center gap-2 text-xs text-white/40 shrink-0">
               <LifeBuoy className="size-3.5" />
