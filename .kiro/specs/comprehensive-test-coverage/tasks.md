@@ -48,8 +48,8 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Add tag comments: `Feature: comprehensive-test-coverage, Property 3/4/5/6`
     - _Requirements: 11.1, 11.2, 11.3, 12.9, 12.10_
 
-- [ ] 3. Implement PipelineStage transition property test
-  - [ ] 3.1 Create PipelineStage transition validity property test
+- [x] 3. Implement PipelineStage transition property test
+  - [x] 3.1 Create PipelineStage transition validity property test
     - Create `apps/api/src/pipeline/domain/value-objects/pipeline-stage.property.test.ts`
     - Build `pipelineStageArb` using `fc.constantFrom` over all 10 stage values
     - Build `stagePairArb` as `fc.tuple(pipelineStageArb, pipelineStageArb)`
@@ -61,13 +61,13 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Add tag comment: `Feature: comprehensive-test-coverage, Property 2: PipelineStage transition graph correctness`
     - _Requirements: 10.1, 10.2, 10.3_
 
-- [ ] 4. Checkpoint - Verify shared package and PBT tests pass
+- [x] 4. Checkpoint - Verify shared package and PBT tests pass
   - Run `cd packages/shared && NODE_OPTIONS='--experimental-vm-modules' npx jest --passWithNoTests` and verify all shared tests pass
   - Run `cd apps/api && NODE_OPTIONS='--experimental-vm-modules' npx jest --passWithNoTests --testPathPattern="pipeline-stage.property"` and verify PipelineStage PBT passes
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Implement CreatePipelineJob and ApproveScript use case tests
-  - [ ] 5.1 Create CreatePipelineJob use case tests
+- [x] 5. Implement CreatePipelineJob and ApproveScript use case tests
+  - [x] 5.1 Create CreatePipelineJob use case tests
     - Create `apps/api/src/pipeline/application/use-cases/create-pipeline-job.use-case.test.ts`
     - Set up mock `PipelineJobRepository`, `QueueService`, and `IdGenerator` following `list-voices.use-case.test.ts` pattern
     - Test happy path: valid request returns successful Result with job id and "pending" status
@@ -78,7 +78,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test QueueService failure returns failed Result with code "QUEUE_ERROR"
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-  - [ ] 5.2 Create ApproveScript use case tests
+  - [x] 5.2 Create ApproveScript use case tests
     - Create `apps/api/src/pipeline/application/use-cases/approve-script.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `QueueService`
     - Use factory function `makeJobAtStage("script_review")` to create jobs in the correct state with a generated script and scenes
@@ -91,8 +91,8 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test voiceId in request updates job voice selection before approving
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-- [ ] 6. Implement GetJobStatus and RegenerateScript use case tests
-  - [ ] 6.1 Create GetJobStatus use case tests
+- [x] 6. Implement GetJobStatus and RegenerateScript use case tests
+  - [x] 6.1 Create GetJobStatus use case tests
     - Create `apps/api/src/pipeline/application/use-cases/get-job-status.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `ObjectStore`
     - Test happy path: existing job returns PipelineJobDto with all base fields mapped
@@ -102,7 +102,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test non-existent jobId returns code "NOT_FOUND"
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 6.2 Create RegenerateScript use case tests
+  - [x] 6.2 Create RegenerateScript use case tests
     - Create `apps/api/src/pipeline/application/use-cases/regenerate-script.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `QueueService`
     - Test happy path: job in "awaiting_script_review" transitions to "script_generation" and returns success
@@ -111,8 +111,8 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test job not in "awaiting_script_review" returns code "CONFLICT"
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 7. Implement RetryJob and ExportVideo use case tests
-  - [ ] 7.1 Create RetryJob use case tests
+- [x] 7. Implement RetryJob and ExportVideo use case tests
+  - [x] 7.1 Create RetryJob use case tests
     - Create `apps/api/src/pipeline/application/use-cases/retry-job.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `QueueService`
     - Use factory to create jobs in "failed" status at a processing stage (e.g., "tts_generation")
@@ -123,7 +123,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test QueueService failure returns code "QUEUE_ERROR"
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 7.2 Create ExportVideo use case tests
+  - [x] 7.2 Create ExportVideo use case tests
     - Create `apps/api/src/pipeline/application/use-cases/export-video.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `QueueService`
     - Test happy path: job in "preview" transitions to "rendering" and enqueues rendering job
@@ -132,12 +132,12 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test non-existent jobId returns code "NOT_FOUND"
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 8. Checkpoint - Verify use case tests pass
+- [x] 8. Checkpoint - Verify use case tests pass
   - Run `cd apps/api && NODE_OPTIONS='--experimental-vm-modules' npx jest --passWithNoTests` and verify all API tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement ListPipelineJobs and GetPreviewData use case tests
-  - [ ] 9.1 Create ListPipelineJobs use case tests
+- [x] 9. Implement ListPipelineJobs and GetPreviewData use case tests
+  - [x] 9.1 Create ListPipelineJobs use case tests
     - Create `apps/api/src/pipeline/application/use-cases/list-pipeline-jobs.use-case.test.ts`
     - Set up mock `PipelineJobRepository`
     - Test happy path: valid page/limit returns jobs array, total, page, limit
@@ -146,7 +146,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test browserId filter is passed to repository.findAll and repository.count
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ] 9.2 Create GetPreviewData use case tests
+  - [x] 9.2 Create GetPreviewData use case tests
     - Create `apps/api/src/pipeline/application/use-cases/get-preview-data.use-case.test.ts`
     - Set up mock `PipelineJobRepository` and `ObjectStore`
     - Use factory to create a job in "preview" stage with generatedCode, sceneDirections, transcript, and audioPath set
@@ -157,7 +157,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test job with no transcript returns code "NOT_FOUND"
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 10. Final checkpoint - Run all tests across the monorepo
+- [x] 10. Final checkpoint - Run all tests across the monorepo
   - Run `cd packages/shared && NODE_OPTIONS='--experimental-vm-modules' npx jest --passWithNoTests` and verify all shared package tests pass
   - Run `cd apps/api && NODE_OPTIONS='--experimental-vm-modules' npx jest --passWithNoTests` and verify all API tests pass
   - Ensure all tests pass, ask the user if questions arise.
