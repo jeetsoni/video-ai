@@ -328,9 +328,16 @@ export function OverlayControls({
 
   const [playerReady, setPlayerReady] = useState(!!playerRef.current);
   useEffect(() => {
-    if (playerRef.current) { setPlayerReady(true); return; }
+    // Poll continuously so we detect both mount and remount of the player.
+    // When the player unmounts (ref goes null) we reset playerReady to false,
+    // which causes the event-listener effect below to re-run once the new
+    // player instance is available.
     const id = setInterval(() => {
-      if (playerRef.current) { setPlayerReady(true); clearInterval(id); }
+      const hasPlayer = !!playerRef.current;
+      setPlayerReady((prev) => {
+        if (prev !== hasPlayer) return hasPlayer;
+        return prev;
+      });
     }, 100);
     return () => clearInterval(id);
   }, [playerRef]);
@@ -363,6 +370,8 @@ export function OverlayControls({
       player.removeEventListener("pause", onPause);
       player.removeEventListener("frameupdate", onFrameUpdate);
       player.removeEventListener("mutechange", onMuteChange);
+      // Reset UI state so controls don't show stale play/pause while player remounts
+      setIsPlaying(false);
     };
   }, [playerRef, playerReady, updateFrameDisplay]);
 
