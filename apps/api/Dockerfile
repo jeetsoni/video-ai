@@ -50,6 +50,8 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Node.js heap is set dynamically at startup based on available container memory.
+# This leaves ~50% of RAM for Chromium + FFmpeg native processes.
 
 # Copy node_modules from build stage (includes generated Prisma client)
 COPY --from=build /app/node_modules ./node_modules
@@ -61,5 +63,7 @@ COPY --from=build /app/package.json ./package.json
 
 EXPOSE 4000
 
-# Run migrations, generate Prisma client, seed themes, then start the server
-CMD ["sh", "-c", "cd apps/api && npx prisma migrate deploy && npx prisma generate && npx tsx src/pipeline/infrastructure/seed/seed-themes.ts && node --import tsx/esm src/shared/presentation/http/server.ts"]
+# Run migrations, generate Prisma client, seed themes, then start the server.
+# Dynamically set Node.js heap to ~50% of available container memory so the
+# rest is available for Chromium and FFmpeg during video rendering.
+CMD ["sh", "-c", "TOTAL_MEM_MB=$(free -m | awk '/^Mem:/{print $2}'); NODE_HEAP=$((TOTAL_MEM_MB / 2)); echo \"[boot] ${TOTAL_MEM_MB}MB RAM detected, setting Node heap to ${NODE_HEAP}MB\"; export NODE_OPTIONS=\"--max-old-space-size=${NODE_HEAP}\"; cd apps/api && npx prisma migrate deploy && npx prisma generate && npx tsx src/pipeline/infrastructure/seed/seed-themes.ts && node --import tsx/esm src/shared/presentation/http/server.ts"]

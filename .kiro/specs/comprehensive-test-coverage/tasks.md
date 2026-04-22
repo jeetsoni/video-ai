@@ -6,13 +6,13 @@ This plan creates test files across the video-ai monorepo to close the highest-i
 
 ## Tasks
 
-- [ ] 1. Set up shared package testing dependencies and create constant/registry tests
-  - [ ] 1.1 Install fast-check in packages/shared
+- [x] 1. Set up shared package testing dependencies and create constant/registry tests
+  - [x] 1.1 Install fast-check in packages/shared
     - Run `npm install -D fast-check` in `packages/shared`
     - Verify fast-check 3.22.0 is added to `packages/shared/package.json` devDependencies
     - _Requirements: 9.1, 11.1 (prerequisite for shared PBTs)_
 
-  - [ ] 1.2 Create shared package constant and registry tests
+  - [x] 1.2 Create shared package constant and registry tests
     - Create `packages/shared/src/shared-exports.test.ts`
     - Test `FEATURED_VOICES` exports exactly 3 voices with valid voiceId, name, category, gender, description
     - Test `DEFAULT_VOICE_ID` matches the voiceId of the first featured voice
@@ -26,8 +26,8 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Test `voiceSettingsSchema` rejects speed outside 0.7–1.2 range
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 12.9, 12.10_
 
-- [ ] 2. Implement property-based tests for shared package schemas
-  - [ ] 2.1 Create ScriptStreamEvent round-trip property test
+- [x] 2. Implement property-based tests for shared package schemas
+  - [x] 2.1 Create ScriptStreamEvent round-trip property test
     - Create `packages/shared/src/schemas/script-stream-event.schema.test.ts`
     - Build custom fast-check arbitraries for all 5 event variants (chunk, status, scene, done, error) using `sceneBlockSchema` constraints
     - Write property: for all generated events, `JSON.stringify` → `JSON.parse` → `scriptStreamEventSchema.parse` produces deeply equal object
@@ -37,7 +37,7 @@ This plan creates test files across the video-ai monorepo to close the highest-i
     - Add tag comment: `Feature: comprehensive-test-coverage, Property 1: ScriptStreamEvent JSON round-trip preserves data`
     - _Requirements: 9.1, 9.2, 9.3_
 
-  - [ ] 2.2 Create createPipelineJobSchema property tests
+  - [x] 2.2 Create createPipelineJobSchema property tests
     - Create `packages/shared/src/schemas/pipeline.schema.test.ts`
     - Build arbitraries: `validTopicArb` (3–500 chars), `validFormatArb` (constantFrom "reel","short","longform"), `validThemeIdArb` (non-empty string)
     - Write property: for all valid inputs, `createPipelineJobSchema.safeParse` returns success with matching data

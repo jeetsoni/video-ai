@@ -253,11 +253,38 @@ export class RemotionVideoRenderer implements VideoRenderer {
       // 6. Render the video to a temp output file
       const outputPath = path.join(tmpDir, "output.mp4");
 
+      // Adaptive resource allocation based on available system memory.
+      // Railway charges by usage, so we scale rendering parallelism to match
+      // the allocated resources — more RAM = more concurrent Chromium tabs.
+      //
+      //   < 2 GB  → 720p, concurrency 1  (free tier / minimal hobby)
+      //   2-3 GB  → native res, concurrency 2
+      //   4+ GB   → native res, concurrency 3
+      //   8+ GB   → native res, concurrency 4
+      const totalMemGB = os.totalmem() / (1024 * 1024 * 1024);
+      const cpuCount = os.cpus().length;
+
+      let renderConcurrency: number;
+      if (totalMemGB < 2) renderConcurrency = 1;
+      else if (totalMemGB < 4) renderConcurrency = 2;
+      else if (totalMemGB < 8) renderConcurrency = Math.min(3, cpuCount);
+      else renderConcurrency = Math.min(4, cpuCount);
+
+      // On very low memory hosts (< 2 GB), scale down to 720p to survive
+      const effectiveWidth = totalMemGB < 2 ? Math.min(resolution.width, 720) : resolution.width;
+      const effectiveHeight = totalMemGB < 2
+        ? Math.round(resolution.height * (effectiveWidth / resolution.width))
+        : resolution.height;
+
+      console.log(
+        `[render] System: ${totalMemGB.toFixed(1)} GB RAM, ${cpuCount} CPUs → concurrency=${renderConcurrency}, resolution=${effectiveWidth}x${effectiveHeight}`,
+      );
+
       await renderMedia({
         composition: {
           ...composition,
-          width: resolution.width,
-          height: resolution.height,
+          width: effectiveWidth,
+          height: effectiveHeight,
           fps: this.config.fps,
           durationInFrames: params.scenePlan.totalFrames,
         },
@@ -265,6 +292,11 @@ export class RemotionVideoRenderer implements VideoRenderer {
         codec: this.config.codec,
         audioCodec: this.config.audioCodec,
         outputLocation: outputPath,
+        concurrency: renderConcurrency,
+        jpegQuality: 80,
+        chromiumOptions: {
+          disableWebSecurity: true,
+        },
         inputProps: {
           scenePlan: params.scenePlan,
           audioPath: params.audioPath,

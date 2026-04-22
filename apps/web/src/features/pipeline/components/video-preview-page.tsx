@@ -228,6 +228,8 @@ export function VideoPreviewPage({
 
     if (job.status === "failed") {
       pendingDownloadRef.current = false;
+      // Auto-switch mobile users to the preview tab so they see the retry action
+      setMobileTab("preview");
     }
   }, [job.stage, job.videoUrl, job.topic]);
 
@@ -526,6 +528,27 @@ export function VideoPreviewPage({
           )}
         </div>
       </div>
+
+      {/* Mobile failed banner — shown on non-preview tabs so the user always sees the retry action */}
+      {job.status === "failed" && mobileTab !== "preview" && (
+        <div className="flex lg:hidden shrink-0 mb-3 items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3">
+          <AlertTriangle className="size-4 shrink-0 text-stage-failed" />
+          <p className="flex-1 text-sm text-stage-failed truncate">
+            {job.errorMessage || "Generation failed"}
+          </p>
+          {onRetryJob && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5 shrink-0 text-xs h-7"
+              onClick={() => onRetryJob()}
+            >
+              <RefreshCw className="size-3" />
+              Retry
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Mobile tab bar — visible below lg */}
       <div className="flex lg:hidden shrink-0 mb-3 rounded-xl bg-white/5 p-1 gap-1">
