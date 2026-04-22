@@ -37,7 +37,6 @@ export function SceneTimeline({
   format,
   themeId,
   voiceId,
-  createdAt,
   totalDuration,
 }: SceneTimelineProps) {
   const voiceName = voiceId

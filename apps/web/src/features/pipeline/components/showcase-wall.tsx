@@ -80,7 +80,7 @@ export function ShowcaseWall() {
   const { pipelineRepository } = useAppDependencies();
 
   const [jobs, setJobs] = useState<PipelineJobDto[]>([]);
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [muted, setMuted] = useState(true);

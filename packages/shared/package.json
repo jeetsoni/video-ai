@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest --passWithNoTests",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage --passWithNoTests"

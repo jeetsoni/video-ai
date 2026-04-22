@@ -172,12 +172,6 @@ function getToneLabel(wordCount: number): string {
   return "In-Depth";
 }
 
-function getComplexityLabel(wordCount: number): string {
-  if (wordCount < 80) return "Low";
-  if (wordCount < 200) return "Medium";
-  return "High";
-}
-
 /* ─── Typing Indicator ─── */
 function TypingIndicator({ message }: { message?: string | null }) {
   return (

@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests"
   },
