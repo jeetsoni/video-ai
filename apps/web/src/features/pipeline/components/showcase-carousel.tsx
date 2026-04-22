@@ -112,9 +112,19 @@ export function ShowcaseCarousel() {
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
   }, [jobs]);
 
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const scroll = useCallback((dir: "left" | "right") => {
     const el = scrollRef.current;
     if (!el) return;
+
+    // Pause auto-scroll while user is manually navigating
+    pausedRef.current = true;
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      pausedRef.current = false;
+    }, 2000);
+
     el.scrollBy({ left: dir === "left" ? -360 : 360, behavior: "smooth" });
   }, []);
 
