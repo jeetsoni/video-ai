@@ -12,6 +12,8 @@ RUN npm ci --workspace=@video-ai/web --workspace=@video-ai/shared --include-work
 # ── Build ──
 FROM deps AS build
 
+# Cache bust arg - change value to force rebuild
+ARG CACHEBUST=1
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
