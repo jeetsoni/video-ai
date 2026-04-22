@@ -89,7 +89,7 @@ describe("SFX Library", () => {
       const profile = SCENE_SFX_MAP[type];
       expect(profile).toBeDefined();
       expect(typeof profile.ambience).toBe("string");
-      expect(profile.ambience.length).toBeGreaterThan(0);
+      // ambience may be empty string to indicate no ambient sound
       expect(typeof profile.transition).toBe("string");
       expect(profile.transition.length).toBeGreaterThan(0);
       expect(typeof profile.ambienceVolume).toBe("number");

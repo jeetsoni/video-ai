@@ -39,9 +39,9 @@ export const SCENE_SFX_MAP: Record<SceneType, SfxProfile> = {
     transitionVolume: 0.16,
   },
   Spotlight: {
-    ambience: "ambience-spotlight.mp3",
+    ambience: "",
     transition: "pop-reveal.mp3",
-    ambienceVolume: 0.05,
+    ambienceVolume: 0,
     transitionVolume: 0.16,
   },
   Comparison: {
@@ -104,14 +104,6 @@ export const SFX_AMBIENT_ASSETS: SfxAssetDefinition[] = [
       "Calm soft ambient pad with gentle warm tone and very subtle airy texture, clean and minimal, seamless loop",
     durationSeconds: 10,
     promptInfluence: 0.3,
-  },
-  {
-    name: "Spotlight Ambience",
-    filename: "ambience-spotlight.mp3",
-    prompt:
-      "Focused bright ambient tone with gentle clarity and clean high-end shimmer, seamless loop",
-    durationSeconds: 10,
-    promptInfluence: 0.5,
   },
   {
     name: "Comparison Ambience",

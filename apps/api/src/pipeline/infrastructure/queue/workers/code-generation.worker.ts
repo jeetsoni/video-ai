@@ -355,12 +355,14 @@ function generateSfxCode(
     const profile = sfxMap[scene.type];
     if (!profile) continue;
 
-    // Ambient bed — looped for the full scene duration
-    sfxLines.push(
-      `  <Sequence from={${scene.startFrame}} durationInFrames={${scene.durationFrames}}>`,
-      `    <Audio src={staticFile("sfx/${profile.ambience}")} volume={${profile.ambienceVolume}} loop />`,
-      `  </Sequence>`,
-    );
+    // Ambient bed — looped for the full scene duration (skip if no ambience file)
+    if (profile.ambience) {
+      sfxLines.push(
+        `  <Sequence from={${scene.startFrame}} durationInFrames={${scene.durationFrames}}>`,
+        `    <Audio src={staticFile("sfx/${profile.ambience}")} volume={${profile.ambienceVolume}} loop />`,
+        `  </Sequence>`,
+      );
+    }
 
     // Transition sound — one-shot at scene start
     sfxLines.push(
