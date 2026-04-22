@@ -9,9 +9,11 @@ import {
   LifeBuoy,
   RefreshCw,
   Wand2,
+  MessageSquare,
+  Film,
+  Monitor,
 } from "lucide-react";
 import {
-  FORMAT_RESOLUTIONS,
   type PipelineJobDto,
   type PipelineStage,
   type SceneProgressInfo,
@@ -28,6 +30,8 @@ import { ProgressiveScenePreview } from "./progressive-scene-preview";
 import { ChatPanel } from "./chat-panel";
 import { SmartDownloadButton } from "./smart-download-button";
 import { SceneTimeline } from "./scene-timeline";
+
+type MobileTab = "preview" | "chat" | "timeline";
 
 interface VideoPreviewPageProps {
   job: PipelineJobDto;
@@ -58,7 +62,7 @@ function PreviewSkeleton({ format }: { format: string }) {
   return (
     <div
       className={cn(
-        "w-full rounded-2xl bg-white/[0.04] animate-pulse",
+        "w-full rounded-2xl bg-white/4 animate-pulse",
         ASPECT_CLASSES[format] ?? "aspect-video",
       )}
       role="status"
@@ -87,7 +91,7 @@ function PreviewError({
     error.includes("Cannot read");
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl bg-destructive/10 p-8 text-center">
+    <div className="flex flex-col items-center gap-4 rounded-xl bg-destructive/10 p-6 sm:p-8 text-center">
       <div className="flex size-12 items-center justify-center rounded-xl bg-destructive/10">
         <AlertTriangle className="size-6 text-stage-failed" />
       </div>
@@ -102,7 +106,7 @@ function PreviewError({
           </p>
         )}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap justify-center">
         {isRuntimeError && onAutofix && (
           <Button
             variant="default"
@@ -135,7 +139,7 @@ function PreviewError({
 
 function RenderingProgress() {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-xl bg-white/4 px-4 py-3">
       <Loader2 className="size-4 animate-spin text-stage-active" />
       <p className="text-sm text-white/50">
         Rendering your video… This may take a few minutes.
@@ -177,14 +181,11 @@ export function VideoPreviewPage({
 
   const stageInfo = getStageDisplayInfo(job.stage);
   const StageIcon = stageInfo.icon;
-  const resolution =
-    FORMAT_RESOLUTIONS[job.format as keyof typeof FORMAT_RESOLUTIONS];
 
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isAutofixing, setIsAutofixing] = useState(false);
-  const [autofixExplanation, setAutofixExplanation] = useState<string | null>(
-    null,
-  );
+  const [autofixExplanation, setAutofixExplanation] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>("preview");
 
   // Track whether the smart download button initiated a render so we can auto-download on completion
   const pendingDownloadRef = useRef<boolean>(false);
@@ -225,7 +226,7 @@ export function VideoPreviewPage({
       })();
     }
 
-    if (job.stage === "failed") {
+    if (job.status === "failed") {
       pendingDownloadRef.current = false;
     }
   }, [job.stage, job.videoUrl, job.topic]);
@@ -249,12 +250,8 @@ export function VideoPreviewPage({
     setIsAutofixing(true);
     setAutofixExplanation(null);
 
-    // Parse error type from the error message
     let errorType = "Runtime Error";
-    if (
-      previewError.includes("ReferenceError") ||
-      previewError.includes("is not defined")
-    ) {
+    if (previewError.includes("ReferenceError") || previewError.includes("is not defined")) {
       errorType = "ReferenceError";
     } else if (previewError.includes("TypeError")) {
       errorType = "TypeError";
@@ -269,22 +266,18 @@ export function VideoPreviewPage({
         errorType,
       });
       setAutofixExplanation(result.explanation);
-      // Refetch to get the updated code
       await refetch();
     } catch (err) {
       console.error("Autofix failed:", err);
-      // If autofix fails, user can still use regenerate
     } finally {
       setIsAutofixing(false);
     }
   }, [job.id, previewError, repository, refetch]);
 
-  // Handler for autofix from the player (receives error details directly)
   const handleAutofixForPlayer = useCallback(
     async (errorMessage: string, errorType: string) => {
       setIsAutofixing(true);
       setAutofixExplanation(null);
-
       try {
         const result = await repository.autofixCode({
           jobId: job.id,
@@ -292,11 +285,9 @@ export function VideoPreviewPage({
           errorType,
         });
         setAutofixExplanation(result.explanation);
-        // Refetch to get the updated code
         await refetch();
       } catch (err) {
         console.error("Autofix failed:", err);
-        // If autofix fails, user can still use regenerate
       } finally {
         setIsAutofixing(false);
       }
@@ -306,14 +297,7 @@ export function VideoPreviewPage({
 
   // Determine what to render in the preview area
   function renderPreviewArea() {
-    // During code_generation, show progressive preview if we have scene progress data
-    // We can derive scene boundaries from sceneProgress even if job.scenePlan isn't loaded yet
-    if (
-      job.stage === "code_generation" &&
-      sceneProgress &&
-      sceneProgress.size > 0
-    ) {
-      // Build scene boundaries from sceneProgress if job.scenePlan is not available
+    if (job.stage === "code_generation" && sceneProgress && sceneProgress.size > 0) {
       const sceneBoundaries: SceneBoundary[] =
         job.scenePlan && job.scenePlan.length > 0
           ? job.scenePlan
@@ -321,16 +305,11 @@ export function VideoPreviewPage({
               id: sp.sceneId,
               name: sp.sceneName,
               type: "Bridge" as const,
-              startTime: index * 5, // Placeholder timing
+              startTime: index * 5,
               endTime: (index + 1) * 5,
               text: "",
             }));
 
-      console.log(
-        "[NEW CODE] Rendering ProgressiveScenePreview with",
-        sceneBoundaries.length,
-        "scenes",
-      );
       return (
         <ProgressiveScenePreview
           sceneBoundaries={sceneBoundaries}
@@ -341,12 +320,7 @@ export function VideoPreviewPage({
       );
     }
 
-    // For direction_generation with scenePlan, also show progressive preview
-    if (
-      job.stage === "direction_generation" &&
-      job.scenePlan &&
-      job.scenePlan.length > 0
-    ) {
+    if (job.stage === "direction_generation" && job.scenePlan && job.scenePlan.length > 0) {
       return (
         <ProgressiveScenePreview
           sceneBoundaries={job.scenePlan}
@@ -357,30 +331,18 @@ export function VideoPreviewPage({
       );
     }
 
-    // During direction_generation or code_generation but before scene data arrives,
-    // show the generating loader so users always see feedback.
-    // Use h-full instead of aspect ratio so the loader fills the flex container
-    // and stays visible on desktop where the parent has overflow-hidden.
-    if (
-      job.stage === "direction_generation" ||
-      job.stage === "code_generation"
-    ) {
+    if (job.stage === "direction_generation" || job.stage === "code_generation") {
       return (
-        <div className="w-full h-full min-h-[300px] rounded-2xl bg-white/[0.04] flex items-center justify-center">
+        <div className="w-full h-full min-h-[300px] rounded-2xl bg-white/4 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-center p-8">
             <Loader2 className="size-6 animate-spin text-stage-active" />
-            <p className="text-sm text-white/50">
-              Generating scene animations…
-            </p>
-            <p className="text-xs text-white/30">
-              Preview will appear as each scene completes
-            </p>
+            <p className="text-sm text-white/50">Generating scene animations…</p>
+            <p className="text-xs text-white/30">Preview will appear as each scene completes</p>
           </div>
         </div>
       );
     }
 
-    // For stages before preview (but not code_generation/direction_generation), use the existing VideoPreviewSection
     if (!isPreviewEligible) {
       if (job.status === "failed") {
         return (
@@ -393,29 +355,18 @@ export function VideoPreviewPage({
           />
         );
       }
-      // Show stage progress inside the player area
       return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8 bg-white/[0.04] rounded-2xl">
-          <div
-            className={cn(
-              "flex size-12 items-center justify-center rounded-xl",
-              "bg-stage-active/20",
-            )}
-          >
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8 bg-white/4 rounded-2xl">
+          <div className={cn("flex size-12 items-center justify-center rounded-xl", "bg-stage-active/20")}>
             <StageIcon className="size-6 text-stage-active" />
           </div>
           <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-white">
-              {stageInfo.label}
-            </p>
-            <p className="text-xs text-white/50">
-              {stageInfo.description}
-            </p>
+            <p className="text-sm font-semibold text-white">{stageInfo.label}</p>
+            <p className="text-xs text-white/50">{stageInfo.description}</p>
           </div>
-          {/* Progress bar */}
           <div className="w-full max-w-[200px]">
             <div
-              className="h-1.5 rounded-full bg-white/[0.06]"
+              className="h-1.5 rounded-full bg-white/6"
               role="progressbar"
               aria-valuenow={job.progressPercent}
               aria-valuemin={0}
@@ -434,16 +385,13 @@ export function VideoPreviewPage({
       );
     }
 
-    // Loading state while fetching preview data
     if (previewLoading) {
       return <PreviewSkeleton format={job.format} />;
     }
 
-    // Error state from fetch or code evaluation
     if (previewError) {
       const isSyntaxOrEvalError =
-        previewError.startsWith("SyntaxError") ||
-        previewError.includes("does not define a Main");
+        previewError.startsWith("SyntaxError") || previewError.includes("does not define a Main");
       const isRuntimeError =
         previewError.includes("is not defined") ||
         previewError.includes("ReferenceError") ||
@@ -451,11 +399,7 @@ export function VideoPreviewPage({
       return (
         <PreviewError
           error={previewError}
-          onRetry={
-            isSyntaxOrEvalError || isRuntimeError
-              ? handleRegenerateCode
-              : refetch
-          }
+          onRetry={isSyntaxOrEvalError || isRuntimeError ? handleRegenerateCode : refetch}
           onAutofix={isRuntimeError ? handleAutofixCode : undefined}
           isAutofixing={isAutofixing}
           autofixExplanation={autofixExplanation}
@@ -463,7 +407,6 @@ export function VideoPreviewPage({
       );
     }
 
-    // Always show Remotion live preview from code for preview-eligible stages
     if (evaluatedComponent && previewData) {
       return (
         <RemotionPreviewPlayer
@@ -485,20 +428,51 @@ export function VideoPreviewPage({
       );
     }
 
-    // Fallback skeleton if preview data hasn't arrived yet
     return <PreviewSkeleton format={job.format} />;
   }
 
-  // Resolve voice name for the info tooltip
-
   const scenes = job.scenePlan ?? job.approvedScenes ?? [];
   const totalDuration = previewData ? previewData.totalFrames / previewData.fps : 0;
+  const isVerticalFormat = job.format === "reel" || job.format === "short";
+
+  // Shared panel content
+  const chatPanelContent = isPreviewEligible && evaluatedComponent && previewData ? (
+    <ChatPanel
+      job={job}
+      repository={repository}
+      playerRef={playerRefObj}
+      playerContainerRef={playerContainerRef}
+      fps={previewData.fps}
+      onCodeUpdated={async () => { await refetch(); onRefresh?.(); }}
+    />
+  ) : (
+    <div className="flex flex-1 items-center justify-center p-6 text-center">
+      <div className="space-y-2">
+        <StageIcon className={cn("size-8 mx-auto", job.status === "failed" ? "text-stage-failed" : "text-white/20")} />
+        <p className="text-sm text-white/50">
+          {job.status === "failed" ? "Processing failed" : "Chat available once preview is ready"}
+        </p>
+      </div>
+    </div>
+  );
+
+  const timelinePanelContent = (
+    <SceneTimeline
+      scenes={scenes}
+      format={job.format}
+      themeId={job.themeId}
+      voiceId={job.voiceId}
+      voiceSettings={job.voiceSettings}
+      createdAt={job.createdAt}
+      totalDuration={totalDuration}
+    />
+  );
 
   return (
-    <main className="flex h-[calc(100vh-4rem)] flex-col px-3 sm:px-6 py-3">
+    <main className="flex h-[calc(100dvh-4rem)] flex-col px-3 sm:px-4 lg:px-6 py-3">
       {/* Polling error banner */}
       {pollingError && (
-        <div role="alert" className="flex items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 mb-3">
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 mb-3 shrink-0">
           <AlertTriangle className="size-4 shrink-0 text-stage-failed" />
           <p className="flex-1 text-sm text-stage-failed">Unable to fetch latest status. Retrying automatically…</p>
           {onRefresh && (
@@ -510,87 +484,144 @@ export function VideoPreviewPage({
       )}
 
       {/* Header */}
-      <div className="relative z-10 flex items-center gap-3 mb-3 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 sm:gap-3 mb-3 shrink-0">
         {onBack && (
-          <button type="button" onClick={onBack} className="text-white/50 hover:text-white transition-colors shrink-0" aria-label="Back">
-            <ArrowLeft className="size-6" />
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-white/50 hover:text-white transition-colors shrink-0"
+            aria-label="Back"
+          >
+            <ArrowLeft className="size-5 sm:size-6" />
           </button>
         )}
-        <h1 className="flex-1 text-lg sm:text-xl font-light text-white truncate">{job.topic}</h1>
-        <div className="flex gap-2 shrink-0">
+        <h1 className="flex-1 text-base sm:text-lg lg:text-xl font-light text-white truncate min-w-0">
+          {job.topic}
+        </h1>
+        <div className="flex gap-1.5 sm:gap-2 shrink-0">
           {(job.stage === "preview" || job.stage === "rendering" || job.stage === "done") && onExport && (
             <SmartDownloadButton job={job} onExport={handleSmartExport} />
           )}
           {(job.stage === "preview" || job.stage === "done") && (
-            <Button variant="secondary" size="sm" className="h-8 gap-1.5 rounded-lg text-xs px-3" onClick={handleRegenerateCode} disabled={isRegenerating}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg text-xs px-2 sm:px-3"
+              onClick={handleRegenerateCode}
+              disabled={isRegenerating}
+            >
               {isRegenerating ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
               <span className="hidden sm:inline">Regenerate</span>
             </Button>
           )}
           {!isPreviewEligible && (job.status === "failed" || job.status === "processing") && onRetryJob && (
-            <Button variant="secondary" size="sm" className="h-8 gap-1.5 rounded-lg text-xs px-3" onClick={() => onRetryJob()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg text-xs px-2 sm:px-3"
+              onClick={() => onRetryJob()}
+            >
               <RefreshCw className="size-3" />Retry
             </Button>
           )}
         </div>
       </div>
 
-      {/* 3-column layout: Chat | Phone Preview | Scene Timeline */}
-      <div className="min-h-0 flex-1 flex gap-4 overflow-hidden">
-        {/* Chat — 25% */}
-        <div className="hidden lg:flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
-          {isPreviewEligible && evaluatedComponent && previewData ? (
-            <ChatPanel
-              job={job}
-              repository={repository}
-              playerRef={playerRefObj}
-              playerContainerRef={playerContainerRef}
-              fps={previewData.fps}
-              onCodeUpdated={async () => { await refetch(); onRefresh?.(); }}
-            />
-          ) : (
-            <div className="flex flex-1 items-center justify-center p-6 text-center">
-              <div className="space-y-2">
-                <StageIcon className={cn("size-8 mx-auto", job.status === "failed" ? "text-stage-failed" : "text-white/20")} />
-                <p className="text-sm text-white/50">
-                  {job.status === "failed" ? "Processing failed" : "Chat available once preview is ready"}
-                </p>
-              </div>
-            </div>
-          )}
+      {/* Mobile tab bar — visible below lg */}
+      <div className="flex lg:hidden shrink-0 mb-3 rounded-xl bg-white/5 p-1 gap-1">
+        {(
+          [
+            { id: "chat" as MobileTab, label: "Chat", icon: MessageSquare },
+            { id: "preview" as MobileTab, label: "Preview", icon: Monitor },
+            { id: "timeline" as MobileTab, label: "Timeline", icon: Film },
+          ] as const
+        ).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setMobileTab(id)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors",
+              mobileTab === id
+                ? "bg-white/10 text-white"
+                : "text-white/40 hover:text-white/70",
+            )}
+          >
+            <Icon className="size-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Body */}
+      <div className="min-h-0 flex-1 flex gap-3 lg:gap-4 overflow-hidden">
+
+        {/* ── Chat panel ── */}
+        {/* Desktop: always visible as left column */}
+        <div className="hidden lg:flex w-[28%] xl:w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-white/3 backdrop-blur-xl">
+          {chatPanelContent}
+        </div>
+        {/* Mobile: shown when chat tab is active */}
+        <div className={cn("lg:hidden flex-1 flex flex-col overflow-hidden rounded-xl border border-white/8 bg-white/3 backdrop-blur-xl", mobileTab !== "chat" && "hidden")}>
+          {chatPanelContent}
         </div>
 
-        {/* Phone Preview — center, auto-sized */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 min-h-0">
+        {/* ── Center preview ── */}
+        <div className={cn(
+          "flex-1 flex flex-col items-center justify-start sm:justify-center gap-2 min-h-0 overflow-y-auto",
+          // On mobile, hide when another tab is active
+          "lg:flex",
+          mobileTab !== "preview" && "hidden lg:flex",
+        )}>
+          {/* Preview container — phone frame for vertical, widescreen for horizontal */}
           <div
             className={cn(
-              "relative overflow-hidden",
-              job.format === "reel" || job.format === "short"
-                ? "rounded-[2.8rem] border-[7px] border-white/[0.18] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_32px_80px_rgba(0,0,0,0.8)] bg-black"
-                : "rounded-2xl border border-white/[0.08] shadow-[0_8px_48px_rgba(0,0,0,0.5)]",
+              "relative overflow-hidden shrink-0",
+              isVerticalFormat
+                ? "rounded-4xl sm:rounded-[2.8rem] border-[5px] sm:border-[7px] border-white/18 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_32px_80px_rgba(0,0,0,0.8)] bg-black"
+                : "rounded-2xl border border-white/8 shadow-[0_8px_48px_rgba(0,0,0,0.5)] w-full",
             )}
             style={
-              job.format === "reel" || job.format === "short"
-                ? { height: "calc(100vh - 12rem)", width: "calc((100vh - 12rem) * 9 / 16)", maxHeight: "720px", maxWidth: "405px" }
-                : { width: "min(100%, 560px)", aspectRatio: "16/9" }
+              isVerticalFormat
+                ? {
+                    // Fill available height, constrain width by aspect ratio
+                    // Use dvh so it works on mobile browsers with dynamic toolbars
+                    height: "min(calc(100dvh - 14rem), 680px)",
+                    width: "calc(min(calc(100dvh - 14rem), 680px) * 9 / 16)",
+                    maxWidth: "min(calc(100vw - 2rem), 360px)",
+                    maxHeight: "calc((min(calc(100vw - 2rem), 360px)) * 16 / 9)",
+                  }
+                : { maxWidth: "min(100%, 560px)", aspectRatio: "16/9" }
             }
           >
-            {(job.format === "reel" || job.format === "short") && (
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-24 h-6 bg-black rounded-b-2xl" />
+            {isVerticalFormat && (
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 w-20 sm:w-24 h-5 sm:h-6 bg-black rounded-b-2xl" />
             )}
             {renderPreviewArea()}
           </div>
 
           {/* External player controls */}
           {isPreviewEligible && evaluatedComponent && previewData && (
-            <div className="w-full" style={{ maxWidth: job.format === "reel" || job.format === "short" ? "calc((100vh - 12rem) * 9 / 16)" : "560px" }}>
-              <OverlayControls external playerRef={playerRefObj} fps={previewData.fps} totalFrames={previewData.totalFrames} />
+            <div
+              className="w-full shrink-0"
+              style={{
+                maxWidth: isVerticalFormat
+                  ? "min(calc(min(calc(100dvh - 14rem), 680px) * 9 / 16), min(calc(100vw - 2rem), 360px))"
+                  : "min(100%, 560px)",
+              }}
+            >
+              <OverlayControls
+                external
+                playerRef={playerRefObj}
+                fps={previewData.fps}
+                totalFrames={previewData.totalFrames}
+              />
             </div>
           )}
 
-                    {/* Status messages */}
+          {/* Status messages */}
           {isPreviewEligible && audioLoadError && (
-            <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-xs text-stage-failed">
+            <div className="flex items-center gap-2 rounded-lg bg-stage-failed/10 border border-stage-failed/30 px-3 py-2 text-xs text-stage-failed shrink-0">
               <AlertTriangle className="size-3.5 shrink-0" />
               <span>Audio failed to load</span>
               <Button variant="ghost" size="sm" className="gap-1 text-stage-failed h-6 px-2 text-xs" onClick={refreshAudioUrl}>
@@ -600,25 +631,23 @@ export function VideoPreviewPage({
           )}
           {job.stage === "rendering" && <RenderingProgress />}
           {isCompletedWithoutVideo && (
-            <div className="flex items-center gap-2 text-xs text-white/40">
+            <div className="flex items-center gap-2 text-xs text-white/40 shrink-0">
               <LifeBuoy className="size-3.5" />
               <span>Video file not available.</span>
             </div>
           )}
         </div>
 
-        {/* Scene Timeline — 25% */}
-        <div className="hidden lg:flex w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
-          <SceneTimeline
-            scenes={scenes}
-            format={job.format}
-            themeId={job.themeId}
-            voiceId={job.voiceId}
-            voiceSettings={job.voiceSettings}
-            createdAt={job.createdAt}
-            totalDuration={totalDuration}
-          />
+        {/* ── Scene Timeline ── */}
+        {/* Desktop: always visible as right column */}
+        <div className="hidden lg:flex w-[28%] xl:w-1/3 shrink-0 flex-col overflow-hidden rounded-xl border border-white/8 bg-white/3 backdrop-blur-xl">
+          {timelinePanelContent}
         </div>
+        {/* Mobile: shown when timeline tab is active */}
+        <div className={cn("lg:hidden flex-1 flex flex-col overflow-hidden rounded-xl border border-white/8 bg-white/3 backdrop-blur-xl", mobileTab !== "timeline" && "hidden")}>
+          {timelinePanelContent}
+        </div>
+
       </div>
     </main>
   );

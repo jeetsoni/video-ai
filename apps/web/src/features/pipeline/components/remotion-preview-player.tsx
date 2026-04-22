@@ -72,6 +72,8 @@ export interface RemotionPreviewPlayerProps {
   onPlayerRef?: (ref: PlayerRef | null) => void;
   /** Ref attached to the outermost container div, useful for screenshot capture. */
   containerRef?: React.Ref<HTMLDivElement>;
+  /** Hide the built-in overlay controls (use external OverlayControls instead). */
+  hideControls?: boolean;
 }
 
 interface CompositionProps {
