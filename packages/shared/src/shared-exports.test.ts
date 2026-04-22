@@ -18,8 +18,8 @@ import {
 import { voiceSettingsSchema } from "./schemas/pipeline.schema.js";
 
 describe("Voice Registry", () => {
-  it("exports exactly 3 featured voices", () => {
-    expect(FEATURED_VOICES).toHaveLength(3);
+  it("exports exactly 5 featured voices", () => {
+    expect(FEATURED_VOICES).toHaveLength(5);
   });
 
   it("each featured voice has valid voiceId, name, category, gender, description", () => {
