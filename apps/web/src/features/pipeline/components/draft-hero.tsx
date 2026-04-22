@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, ChevronDown, Check, Palette } from "lucide-react";
 import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
@@ -37,6 +37,22 @@ export function DraftHero() {
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const themePickerRef = useRef<HTMLDivElement>(null);
+
+  // Close theme dropdown on outside click
+  useEffect(() => {
+    if (!themeOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        themePickerRef.current &&
+        !themePickerRef.current.contains(e.target as Node)
+      ) {
+        setThemeOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [themeOpen]);
 
   const selectedTheme =
     ANIMATION_THEMES.find((t) => t.id === themeId) ?? ANIMATION_THEMES[0]!;
@@ -99,7 +115,7 @@ export function DraftHero() {
         {/* Bottom toolbar */}
         <div className="flex items-center justify-between px-4 pb-3">
           {/* Left — theme picker */}
-          <div className="relative">
+          <div className="relative" ref={themePickerRef}>
             <button
               type="button"
               onClick={() => setThemeOpen((v) => !v)}
@@ -117,12 +133,7 @@ export function DraftHero() {
             </button>
 
             {themeOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setThemeOpen(false)}
-                />
-                <div className="absolute left-0 top-full z-50 mt-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1a1a2e]/95 p-2 shadow-2xl backdrop-blur-2xl">
+                <div className="absolute left-0 bottom-full z-50 mb-2 w-64 max-h-72 overflow-y-auto rounded-xl border border-white/[0.1] bg-[#1a1a2e]/95 p-2 shadow-2xl backdrop-blur-2xl">
                   {ANIMATION_THEMES.map((theme) => {
                     const isSelected = themeId === theme.id;
                     return (
@@ -156,7 +167,6 @@ export function DraftHero() {
                     );
                   })}
                 </div>
-              </>
             )}
           </div>
 
