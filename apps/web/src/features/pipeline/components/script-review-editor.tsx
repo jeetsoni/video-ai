@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowRight,
   ArrowLeft,
@@ -472,6 +473,7 @@ export function ScriptReviewEditor({
   );
 
   const handleApprove = useCallback(() => {
+    flushSync(() => setIsApproving(true));
     const scriptToSend =
       isEdited && editedScript.trim() ? editedScript : undefined;
     if (apiScenes && apiScenes.length > 0) {
@@ -540,6 +542,7 @@ export function ScriptReviewEditor({
   const tone = getToneLabel(wordCount);
 
   const [activeTab, setActiveTab] = useState<"chat" | "script" | "narration">("script");
+  const [isApproving, setIsApproving] = useState(false);
 
   return (
     <div className="flex h-full flex-col">
@@ -569,12 +572,18 @@ export function ScriptReviewEditor({
             Draft
           </Button>
           <Button
-            disabled={isLoading || isUnderMinimum}
+            disabled={isLoading || isApproving || isUnderMinimum}
             onClick={handleApprove}
             className="gap-2 shadow-lg shadow-primary/10 text-sm px-3"
           >
-            Approve
-            <ArrowRight className="size-4" />
+            {isApproving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                Approve
+                <ArrowRight className="size-4" />
+              </>
+            )}
           </Button>
         </div>
       </div>

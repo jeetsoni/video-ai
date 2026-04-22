@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Sparkles, ChevronDown, Check, Palette } from "lucide-react";
 import type { VideoFormat, AnimationTheme } from "@video-ai/shared";
@@ -60,7 +61,7 @@ export function DraftHero() {
   const handleDraft = useCallback(async () => {
     const trimmed = topic.trim();
     if (!trimmed || isSubmitting) return;
-    setIsSubmitting(true);
+    flushSync(() => setIsSubmitting(true));
     try {
       const res = await pipelineRepository.createJob({
         topic: trimmed,
