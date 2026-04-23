@@ -29,7 +29,7 @@ export default function RootLayout({
         <AppDependenciesProvider>
           <div className="ambient-glow" />
           <AppHeader />
-          <div className="relative z-10 min-h-screen pt-16">{children}</div>
+          <div className="relative z-10 min-h-[calc(100vh-4rem)] pt-16">{children}</div>
         </AppDependenciesProvider>
       </body>
     </html>
