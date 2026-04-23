@@ -57,21 +57,15 @@ Bugfix specs like `sse-reconnect-scene-progress` and `regenerate-from-done-fix` 
 
 ## Agent Hooks
 
-I configured three agent hooks to automate quality checks throughout development:
+I configured two agent hooks to automate quality checks throughout development:
 
-### 1. Lint on Save (`lint-on-save`)
-
-- **Trigger**: Any `.ts` or `.tsx` file is saved
-- **Action**: Runs `npx turbo lint` automatically
-- **Impact**: Caught formatting and import issues immediately, preventing them from accumulating
-
-### 2. Test After Task Completion (`test-after-task`)
+### 1. Test After Task Completion (`test-after-task`)
 
 - **Trigger**: After any spec task is marked complete
 - **Action**: Runs `npx turbo test` automatically
 - **Impact**: Ensured each implementation step passed tests before moving to the next task
 
-### 3. Review Write Operations (`review-write-ops`)
+### 2. Review Write Operations (`review-write-ops`)
 
 - **Trigger**: Before any file write operation
 - **Action**: Reminds the agent to verify Clean Architecture boundaries, kebab-case naming, and Result pattern usage
@@ -82,8 +76,6 @@ I configured three agent hooks to automate quality checks throughout development
 The `review-write-ops` hook (preToolUse on write) was the most impactful of the three. Every time Kiro was about to write a file, it first verified four things: kebab-case file naming, Clean Architecture layer boundaries (dependencies point inward only), `Result.ok()`/`Result.fail()` instead of throwing, and no "WHAT" comments. This caught real issues — for example, when generating the `ElevenLabsTTSService`, the hook ensured it lived in `infrastructure/services/` (not `application/`) and that it returned `Result.fail(PipelineError.ttsGenerationFailed(...))` instead of throwing an exception. Without this hook, the generated code would have mixed error handling patterns across the codebase.
 
 The `test-after-task` hook (postTaskExecution) created a tight feedback loop. After completing each spec task — like implementing the `CreatePipelineJobUseCase` or the `ScriptGenerationWorker` — the full test suite ran automatically via `npx turbo test`. This caught regressions immediately. When I added the voice settings feature, the hook caught that a new Zod schema field (`voiceSettings`) broke existing pipeline creation tests before I moved on to the next task.
-
-The `lint-on-save` hook (fileEdited on `*.ts`/`*.tsx`) was the simplest but prevented lint debt from accumulating. Every saved file triggered `npx turbo lint`, so import ordering issues and unused variables were caught in real time rather than piling up for a cleanup session later.
 
 ## Steering Docs
 

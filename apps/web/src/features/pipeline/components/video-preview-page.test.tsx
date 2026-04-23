@@ -92,11 +92,25 @@ jest.mock("./remotion-preview-player", () => ({
         "data-audio-error": String(props.audioError),
       }),
   ),
+  OverlayControls: () =>
+    React.createElement("div", { "data-testid": "overlay-controls" }),
 }));
 
 jest.mock("./progressive-scene-preview", () => ({
   ProgressiveScenePreview: () =>
     React.createElement("div", { "data-testid": "progressive-scene-preview" }),
+  SceneProgressIndicator: () =>
+    React.createElement("div", { "data-testid": "scene-progress-indicator" }),
+}));
+
+jest.mock("./smart-download-button", () => ({
+  SmartDownloadButton: () =>
+    React.createElement("div", { "data-testid": "smart-download-button" }),
+}));
+
+jest.mock("./scene-timeline", () => ({
+  SceneTimeline: () =>
+    React.createElement("div", { "data-testid": "scene-timeline" }),
 }));
 
 // --- Helpers ---
@@ -160,6 +174,9 @@ function createMockRepository(
     previewVoice: jest.fn(),
     sendTweak: jest.fn(),
     getTweakMessages: jest.fn().mockResolvedValue([]),
+    sendScriptTweak: jest.fn(),
+    getScriptTweakMessages: jest.fn().mockResolvedValue([]),
+    listShowcase: jest.fn(),
   };
 }
 
@@ -254,7 +271,7 @@ describe("VideoPreviewPage — Preservation Property Tests", () => {
           );
 
           await waitFor(() => {
-            expect(screen.getByTestId("chat-panel")).toBeInTheDocument();
+            expect(screen.getAllByTestId("chat-panel").length).toBeGreaterThan(0);
           });
 
           unmount();
@@ -289,7 +306,7 @@ describe("VideoPreviewPage — Preservation Property Tests", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("chat-panel")).toBeInTheDocument();
+      expect(screen.getAllByTestId("chat-panel").length).toBeGreaterThan(0);
     });
   });
 });

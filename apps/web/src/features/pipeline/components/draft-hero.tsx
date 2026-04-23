@@ -37,6 +37,7 @@ export function DraftHero() {
   const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
   const [themeOpen, setThemeOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const themePickerRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,10 @@ export function DraftHero() {
   const handleDraft = useCallback(async () => {
     const trimmed = topic.trim();
     if (!trimmed || isSubmitting) return;
-    flushSync(() => setIsSubmitting(true));
+    flushSync(() => {
+      setIsSubmitting(true);
+      setSubmitError(null);
+    });
     try {
       const res = await pipelineRepository.createJob({
         topic: trimmed,
@@ -69,6 +73,10 @@ export function DraftHero() {
         themeId,
       });
       router.push(`/jobs/${res.jobId}`);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -98,6 +106,13 @@ export function DraftHero() {
           Transform any topic into a cinematic AI-generated video
         </p>
       </div>
+
+      {/* Error banner */}
+      {submitError && (
+        <div className="w-full rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 text-sm text-stage-failed text-center">
+          {submitError}
+        </div>
+      )}
 
       {/* Input card — Stitch style */}
       <div className="w-full rounded-2xl border border-white/[0.1] bg-gradient-to-b from-white/[0.07] to-white/[0.02] p-1 shadow-[0_8px_64px_rgba(100,94,251,0.12)] backdrop-blur-2xl">

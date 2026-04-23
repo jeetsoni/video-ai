@@ -18,7 +18,7 @@ import { ExportVideoUseCase } from "@/pipeline/application/use-cases/export-vide
 import { ListVoicesUseCase } from "@/pipeline/application/use-cases/list-voices.use-case.js";
 import { ElevenLabsVoiceService } from "@/pipeline/infrastructure/services/elevenlabs-voice-service.js";
 import { ElevenLabsTTSService } from "@/pipeline/infrastructure/services/elevenlabs-tts-service.js";
-import { InMemoryRateLimiter } from "@/shared/infrastructure/rate-limiter/in-memory-rate-limiter.js";
+import { RedisRateLimiter } from "@/shared/infrastructure/rate-limiter/redis-rate-limiter.js";
 import { GenerateVoicePreviewUseCase } from "@/pipeline/application/use-cases/generate-voice-preview.use-case.js";
 import { VoicePreviewController } from "@/pipeline/presentation/controllers/voice-preview.controller.js";
 import { createRateLimitMiddleware } from "@/shared/presentation/middleware/rate-limit.middleware.js";
@@ -42,6 +42,9 @@ import { AIScriptTweaker } from "@/pipeline/infrastructure/services/ai-script-tw
 import { NoOpWebSearchProvider } from "@/pipeline/infrastructure/services/noop-web-search-provider.js";
 import { ListShowcaseUseCase } from "@/pipeline/application/use-cases/list-showcase.use-case.js";
 
+const TEN_MINUTES = 10 * 60 * 1000;
+const ONE_MINUTE = 60 * 1000;
+
 export function createPipelineModule(deps: {
   prisma: PrismaClient;
   queue: Queue;
@@ -49,14 +52,11 @@ export function createPipelineModule(deps: {
   redisConnection: string;
   elevenlabsApiKey: string;
 }): Router {
-  // 1. Infrastructure
   const repository = new PrismaPipelineJobRepository(deps.prisma);
   const queueService = new BullMQQueueService(deps.queue);
 
-  // 2. ID generator
   const idGenerator = { generate: () => crypto.randomUUID() };
 
-  // 3. Use cases
   const createPipelineJobUseCase = new CreatePipelineJobUseCase(
     repository,
     queueService,
@@ -114,15 +114,12 @@ export function createPipelineModule(deps: {
   );
   const exportVideoUseCase = new ExportVideoUseCase(repository, queueService);
 
-  // Voice service + use case
   const voiceService = new ElevenLabsVoiceService(deps.elevenlabsApiKey);
   const listVoicesUseCase = new ListVoicesUseCase(voiceService);
 
-  // 4. Themes query
   const getThemesFn = () =>
     deps.prisma.animationTheme.findMany({ orderBy: { sortOrder: "asc" } });
 
-  // 5. Pipeline controller
   const controller = new PipelineController(
     createPipelineJobUseCase,
     getJobStatusUseCase,
@@ -143,14 +140,11 @@ export function createPipelineModule(deps: {
     listShowcaseUseCase,
   );
 
-  // 6. Streaming SSE infrastructure
-  // Use URL string directly - ioredis parses it including password
   const redisClient = new Redis(deps.redisConnection);
   const streamEventBuffer = new RedisStreamEventBuffer(redisClient);
   const streamEventSubscriber = new RedisStreamEventSubscriber(redisClient);
   const sseResponseHelper = new ExpressSSEResponseHelper();
 
-  // 7. Stream controller
   const streamController = new StreamController(
     streamEventBuffer,
     streamEventSubscriber,
@@ -158,13 +152,11 @@ export function createPipelineModule(deps: {
     repository,
   );
 
-  // 8. Progress SSE infrastructure
   const progressRedisClient = new Redis(deps.redisConnection);
   const progressEventSubscriber = new RedisStreamEventSubscriber(
     progressRedisClient,
   );
 
-  // 9. Progress controller
   const progressController = new ProgressController(
     progressEventSubscriber,
     sseResponseHelper,
@@ -172,7 +164,43 @@ export function createPipelineModule(deps: {
     streamEventBuffer,
   );
 
-  // 10. Voice preview
+  // --- Rate limiting (Redis-backed, survives restarts) ---
+  const rateLimitRedis = new Redis(deps.redisConnection);
+
+  // Generous enough for judges doing a full evaluation, strict enough to stop abuse
+  const jobCreationLimiter = new RedisRateLimiter(
+    rateLimitRedis, 5, TEN_MINUTES, "rl:job-create",
+  );
+  const llmOperationLimiter = new RedisRateLimiter(
+    rateLimitRedis, 15, TEN_MINUTES, "rl:llm-op",
+  );
+  const exportLimiter = new RedisRateLimiter(
+    rateLimitRedis, 3, TEN_MINUTES, "rl:export",
+  );
+  const voicePreviewLimiter = new RedisRateLimiter(
+    rateLimitRedis, 25, ONE_MINUTE, "rl:voice-preview",
+  );
+
+  const pipelineRateLimiters = {
+    jobCreation: createRateLimitMiddleware({
+      limiter: jobCreationLimiter,
+      message: "Hackathon demo limit reached — max 5 videos per 10 minutes. Please wait a moment and try again.",
+    }),
+    llmOperation: createRateLimitMiddleware({
+      limiter: llmOperationLimiter,
+      message: "Hackathon demo limit reached — AI generation requests are capped to manage costs. Please wait a few minutes.",
+    }),
+    exportOperation: createRateLimitMiddleware({
+      limiter: exportLimiter,
+      message: "Hackathon demo limit reached — max 3 exports per 10 minutes. Please wait a moment and try again.",
+    }),
+  };
+
+  const voicePreviewRateLimitMiddleware = createRateLimitMiddleware({
+    limiter: voicePreviewLimiter,
+    message: "Hackathon demo limit reached — voice preview requests are capped. Please wait a moment.",
+  });
+
   const ttsService = new ElevenLabsTTSService(
     { apiKey: deps.elevenlabsApiKey },
     deps.objectStore,
@@ -183,21 +211,18 @@ export function createPipelineModule(deps: {
   const voicePreviewController = new VoicePreviewController(
     generateVoicePreviewUseCase,
   );
-  const rateLimiter = new InMemoryRateLimiter(10, 60_000);
-  const rateLimitMiddleware = createRateLimitMiddleware(rateLimiter);
   const voicePreviewRouter = createVoicePreviewRouter(
     voicePreviewController,
-    rateLimitMiddleware,
+    voicePreviewRateLimitMiddleware,
   );
 
-  // 11. Pipeline router + audio proxy route
   const pipelineRouter = createPipelineRouter(
     controller,
     streamController,
     progressController,
+    pipelineRateLimiters,
   );
 
-  // 12. Audio proxy route (serves audio through API to avoid browser/MinIO compatibility issues)
   pipelineRouter.get("/jobs/:id/audio", async (req, res) => {
     try {
       const job = await deps.prisma.pipelineJob.findUnique({
@@ -225,7 +250,6 @@ export function createPipelineModule(deps: {
     }
   });
 
-  // 13. Thumbnail proxy route
   pipelineRouter.get("/jobs/:id/thumbnail", async (req, res) => {
     try {
       const job = await deps.prisma.pipelineJob.findUnique({
@@ -250,7 +274,6 @@ export function createPipelineModule(deps: {
     }
   });
 
-  // 14. Video proxy route (avoids MinIO MetadataTooLarge on signed URLs)
   pipelineRouter.get("/jobs/:id/video", async (req, res) => {
     try {
       const job = await deps.prisma.pipelineJob.findUnique({
@@ -278,7 +301,6 @@ export function createPipelineModule(deps: {
     }
   });
 
-  // 14. Combine routers
   const router = Router();
   router.use(pipelineRouter);
   router.use(voicePreviewRouter);

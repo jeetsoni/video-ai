@@ -1,4 +1,9 @@
-export class InMemoryRateLimiter {
+import type {
+  RateLimiter,
+  RateLimitResult,
+} from "@/shared/domain/interfaces/rate-limiter.js";
+
+export class InMemoryRateLimiter implements RateLimiter {
   private readonly maxRequests: number;
   private readonly windowMs: number;
   private readonly requests: Map<string, number[]> = new Map();
@@ -8,7 +13,7 @@ export class InMemoryRateLimiter {
     this.windowMs = windowMs;
   }
 
-  isAllowed(key: string): { allowed: boolean; retryAfterMs?: number } {
+  isAllowed(key: string): RateLimitResult {
     const now = Date.now();
     const windowStart = now - this.windowMs;
 

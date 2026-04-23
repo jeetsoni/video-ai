@@ -185,6 +185,7 @@ export function VideoPreviewPage({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isAutofixing, setIsAutofixing] = useState(false);
   const [autofixExplanation, setAutofixExplanation] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("preview");
 
   // Progressive preview player state — used when scenes are being generated
@@ -239,11 +240,14 @@ export function VideoPreviewPage({
   const handleRegenerateCode = useCallback(async () => {
     setIsRegenerating(true);
     setAutofixExplanation(null);
+    setActionError(null);
     try {
       await repository.regenerateCode(job.id);
       onRefresh?.();
-    } catch {
-      // Polling will pick up the state change
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Regeneration failed. Please try again.",
+      );
     } finally {
       setIsRegenerating(false);
     }
@@ -254,6 +258,7 @@ export function VideoPreviewPage({
 
     setIsAutofixing(true);
     setAutofixExplanation(null);
+    setActionError(null);
 
     let errorType = "Runtime Error";
     if (previewError.includes("ReferenceError") || previewError.includes("is not defined")) {
@@ -273,7 +278,9 @@ export function VideoPreviewPage({
       setAutofixExplanation(result.explanation);
       await refetch();
     } catch (err) {
-      console.error("Autofix failed:", err);
+      setActionError(
+        err instanceof Error ? err.message : "Autofix failed. Please try again.",
+      );
     } finally {
       setIsAutofixing(false);
     }
@@ -283,6 +290,7 @@ export function VideoPreviewPage({
     async (errorMessage: string, errorType: string) => {
       setIsAutofixing(true);
       setAutofixExplanation(null);
+      setActionError(null);
       try {
         const result = await repository.autofixCode({
           jobId: job.id,
@@ -292,7 +300,9 @@ export function VideoPreviewPage({
         setAutofixExplanation(result.explanation);
         await refetch();
       } catch (err) {
-        console.error("Autofix failed:", err);
+        setActionError(
+          err instanceof Error ? err.message : "Autofix failed. Please try again.",
+        );
       } finally {
         setIsAutofixing(false);
       }
@@ -508,6 +518,21 @@ export function VideoPreviewPage({
               <RefreshCw className="size-3.5" />Refresh
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Action error banner (rate limits, failed operations) */}
+      {actionError && (
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-stage-failed/30 bg-stage-failed/10 px-4 py-3 mb-3 shrink-0">
+          <AlertTriangle className="size-4 shrink-0 text-stage-failed" />
+          <p className="flex-1 text-sm text-stage-failed">{actionError}</p>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-stage-failed/60 hover:text-stage-failed text-xs shrink-0"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 

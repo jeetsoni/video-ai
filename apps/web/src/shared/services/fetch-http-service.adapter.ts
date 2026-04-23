@@ -13,8 +13,7 @@ export class FetchHttpServiceAdapter implements HttpClient {
     const response = await fetch(url, {
       headers: this.defaultHeaders(),
     });
-    if (!response.ok)
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!response.ok) await this.throwApiError(response);
     return response.json() as Promise<T>;
   }
 
@@ -29,8 +28,7 @@ export class FetchHttpServiceAdapter implements HttpClient {
       headers: { ...this.defaultHeaders(), "Content-Type": "application/json", ...params.headers },
       body: JSON.stringify(params.body),
     });
-    if (!response.ok)
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!response.ok) await this.throwApiError(response);
     return response.json() as Promise<T>;
   }
 
@@ -41,8 +39,7 @@ export class FetchHttpServiceAdapter implements HttpClient {
       headers: { ...this.defaultHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(params.body),
     });
-    if (!response.ok)
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!response.ok) await this.throwApiError(response);
     return response.json() as Promise<T>;
   }
 
@@ -53,9 +50,14 @@ export class FetchHttpServiceAdapter implements HttpClient {
       headers: { ...this.defaultHeaders(), "Content-Type": "application/json" },
       body: params.body ? JSON.stringify(params.body) : undefined,
     });
-    if (!response.ok)
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!response.ok) await this.throwApiError(response);
     return response.json() as Promise<T>;
+  }
+
+  private async throwApiError(response: Response): Promise<never> {
+    const body = await response.json().catch(() => null);
+    const message = body?.message ?? `HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(message);
   }
 
   private defaultHeaders(): Record<string, string> {

@@ -1,17 +1,28 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import { HttpRequest } from "@/shared/presentation/http/http-request.js";
 import { HttpResponse } from "@/shared/presentation/http/http-response.js";
 import type { PipelineController } from "../controllers/pipeline.controller.js";
 import type { StreamController } from "../controllers/stream.controller.js";
 import type { ProgressController } from "../controllers/progress.controller.js";
 
+export interface PipelineRateLimiters {
+  jobCreation: RequestHandler;
+  llmOperation: RequestHandler;
+  exportOperation: RequestHandler;
+}
+
 export function createPipelineRouter(
   controller: PipelineController,
   streamController: StreamController,
   progressController: ProgressController,
+  rateLimiters?: PipelineRateLimiters,
 ): Router {
   const router = Router();
+  const noop: RequestHandler = (_req, _res, next) => next();
+  const jobCreation = rateLimiters?.jobCreation ?? noop;
+  const llmOp = rateLimiters?.llmOperation ?? noop;
+  const exportOp = rateLimiters?.exportOperation ?? noop;
 
   router.get("/showcase", async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
@@ -19,7 +30,7 @@ export function createPipelineRouter(
     await controller.listShowcase(httpReq, httpRes);
   });
 
-  router.post("/jobs", async (req: Request, res: Response) => {
+  router.post("/jobs", jobCreation, async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.createJob(httpReq, httpRes);
@@ -48,6 +59,7 @@ export function createPipelineRouter(
 
   router.post(
     "/jobs/:id/regenerate-script",
+    llmOp,
     async (req: Request, res: Response) => {
       const httpReq = HttpRequest.fromExpress(req);
       const httpRes = HttpResponse.fromExpress(res);
@@ -57,6 +69,7 @@ export function createPipelineRouter(
 
   router.post(
     "/jobs/:id/regenerate-code",
+    llmOp,
     async (req: Request, res: Response) => {
       const httpReq = HttpRequest.fromExpress(req);
       const httpRes = HttpResponse.fromExpress(res);
@@ -64,7 +77,7 @@ export function createPipelineRouter(
     },
   );
 
-  router.post("/jobs/:id/autofix-code", async (req: Request, res: Response) => {
+  router.post("/jobs/:id/autofix-code", llmOp, async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.autofixCode(httpReq, httpRes);
@@ -102,13 +115,13 @@ export function createPipelineRouter(
     await controller.getPreviewData(httpReq, httpRes);
   });
 
-  router.post("/jobs/:id/export", async (req: Request, res: Response) => {
+  router.post("/jobs/:id/export", exportOp, async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.exportVideo(httpReq, httpRes);
   });
 
-  router.post("/jobs/:id/tweak", async (req: Request, res: Response) => {
+  router.post("/jobs/:id/tweak", llmOp, async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.sendTweak(httpReq, httpRes);
@@ -123,7 +136,7 @@ export function createPipelineRouter(
     },
   );
 
-  router.post("/jobs/:id/script-tweak", async (req: Request, res: Response) => {
+  router.post("/jobs/:id/script-tweak", llmOp, async (req: Request, res: Response) => {
     const httpReq = HttpRequest.fromExpress(req);
     const httpRes = HttpResponse.fromExpress(res);
     await controller.sendScriptTweak(httpReq, httpRes);
