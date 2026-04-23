@@ -17,9 +17,6 @@ export function AppHeader() {
           >
             My Projects
           </Link>
-          <div className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-            U
-          </div>
         </div>
       </div>
     </header>
