@@ -10,8 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Video AI",
+  title: "KalpanaAI",
   description: "AI-powered video editing platform",
+  icons: {
+    icon: "/logo/kalpana-logo.png",
+    apple: "/logo/kalpana-logo.png",
+  },
 };
 
 export default function RootLayout({

@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export function AppHeader() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 pointer-events-none bg-gradient-to-b from-background to-transparent">
       <div className="pointer-events-auto mx-auto flex h-14 max-w-7xl items-center justify-between px-6 pt-2">
-        <Link href="/" className="text-lg font-bold tracking-tight text-white">
+        <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-white">
+          <Image
+            src="/logo/kalpana-logo.png"
+            alt="KalpanaAI"
+            width={32}
+            height={32}
+            className="rounded-md"
+          />
           KalpanaAI
         </Link>
 
