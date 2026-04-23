@@ -128,41 +128,60 @@ export function ShowcaseCarousel() {
     el.scrollBy({ left: dir === "left" ? -360 : 360, behavior: "smooth" });
   }, []);
 
-  if (isLoading || jobs.length === 0) return null;
+  if (!isLoading && jobs.length === 0) return null;
 
   return (
     <section className="w-screen relative left-1/2 -translate-x-1/2 space-y-8">
       <div className="max-w-7xl mx-auto px-6 flex items-end justify-between">
-        <h2 className="text-[36px] md:text-[42px] font-light text-white">Made with Video AI</h2>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => scroll("left")}
-            className="size-10 rounded-full border border-white/[0.12] flex items-center justify-center text-white/50 hover:text-white hover:border-white/[0.25] transition-all"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scroll("right")}
-            className="size-10 rounded-full border border-white/[0.12] flex items-center justify-center text-white/50 hover:text-white hover:border-white/[0.25] transition-all"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
+        <h2 className="text-[36px] md:text-[42px] font-light text-white">Created by Our Community</h2>
+        {!isLoading && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => scroll("left")}
+              className="size-10 rounded-full border border-white/[0.12] flex items-center justify-center text-white/50 hover:text-white hover:border-white/[0.25] transition-all"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scroll("right")}
+              className="size-10 rounded-full border border-white/[0.12] flex items-center justify-center text-white/50 hover:text-white hover:border-white/[0.25] transition-all"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide py-2 -my-2 pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]"
-        onMouseEnter={() => { pausedRef.current = true; }}
-        onMouseLeave={() => { pausedRef.current = false; }}
-      >
-        {jobs.map((job) => (
-          <CarouselCard key={job.id} job={job} muted={muted} onToggleMute={() => setMuted((m) => !m)} />
-        ))}
-        <div className="shrink-0 w-6" />
-      </div>
+      {isLoading ? (
+        <div className="flex gap-6 py-2 -my-2 pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="shrink-0 w-[340px] rounded-2xl overflow-hidden bg-white/[0.03] border border-white/[0.08]"
+            >
+              <div className="aspect-[9/16] bg-white/[0.04] animate-pulse" />
+              <div className="px-5 py-4 space-y-2">
+                <div className="h-3 w-16 rounded bg-white/[0.06] animate-pulse" />
+                <div className="h-4 w-3/4 rounded bg-white/[0.06] animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          ref={scrollRef}
+          className="flex gap-6 overflow-x-auto overflow-y-hidden scrollbar-hide py-2 -my-2 pl-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]"
+          onMouseEnter={() => { pausedRef.current = true; }}
+          onMouseLeave={() => { pausedRef.current = false; }}
+        >
+          {jobs.map((job) => (
+            <CarouselCard key={job.id} job={job} muted={muted} onToggleMute={() => setMuted((m) => !m)} />
+          ))}
+          <div className="shrink-0 w-6" />
+        </div>
+      )}
     </section>
   );
 }

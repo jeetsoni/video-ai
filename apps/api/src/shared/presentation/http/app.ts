@@ -8,6 +8,7 @@ import { createPipelineModule } from "@/pipeline/presentation/factories/pipeline
 import { createBrowserIdMiddleware } from "@/shared/presentation/middleware/browser-id.middleware.js";
 import { RedisRateLimiter } from "@/shared/infrastructure/rate-limiter/redis-rate-limiter.js";
 import { createRateLimitMiddleware } from "@/shared/presentation/middleware/rate-limit.middleware.js";
+import { errorHandlerMiddleware } from "@/shared/presentation/middleware/error-handler.middleware.js";
 
 export function createApp(deps?: {
   prisma: PrismaClient;
@@ -54,6 +55,8 @@ export function createApp(deps?: {
     app.use(createBrowserIdMiddleware(deps.prisma));
     app.use("/api/pipeline", createPipelineModule(deps));
   }
+
+  app.use(errorHandlerMiddleware);
 
   return app;
 }
