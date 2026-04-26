@@ -12,7 +12,7 @@ function getApiBaseUrl(): string {
       hostname.includes("railway.app") ||
       hostname.includes("kalpanaai.video")
     ) {
-      return "https://video-ai-production.up.railway.app";
+      return "https://api.kalpanaai.video";
     }
   }
   return "http://localhost:4000";
